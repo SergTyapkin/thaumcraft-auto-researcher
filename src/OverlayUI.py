@@ -1,11 +1,12 @@
 import sys
-from typing import Union, Callable
+from typing import Union, Callable, Any
 
 from PyQt5 import QtGui
-from PyQt5.QtCore import Qt, QThread, QObject
+from PyQt5.QtCore import Qt, QThread, QObject, QEvent
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
+from src.LinkableValue import editLinkableValue
 from src.utils import distance
 from src.UIPrimitives import Point, Line, Rect, Text, Image
 
@@ -15,57 +16,12 @@ FPS = 60
 FRAME_TIME = int(1000 / FPS)
 
 
-class LinkableValue:
-    def __init__(self, val: float):
-        self.val = val
-
-    def __float__(self):
-        return float(self.val)
-
-    def __int__(self):
-        return int(self.val)
-
-    def __add__(self, other):
-        if isinstance(other, LinkableValue):
-            return self.val + other.val
-        return self.val + other
-
-    def __sub__(self, other):
-        if isinstance(other, LinkableValue):
-            return self.val - other.val
-        return self.val - other
-
-    def __mul__(self, other):
-        if isinstance(other, LinkableValue):
-            return self.val * other.val
-        return self.val * other
-
-    def __divmod__(self, other):
-        if isinstance(other, LinkableValue):
-            return self.val / other.val
-        return self.val / other
-    # def __str__(self):
-    #     return str(self.val)
-
-
-class LinkableCoord:
-    def __init__(self, x: float, y: float):
-        self.x = LinkableValue(x)
-        self.y = LinkableValue(y)
-    # def __str__(self):
-    #     return f'({self.x}, {self.y})'
-
-
-def editLinkableValue(oldVal: Union[float, LinkableValue], newVal: float) -> Union[float, LinkableValue]:
-    if isinstance(oldVal, LinkableValue):
-        oldVal.val = newVal
-        return oldVal
-    return newVal
-
-
 class _Window(QMainWindow):
     objects: list[UIPrimitive] = []
-    keysCallbacks: dict[Qt.Key, Callable] = {}
+    keysCallbacks: dict[Qt.Key, (Callable, list[Any])] = {}
+    mousePressCallbacks: list[(Callable, list[Any])] = []
+    mouseReleaseCallbacks: list[(Callable, list[Any])] = []
+    mouseMoveCallbacks: list[(Callable, list[Any])] = []
     currentMovingObject = None
 
     def __init__(self, opacity=1.0, w=None, h=None):
@@ -130,6 +86,9 @@ class _Window(QMainWindow):
                 self.currentMovingObject = obj
                 break
 
+        for callback in self.mousePressCallbacks:
+            callback[0](event.x(), event.y(), *callback[1])
+
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if self.currentMovingObject is None:
             return
@@ -137,16 +96,22 @@ class _Window(QMainWindow):
         self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x, event.x())
         self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y, event.y())
 
+        for callback in self.mouseMoveCallbacks:
+            callback[0](event.x(), event.y(), *callback[1])
+
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         self.currentMovingObject = None
+        for callback in self.mouseReleaseCallbacks:
+            callback[0](event.x(), event.y(), *callback[1])
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         for key in self.keysCallbacks.keys():
             if event.key() == key:
-                self.keysCallbacks[key]()
+                self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
 
     def addObject(self, obj: UIPrimitive):
         self.objects.append(obj)
+        return obj
 
     def clear(self):
         self.objects = []
@@ -158,8 +123,29 @@ class _Window(QMainWindow):
                 res.append(obj)
         return res
 
-    def setKeyCallback(self, key: Qt.Key, callback: Callable):
-        self.keysCallbacks[key] = callback
+    def setKeyCallback(self, key: Qt.Key, callback: Callable, *args: list[Any]):
+        self.keysCallbacks[key] = (callback, args)
+
+    def setMouseCallback(self, eventType: QEvent.Type, callback: Callable, *args: list[Any]):
+        if eventType == QEvent.MouseButtonPress:
+            self.mousePressCallbacks.append((callback, args))
+        elif eventType == QEvent.MouseButtonRelease:
+            self.mouseReleaseCallbacks.append((callback, args))
+        elif eventType == QEvent.MouseMove:
+            self.mouseMoveCallbacks.append((callback, args))
+
+    def clearKeyCallbacks(self):
+        self.keysCallbacks = {}
+
+    def clearMouseCallbacks(self):
+        self.mousePressCallbacks = []
+        self.mouseReleaseCallbacks = []
+        self.mouseMoveCallbacks = []
+
+    def clearAll(self):
+        self.clearKeyCallbacks()
+        self.clearMouseCallbacks()
+        self.clear()
 
 
 class _Worker(QObject):

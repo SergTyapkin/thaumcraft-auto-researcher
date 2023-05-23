@@ -3,15 +3,21 @@ from enum import Enum
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QPixmap, QFont, QPen, QBrush
 
+from src.LinkableValue import LinkableValue
+from src.utils import distance
 
 DEFAULT_POINT_SIZE = 21
 DEFAULT_COLOR = QColor('red')
 DEFAULT_LINE_WIDTH = 3
 DEFAULT_FONT = QFont('Arial', 14, 500, False)
+DEFAULT_PADDING = 20
+
+
+def opacityToAlpha(opacity: float) -> int:
+    return int(opacity * 255)
+
 
 _objectIdValue = 0
-
-
 class _Object:
     id = None
     lineWidth = DEFAULT_LINE_WIDTH
@@ -54,6 +60,9 @@ class Point(_Object):
             painter.drawEllipse(int(self.x - self.size / 3), int(self.y - self.size / 3), int(self.size / 3 * 2),
                                 int(self.size / 3 * 2))
 
+    def isOnPoint(self, x: float, y: float):
+        return distance(x, y, self.x, self.y) <= (self.size / 2)
+
 
 class Line(_Object):
     def __init__(self, x1: float, y1: float, x2: float, y2: float, color=DEFAULT_COLOR, width=DEFAULT_LINE_WIDTH,
@@ -89,7 +98,7 @@ class Rect(_Object):
         self.color = color
         self.lineWidth = lineWidth
         self.fill = fill
-        self.fill.setAlpha(int(fillOpacity * 255))
+        self.fill.setAlpha(opacityToAlpha(fillOpacity))
 
         super().__init__()
 
@@ -109,8 +118,11 @@ class Align(Enum):
     bottom = Qt.AlignBottom
     center = Qt.AlignCenter
 
+
 class Text(_Object):
-    def __init__(self, x: float, y: float, text: str, font=DEFAULT_FONT, color=DEFAULT_COLOR, align: Align = Align.left):
+    def __init__(self, x: float, y: float, text: str, font=DEFAULT_FONT, color=DEFAULT_COLOR, align: Align = Align.left,
+                 withBackground=False, backgroundColor=QColor('black'), backgroundOpacity=0.5, padding=DEFAULT_PADDING,
+                 movable=False, UI=None):
         lines = text.split('\n')
         self.w = max(map(len, lines)) * font.pointSize() / 1.1
         self.h = font.pointSize() * 2 * len(lines)
@@ -123,13 +135,41 @@ class Text(_Object):
         self.font = font
         self.color = color
         self.align = align
+        self.backgroundColor = QColor('transparent')
+        self.withBackground = withBackground
+        if self.withBackground:
+            self.backgroundColor = backgroundColor
+            self.backgroundColor.setAlpha(opacityToAlpha(backgroundOpacity))
+            self.padding = padding
+            self.w += padding * 2
+            self.h += padding * 2
+
+        self.movable = movable
+        self.UI = UI
+        if self.movable:
+            if self.UI is None:
+                raise TypeError("<class Text>: If argument movable=True, argument UI must be provided!")
+            self.x = LinkableValue(self.x)
+            self.y = LinkableValue(self.y)
+            pointColor = QColor(self.backgroundColor)
+            pointColor.setAlpha(255)
+            self.LT = Point(self.x, self.y, movable=True, color=pointColor)
+            self.UI.addObject(self.LT)
 
         super().__init__()
 
     def render(self, painter: QPainter):
         super().render(painter)
         painter.setFont(self.font)
-        painter.drawText(int(self.x), int(self.y), int(self.w), int(self.h), self.align.value, self.text)
+        if self.withBackground:
+            painter.fillRect(int(self.x), int(self.y), int(self.w), int(self.h), self.backgroundColor)
+            painter.drawText(int(self.x + self.padding), int(self.y + self.padding), int(self.w - self.padding * 2),
+                             int(self.h - self.padding * 2), self.align.value, self.text)
+        else:
+            painter.drawText(int(self.x), int(self.y), int(self.w), int(self.h), self.align.value, self.text)
+
+        if self.movable:
+            self.LT.render(painter)
 
 
 class Image(_Object):

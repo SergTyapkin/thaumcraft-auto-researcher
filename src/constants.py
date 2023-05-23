@@ -1,2 +1,5 @@
 MARGIN = 20
 FPS = 60
+
+THAUM_CONTROLS_CONFIG_DIR = 'configs'
+THAUM_CONTROLS_CONFIG_NAME = 'thaumControlsConfig.json'
