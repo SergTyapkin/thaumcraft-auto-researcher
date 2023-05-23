@@ -3,7 +3,7 @@ from enum import Enum
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QPixmap, QFont, QPen, QBrush
 
-from src.LinkableValue import LinkableValue
+from src.LinkableValue import LinkableValue, editLinkableValue
 from src.utils import distance
 
 DEFAULT_POINT_SIZE = 21
@@ -129,8 +129,8 @@ class Text(_Object):
         self.x = x
         self.y = y
         if align == Align.center:
-            self.x -= self.w / 2
-            self.y -= self.h / 2
+            self.x = editLinkableValue(self.x, self.x - self.w / 2)
+            self.y = editLinkableValue(self.y, self.y - self.h / 2)
         self.text = text
         self.font = font
         self.color = color
@@ -149,8 +149,10 @@ class Text(_Object):
         if self.movable:
             if self.UI is None:
                 raise TypeError("<class Text>: If argument movable=True, argument UI must be provided!")
-            self.x = LinkableValue(self.x)
-            self.y = LinkableValue(self.y)
+            if not isinstance(self.x, LinkableValue):
+                self.x = LinkableValue(self.x)
+            if not isinstance(self.y, LinkableValue):
+                self.y = LinkableValue(self.y)
             pointColor = QColor(self.backgroundColor)
             pointColor.setAlpha(255)
             self.LT = Point(self.x, self.y, movable=True, color=pointColor)

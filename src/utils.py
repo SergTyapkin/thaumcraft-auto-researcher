@@ -19,7 +19,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-def saveThaumControlsConfig(pointWritingMaterials, pointScrolls, rectAspectsListingLT, rectAspectsListingRB,
+def saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListingLT, rectAspectsListingRB,
                             pointAspectsScrollLeft, pointAspectsScrollRight,
                             pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventoryLT,
                             rectInventoryRB, rectHexagonsLT, rectHexagonsRB):
@@ -29,7 +29,7 @@ def saveThaumControlsConfig(pointWritingMaterials, pointScrolls, rectAspectsList
     with open(os.path.join(THAUM_CONTROLS_CONFIG_DIR, THAUM_CONTROLS_CONFIG_NAME), 'w') as file:
         json.dump({
             "pointWritingMaterials": {"x": pointWritingMaterials.x, "y": pointWritingMaterials.y},
-            "pointScrolls": {"x": pointScrolls.x, "y": pointScrolls.y},
+            "pointPapers": {"x": pointPapers.x, "y": pointPapers.y},
             "rectAspectsListingLT": {"x": rectAspectsListingLT.x, "y": rectAspectsListingLT.y},
             "rectAspectsListingRB": {"x": rectAspectsListingRB.x, "y": rectAspectsListingRB.y},
             "pointAspectsScrollLeft": {"x": pointAspectsScrollLeft.x, "y": pointAspectsScrollLeft.y},

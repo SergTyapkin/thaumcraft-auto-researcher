@@ -4,20 +4,22 @@ from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
 
 from src.LinkableValue import LinkableCoord, LinkableValue
+from src.OverlayUI import OverlayUI
 from src.ThaumInteractor import ThaumInteractor
 from src.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
 from src.constants import MARGIN
 from src.utils import distance, saveThaumControlsConfig, readThaumControlsConfig
 
 
-def enroll(UI):
+pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
+def enroll(UI: OverlayUI):
     UI.setKeyCallback(Qt.Key_Return, configureThaumWindow, UI)
 
     UI.clearAll()
 
     (cx, cy) = UI.getCenter()
     UI.addObject(Text(
-        MARGIN, MARGIN,
+        pointTextAnchor.x, pointTextAnchor.y,
         """Привет. Сначала нужно будет дать знать программе, где на экране находится игра.
 Для этого в этом окошке будет показан текст с подсказками.
 Вот такие точки можно перемещать:
@@ -45,12 +47,12 @@ def enroll(UI):
     UI.setMouseCallback(QEvent.MouseMove, onMouseMove)
 
 
-def configureThaumWindow(UI):
+def configureThaumWindow(UI: OverlayUI):
     def getThaumWindowCoords():
         UI.clearAll()
 
         UI.addObject(Text(
-            MARGIN * 2, MARGIN * 2,
+            pointTextAnchor.x, pointTextAnchor.y,
             """Отлично! Сперва обозначим окно стола исследований.
 Открой интерфейс стола исследований, а потом передвинь две точки так, 
 чтобы прямоугольник обозначал границу этого окна.
@@ -84,7 +86,7 @@ def configureThaumWindow(UI):
         UI.clearAll()
 
         UI.addObject(Text(
-            MARGIN * 2, MARGIN * 2,
+            pointTextAnchor.x, pointTextAnchor.y,
             """Программа автоматически определила положения кнопок взаимодействия 
 так, как ты видишь. Не факт, что это правильно, так что внимательно посмотри на точки,
 и, если нужно, передвинь их точно на нужные слоты / кнопки. Вот список, где какие точки:
@@ -97,7 +99,7 @@ def configureThaumWindow(UI):
 Фиолетовая область - 9х3 внутренних слотов инвентаря.
 
 Как будет готово - жми [Enter]
-!! После завершения окно с игрой нельзя передвигать по экрану !!""",
+(!!! После завершения окно с игрой нельзя передвигать по экрану !!!)""",
             color=QColor('white'),
             padding=MARGIN,
             withBackground=True,
@@ -110,7 +112,7 @@ def configureThaumWindow(UI):
         topSlotsY = LinkableValue(LTy + Hs * 0.85)
         pointWritingMaterials = UI.addObject(
             Point(LTx + Ws * 1, topSlotsY, movable=True, color=QColor('yellow')))  # writing materials
-        pointScrolls = UI.addObject(Point(LTx + Ws * 4.5, topSlotsY, movable=True, color=QColor('yellow')))  # scrolls
+        pointPapers = UI.addObject(Point(LTx + Ws * 4.5, topSlotsY, movable=True, color=QColor('yellow')))  # scrolls
 
         rectLT = LinkableCoord(LTx + Ws * 0.25, LTy + Hs * 2.25)
         rectRB = LinkableCoord(LTx + Ws * 5.25, LTy + Hs * 7.25)
@@ -153,7 +155,7 @@ def configureThaumWindow(UI):
 
         def saveControls():
             UI.clearKeyCallbacks()
-            saveThaumControlsConfig(pointWritingMaterials, pointScrolls, rectAspectsListing.LT, rectAspectsListing.RB,
+            saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListing.LT, rectAspectsListing.RB,
                                     pointAspectsScrollLeft, pointAspectsScrollRight,
                                     pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventory.LT,
                                     rectInventory.RB, rectHexagons.LT, rectHexagons.RB)
@@ -165,6 +167,7 @@ def configureThaumWindow(UI):
     getThaumWindowCoords()
 
 
-def runResearching(UI, TI):
+def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     UI.clearAll()
-
+    
+    
