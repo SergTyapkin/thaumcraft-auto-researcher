@@ -1,22 +1,38 @@
+THAUM_VERSION = '4.1.1.14'
+
 # UI and visual part
 MARGIN = 20
 FPS = 60
 
 # Files names
-THAUM_CONTROLS_CONFIG_DIR = 'configs'
-THAUM_CONTROLS_CONFIG_NAME = 'thaumControlsConfig.json'
+THAUM_CONTROLS_CONFIG_PATH = 'configs/thaumControlsConfig.json'
+THAUM_ASPECT_RECIPES_CONFIG_PATH = 'configs/aspectsRecipes.json'
+THAUM_TRANSLATION_CONFIG_PATH = 'configs/translationDictionary.json'
+def getAspectImagePath(aspectName, color=True):
+    return f"images/{'color' if color else 'mono'}/{aspectName}.png"
+def getNumberImagePath(number):
+    return f"images/numbers/{number}.png"
+EMPTY_ASPECT_SLOT_IMAGE_PATH = 'images/emptyAspectPlace.png'
+HEXAGON_MASK_IMAGE_PATH = 'images/hexagonMask.png'
+MASK_WITHOUT_NUMBER_IMAGE_PATH = 'images/maskWithoutNumbers.png'
+MASK_ONLY_NUMBER_IMAGE_PATH = 'images/maskOnlyNumbers.png'
+NONE_HEXAGON_SLOT_IMAGE_PATH = 'images/noneHexagon.png'
+FREE_HEXAGON_SLOT_IMAGE_PATH = 'images/freeHexagon.png'
+ASPECTS_IMAGES_SIZE = 32  # px
+ASPECT_COUNT_NUMBER_SIZE = (6, 10)  # px
 
 # In-game inventory
 # !!! Don't touch if you not sure !!!
 INVENTORY_SLOTS_X = 9
 INVENTORY_SLOTS_Y = 3
-INVENTORY_SLOTS_TOTAL = INVENTORY_SLOTS_X * INVENTORY_SLOTS_Y
 
 THAUM_ASPECTS_INVENTORY_SLOTS_X = 5
 THAUM_ASPECTS_INVENTORY_SLOTS_Y = 5
-THAUM_ASPECTS_INVENTORY_SLOTS_TOTAL = THAUM_ASPECTS_INVENTORY_SLOTS_X * THAUM_ASPECTS_INVENTORY_SLOTS_Y
 
-THAUM_HEXAGONS_SLOTS_X = 11
-THAUM_HEXAGONS_SLOTS_Y = 11
+THAUM_HEXAGONS_SLOTS_COUNT = 9  # must be odd
 
-DELAY_BETWEEN_EVENTS = 1  # secs
+DELAY_BETWEEN_EVENTS = 0.1  # secs
+DELAY_BETWEEN_RENDER = 0.5  # secs
+
+EMPTY_TOLERANCE_PERCENT = 0.02
+

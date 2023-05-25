@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Callable
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QPixmap, QFont, QPen, QBrush
@@ -39,13 +40,14 @@ class _Object:
 
 class Point(_Object):
     def __init__(self, x: float, y: float, size=DEFAULT_POINT_SIZE, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 movable=False):
+                 movable=False, onMoveCallback: Callable = None):
         self.x = x
         self.y = y
         self.size = size
         self.color = color
         self.lineWidth = lineWidth
         self.movable = movable
+        self.onMoveCallback = onMoveCallback
 
         super().__init__()
 

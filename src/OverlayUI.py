@@ -1,6 +1,8 @@
 import sys
+from enum import Enum
 from typing import Union, Callable, Any
 
+import keyboard
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QThread, QObject, QEvent
 from PyQt5.QtGui import QPainter
@@ -16,9 +18,19 @@ FPS = 60
 FRAME_TIME = int(1000 / FPS)
 
 
+class KeyboardKeys(Enum):
+    esc = 1
+    ctrl = 29
+    shift = 42
+    alt = 56
+    tab = 15
+    enter = 28
+    space = 57
+
+
 class _Window(QMainWindow):
     objects: list[UIPrimitive] = []
-    keysCallbacks: dict[Qt.Key, (Callable, list[Any])] = {}
+    keysCallbacks: dict[KeyboardKeys, (Callable, list[Any])] = {}
     mousePressCallbacks: list[(Callable, list[Any])] = []
     mouseReleaseCallbacks: list[(Callable, list[Any])] = []
     mouseMoveCallbacks: list[(Callable, list[Any])] = []
@@ -40,37 +52,21 @@ class _Window(QMainWindow):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowOpacity(opacity)
 
-        # widget = QWidget()
-        # self.setCentralWidget(widget)
-        # pixmap1 = QPixmap('image.png')
-        # pixmap1 = pixmap1.scaledToWidth(self.w)
-        # pixmap1 = pixmap1.scaledToHeight(self.h)
-        # imageOnLabel = QLabel()
-        # imageOnLabel.setPixmap(pixmap1)
-        #
-        # layout_box = QHBoxLayout(widget)
-        # layout_box.setContentsMargins(0, 0, 0, 0)
-        # layout_box.addWidget(imageOnLabel)
-        #
-        # p = self.geometry().bottomRight() - image.geometry().bottomRight() - QPoint(100, 100)
-        # image.move(p)
+        def onKeyboardEvent(event: keyboard.KeyboardEvent):
+            if event.event_type != keyboard.KEY_DOWN:
+                return
 
-        # self._path = QPainterPath()
-        # self.DC = QDesktopWidget()
+            for key in self.keysCallbacks.keys():
+                if event.scan_code == key:
+                    self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
+        keyboard._listener.add_handler(onKeyboardEvent)
 
-        timerId = self.startTimer(FRAME_TIME)
+        _ = self.startTimer(FRAME_TIME)
 
     def getCenter(self):
         return self.w / 2, self.h / 2
 
     def timerEvent(self, t):
-        # if len(self.objects) > 0:
-        #     self.objects[0].RB.x = editLinkableValue(self.objects[0].RB.x, self.objects[0].RB.x + 1)
-        #     self.objects[0].RB.y = editLinkableValue(self.objects[0].RB.y, self.objects[0].RB.y + 1)
-
-        # if GetKeyState(0x01) < -1:
-        #     sys.exit()
-
         self.update()
 
     def paintEvent(self, event):
@@ -96,6 +92,10 @@ class _Window(QMainWindow):
         self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x, event.x())
         self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y, event.y())
 
+        onMoveCallback = getattr(self.currentMovingObject, 'onMoveCallback')
+        if onMoveCallback is not None:
+            onMoveCallback()
+
         for callback in self.mouseMoveCallbacks:
             callback[0](event.x(), event.y(), *callback[1])
 
@@ -103,11 +103,6 @@ class _Window(QMainWindow):
         self.currentMovingObject = None
         for callback in self.mouseReleaseCallbacks:
             callback[0](event.x(), event.y(), *callback[1])
-
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        for key in self.keysCallbacks.keys():
-            if event.key() == key:
-                self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
 
     def addObject(self, obj: UIPrimitive):
         self.objects.append(obj)
@@ -123,8 +118,8 @@ class _Window(QMainWindow):
                 res.append(obj)
         return res
 
-    def setKeyCallback(self, key: Qt.Key, callback: Callable, *args: list[Any]):
-        self.keysCallbacks[key] = (callback, args)
+    def setKeyCallback(self, key: KeyboardKeys, callback: Callable, *args: list[Any]):
+        self.keysCallbacks[key.value] = (callback, args)
 
     def setMouseCallback(self, eventType: QEvent.Type, callback: Callable, *args: list[Any]):
         if eventType == QEvent.MouseButtonPress:
@@ -174,3 +169,4 @@ class OverlayUI(_Window):
         self.show()
 
         sys.exit(self.app.exec_())
+

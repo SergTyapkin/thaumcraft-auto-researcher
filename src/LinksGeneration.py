@@ -1,2 +1,2 @@
-def generateLinkMap(existingAspects: dict[str, (int, int)]) -> dict[str, (int, int)]:
+def generateLinkMap(existingAspects: dict[str, (int, int)], freeHexagons: list[(int, int)]) -> dict[str, (int, int)]:
     pass
