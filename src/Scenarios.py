@@ -11,9 +11,8 @@ from src.OverlayUI import OverlayUI, KeyboardKeys
 from src.ThaumInteractor import ThaumInteractor, createTI
 from src.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
 from src.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
-    THAUM_HEXAGONS_SLOTS_COUNT
-from src.utils import saveThaumControlsConfig
-
+    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
+from src.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
@@ -43,7 +42,7 @@ def enroll(UI: OverlayUI):
     UI.addObject(movablePoint)
 
     def onMouseMove(x, y):
-        if not movablePoint.isOnPoint(targetPointCoords[0], targetPointCoords[1]):
+        if not movablePoint.isHover(targetPointCoords[0], targetPointCoords[1]):
             return
         UI.clearMouseCallbacks()
         configureThaumWindow(UI)
@@ -103,7 +102,8 @@ def configureThaumWindow(UI: OverlayUI):
 Фиолетовая область - 9х3 внутренних слотов инвентаря.
 
 Как будет готово - жми [Enter]
-(!!! После завершения окно с игрой нельзя передвигать по экрану !!!)""",
+(!!! После завершения этой конфигурации, если окно с игрой не во весь экран, 
+не передвигайте его по экрану !!)""",
             color=QColor('white'),
             padding=MARGIN,
             withBackground=True,
@@ -222,18 +222,83 @@ def configureThaumWindow(UI: OverlayUI):
                            onMoveCallback=updateHexagonsCoords))  # hexagons rectangle
 
         def saveControls():
-            UI.clearKeyCallbacks()
             saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListing.LT, rectAspectsListing.RB,
                                     pointAspectsScrollLeft, pointAspectsScrollRight,
                                     pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventory.LT,
                                     rectInventory.RB, rectHexagonsCC, (rectHexagonsCC.y - rectHexagonsTy) / (THAUM_HEXAGONS_SLOTS_COUNT // 2))
-            TI = createTI(UI)
-            if TI is not None:
-                runResearching(UI, TI)
+            waitForCreatingTI(UI)
 
         UI.setKeyCallback(KeyboardKeys.enter, saveControls)
 
     getThaumWindowCoords()
+
+def chooseThaumVersion(UI: OverlayUI):
+    UI.clearAll()
+    infoText = UI.addObject(Text(
+        pointTextAnchor.x, pointTextAnchor.y,
+        f"""Выберите версию Thaumcraft.
+От этого будут зависеть рецепты получения аспектов""",
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=MARGIN,
+        movable=True, UI=UI,
+    ))
+    recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
+    versions = list(recipesConfig.keys())
+    versionsObjects = []
+    def updateVersionsY():
+        for i in range(len(versionsObjects)):
+            versionObject = versionsObjects[i]
+            versionObject.y = pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4
+
+    infoText.LT.onMoveCallback = updateVersionsY
+    for i in range(len(versions)):
+        versionObject = UI.addObject(Text(
+            pointTextAnchor.x, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,
+            versions[i],
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('black'),
+            padding=MARGIN,
+            UI=UI,
+        ))
+        versionsObjects.append(versionObject)
+    def onMousePress(x, y):
+        selectedObj = None
+        for versionObject in versionsObjects:
+            if versionObject.isHover(x, y):
+                selectedObj = versionObject
+        if selectedObj is None:
+            return
+        version = selectedObj.text
+        print("Selected thaum version:", version)
+        saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {'version': version})
+        waitForCreatingTI(UI)
+
+    UI.setMouseCallback(QEvent.MouseButtonPress, onMousePress)
+
+def waitForCreatingTI(UI: OverlayUI):
+    UI.clearAll()
+    UI.addObject(Text(
+        pointTextAnchor.x, pointTextAnchor.y,
+        """Определяем аспекты в твоем столе.
+Перенеси это окно так, чтобы оно не перекрывало окно с игрой
+и нажми [Enter]""",
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=MARGIN,
+        movable=True, UI=UI,
+    ))
+
+    def startCreatingTI():
+        UI.clearAll()
+        TI = createTI(UI)
+        if TI is not None:
+            runResearching(UI, TI)
+    UI.setKeyCallback(KeyboardKeys.enter, startCreatingTI)
+
 
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
@@ -242,8 +307,8 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     TI.insertPaper()
     TI.renderDelay()
     (existingAspects, freeHexagons) = TI.getExistingAspectsOnField()
-    print(existingAspects)
-    print(freeHexagons)
+    print("Existing aspects:", existingAspects)
+    print("Free hexagons:", freeHexagons)
     breakpoint()
     linkMap = generateLinkMap(existingAspects, freeHexagons)
     TI.fillByLinkMap(linkMap)

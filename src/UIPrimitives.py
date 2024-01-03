@@ -1,3 +1,5 @@
+import itertools
+import math
 from enum import Enum
 from typing import Callable
 
@@ -18,25 +20,25 @@ def opacityToAlpha(opacity: float) -> int:
     return int(opacity * 255)
 
 
-_objectIdValue = 0
+_objectIdValue = itertools.count()
 class _Object:
     id = None
     lineWidth = DEFAULT_LINE_WIDTH
     color = DEFAULT_COLOR
 
     def __init__(self):
-        global _objectIdValue
-        self.id = _objectIdValue
-        _objectIdValue += 1
+        self.id = next(_objectIdValue)
         self._pen = QPen(self.color, self.lineWidth, cap=Qt.RoundCap, join=Qt.RoundJoin)
         if self.lineWidth == 0:
             self._pen.setColor(QColor('transparent'))
         self._brush = QBrush(self.color)
 
-    def render(self, painter: QPainter):
+    def render(self, painter: QPainter) -> None:
         painter.setBrush(self._brush)
         painter.setPen(self._pen)
 
+    def isHover(self, x: float, y: float) -> bool:
+        return False
 
 class Point(_Object):
     def __init__(self, x: float, y: float, size=DEFAULT_POINT_SIZE, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
@@ -62,7 +64,7 @@ class Point(_Object):
             painter.drawEllipse(int(self.x - self.size / 3), int(self.y - self.size / 3), int(self.size / 3 * 2),
                                 int(self.size / 3 * 2))
 
-    def isOnPoint(self, x: float, y: float):
+    def isHover(self, x: float, y: float):
         return distance(x, y, self.x, self.y) <= (self.size / 2)
 
 
@@ -83,6 +85,21 @@ class Line(_Object):
         super().render(painter)
         painter.drawLine(int(self.S.x), int(self.S.y), int(self.E.x), int(self.E.y))
 
+    def isHover(self, x: float, y: float):
+        dxLine = self.E.x - self.S.x
+        dyLine = self.E.y - self.S.y
+        dxPoint = x - self.S.x
+        dyPoint = y - self.S.y
+        S = dxLine * dyPoint - dyLine * dxPoint
+        lenLine = math.sqrt(dxLine * dxLine + dyLine * dyLine)
+        h = S / lenLine
+        return (
+          math.fabs(h) < self.lineWidth / 2 and
+          (
+            min(self.S.x, self.E.x) <= x <= max(self.S.x, self.E.x)
+            # or min(self.S.y, self.E.y) <= y <= max(self.S.y, self.E.y)
+          )
+        )
 
 class Rect(_Object):
     def __init__(self, x1: float, y1: float, x2: float, y2: float, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
@@ -112,6 +129,11 @@ class Rect(_Object):
         self.L.render(painter)
         painter.fillRect(int(self.LT.x), int(self.LT.y), int(self.w), int(self.h), self.fill)
 
+    def isHover(self, x: float, y: float):
+        return (
+            min(self.LT.x, self.RB.x) <= x <= max(self.LT.x, self.RB.x) and
+            min(self.LT.y, self.RB.y) <= y <= max(self.LT.y, self.RB.y)
+        )
 
 class Align(Enum):
     left = Qt.AlignLeft
@@ -175,6 +197,11 @@ class Text(_Object):
         if self.movable:
             self.LT.render(painter)
 
+    def isHover(self, x: float, y: float):
+        return (
+            self.x <= x <= self.x + self.w and
+            self.y <= y <= self.y + self.h
+        )
 
 class Image(_Object):
     def __init__(self, x: float, y: float, w: float, h: float, path: str):
@@ -197,3 +224,6 @@ class Image(_Object):
     def render(self, painter: QPainter):
         super().render(painter)
         painter.drawPixmap(int(self.rect.LT.x), int(self.rect.LB.y), int(self.rect.w), int(self.rect.h), self.image)
+
+    def isHover(self, x: float, y: float):
+        return self.rect.isHover(x, y)

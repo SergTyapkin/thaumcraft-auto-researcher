@@ -1,0 +1,5 @@
+.idea
+venv
+recordings
+thaumControlsConfig.json
+thaumVersionConfig.json

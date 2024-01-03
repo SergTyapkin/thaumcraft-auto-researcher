@@ -5,6 +5,7 @@ MARGIN = 20
 FPS = 60
 
 # Files names
+THAUM_VERSION_CONFIG_PATH = 'configs/thaumVersionConfig.json'
 THAUM_CONTROLS_CONFIG_PATH = 'configs/thaumControlsConfig.json'
 THAUM_ASPECT_RECIPES_CONFIG_PATH = 'configs/aspectsRecipes.json'
 THAUM_TRANSLATION_CONFIG_PATH = 'configs/translationDictionary.json'

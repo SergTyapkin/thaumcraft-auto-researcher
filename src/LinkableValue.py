@@ -30,6 +30,23 @@ class LinkableValue:
         if isinstance(other, LinkableValue):
             return self.val / other.val
         return self.val / other
+
+    def __lt__(self, other):
+        if isinstance(other, LinkableValue):
+            return self.val < other.val
+        return self.val < other
+    def __le__(self, other):
+        if isinstance(other, LinkableValue):
+            return self.val <= other.val
+        return self.val <= other
+    def __gt__(self, other):
+        if isinstance(other, LinkableValue):
+            return self.val > other.val
+        return self.val > other
+    def __ge__(self, other):
+        if isinstance(other, LinkableValue):
+            return self.val >= other.val
+        return self.val >= other
     # def __str__(self):
     #     return str(self.val)
 

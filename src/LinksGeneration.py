@@ -22,9 +22,8 @@ def generateLinkMap(
         aspects[aspectName] = Aspect(aspectName)
     for aspectName in aspects.keys():
         aspect = aspects[aspectName]
-        recipeAspects = list(map(lambda x: aspects[x], aspectRecipes[aspectName]))
-        aspect.recipe = recipeAspects
-        for recipeAspect in recipeAspects:
+        aspect.recipe = list(map(lambda x: aspects[x], aspectRecipes[aspectName]))
+        for recipeAspect in aspect.recipe:
             recipeAspect.includes.add(aspect)
 
     # Start of logic

@@ -14,7 +14,7 @@ from src.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_IN
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION, EMPTY_ASPECT_SLOT_IMAGE_PATH, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGE_PATH, \
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
-    getNumberImagePath, ASPECT_COUNT_NUMBER_SIZE, DELAY_BETWEEN_RENDER
+    getNumberImagePath, ASPECT_COUNT_NUMBER_SIZE, DELAY_BETWEEN_RENDER, THAUM_VERSION_CONFIG_PATH
 from src.constants import getAspectImagePath
 from src.utils import getImagesDiffPercent, readJSONConfig
 
@@ -24,22 +24,25 @@ def createTI(UI):
     if pointsConfig is None:
         Scenarios.enroll(UI)
         return None
+    thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
+    if thaum_version is None:
+        Scenarios.chooseThaumVersion(UI)
+        return None
 
     recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     if recipesConfig is None:
         raise ValueError("Can't open recipes config")
-    recipesConfig = recipesConfig[THAUM_VERSION]
+    recipesConfig = recipesConfig[thaum_version['version']]
 
     translationsConfig = readJSONConfig(THAUM_TRANSLATION_CONFIG_PATH)
     if translationsConfig is None:
         raise ValueError("Can't open translations config")
 
-    recipesConfigEdited = {}
+    recipesConfigTranslated = {}
     for aspectNameEng in recipesConfig.keys():
         aspectNameLat = translationsConfig[aspectNameEng]
-        recipesConfigEdited[aspectNameLat] = recipesConfig[aspectNameEng]
-    print(recipesConfigEdited, list(recipesConfigEdited.keys()))
-    return ThaumInteractor(pointsConfig, recipesConfigEdited, list(recipesConfigEdited.keys()))
+        recipesConfigTranslated[aspectNameLat] = recipesConfig[aspectNameEng]
+    return ThaumInteractor(pointsConfig, recipesConfigTranslated, list(recipesConfigTranslated.keys()))
 
 
 class P:
@@ -117,7 +120,7 @@ class ThaumInteractor:
     maskWithoutNumbers: Image.Image = None
 
 
-    def __init__(self, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, Union[dict[str, float], float]], availableAspects: list[str]):
+    def __init__(self, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], availableAspects: list[str]):
         conf = controlsConfig
         self.pointWritingMaterials = P(conf['pointWritingMaterials']['x'], conf['pointWritingMaterials']['y'])
         self.pointPapers = P(conf['pointPapers']['x'], conf['pointPapers']['y'])

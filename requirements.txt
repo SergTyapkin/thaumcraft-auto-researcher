@@ -4,4 +4,4 @@ mouse==0.7.1
 Pillow==10.2.0
 PyAutoGUI==0.9.53
 PyQt5==5.15.10
-PyQt5_sip==12.12.1
+PyQt5_sip==12.13.0

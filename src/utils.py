@@ -22,32 +22,34 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+def saveJSONConfig(fullpath: str, jsonToSave: dict):
+    with open(fullpath, 'w') as file:
+        json.dump(jsonToSave, file, indent=4, ensure_ascii=False, default=linkableValueDumpsToJSON)
+
+
 def saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListingLT, rectAspectsListingRB,
                             pointAspectsScrollLeft, pointAspectsScrollRight,
                             pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventoryLT,
                             rectInventoryRB, rectHexagonsCC, hexagonSlotSizeY):
-    print(re.split('[\/]', THAUM_CONTROLS_CONFIG_PATH))
     configPath = os.path.join(*(re.split('[\/]', THAUM_CONTROLS_CONFIG_PATH)[:-1]))
     if not os.path.exists(configPath):
         os.makedirs(configPath)
 
-    with open(THAUM_CONTROLS_CONFIG_PATH, 'w') as file:
-        json.dump({
-            "pointWritingMaterials": {"x": pointWritingMaterials.x, "y": pointWritingMaterials.y},
-            "pointPapers": {"x": pointPapers.x, "y": pointPapers.y},
-            "rectAspectsListingLT": {"x": rectAspectsListingLT.x, "y": rectAspectsListingLT.y},
-            "rectAspectsListingRB": {"x": rectAspectsListingRB.x, "y": rectAspectsListingRB.y},
-            "pointAspectsScrollLeft": {"x": pointAspectsScrollLeft.x, "y": pointAspectsScrollLeft.y},
-            "pointAspectsScrollRight": {"x": pointAspectsScrollRight.x, "y": pointAspectsScrollRight.y},
-            "pointAspectsMixLeft": {"x": pointAspectsMixLeft.x, "y": pointAspectsMixLeft.y},
-            "pointAspectsMixCreate": {"x": pointAspectsMixCreate.x, "y": pointAspectsMixCreate.y},
-            "pointAspectsMixRight": {"x": pointAspectsMixRight.x, "y": pointAspectsMixRight.y},
-            "rectInventoryLT": {"x": rectInventoryLT.x, "y": rectInventoryLT.y},
-            "rectInventoryRB": {"x": rectInventoryRB.x, "y": rectInventoryRB.y},
-            "rectHexagonsCC": {"x": rectHexagonsCC.x, "y": rectHexagonsCC.y},
-            "hexagonSlotSizeY": hexagonSlotSizeY,
-        }, file, indent=4, ensure_ascii=False, default=linkableValueDumpsToJSON)
-
+    saveJSONConfig(THAUM_CONTROLS_CONFIG_PATH, {
+        "pointWritingMaterials": {"x": pointWritingMaterials.x, "y": pointWritingMaterials.y},
+        "pointPapers": {"x": pointPapers.x, "y": pointPapers.y},
+        "rectAspectsListingLT": {"x": rectAspectsListingLT.x, "y": rectAspectsListingLT.y},
+        "rectAspectsListingRB": {"x": rectAspectsListingRB.x, "y": rectAspectsListingRB.y},
+        "pointAspectsScrollLeft": {"x": pointAspectsScrollLeft.x, "y": pointAspectsScrollLeft.y},
+        "pointAspectsScrollRight": {"x": pointAspectsScrollRight.x, "y": pointAspectsScrollRight.y},
+        "pointAspectsMixLeft": {"x": pointAspectsMixLeft.x, "y": pointAspectsMixLeft.y},
+        "pointAspectsMixCreate": {"x": pointAspectsMixCreate.x, "y": pointAspectsMixCreate.y},
+        "pointAspectsMixRight": {"x": pointAspectsMixRight.x, "y": pointAspectsMixRight.y},
+        "rectInventoryLT": {"x": rectInventoryLT.x, "y": rectInventoryLT.y},
+        "rectInventoryRB": {"x": rectInventoryRB.x, "y": rectInventoryRB.y},
+        "rectHexagonsCC": {"x": rectHexagonsCC.x, "y": rectHexagonsCC.y},
+        "hexagonSlotSizeY": hexagonSlotSizeY,
+    })
 
 def readJSONConfig(fullpath: str):
     if not os.path.isfile(fullpath):
