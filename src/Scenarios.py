@@ -16,11 +16,9 @@ from src.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
+    UI.clearAll()
     UI.setKeyCallback(KeyboardKeys.enter, configureThaumWindow, UI)
 
-    UI.clearAll()
-
-    (cx, cy) = UI.getCenter()
     UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
         """Привет. Сначала нужно будет дать знать программе, где на экране находится игра.
@@ -36,13 +34,14 @@ def enroll(UI: OverlayUI):
         movable=True, UI=UI,
     ))
 
-    targetPointCoords = (cx, cy)
-    UI.addObject(Point(targetPointCoords[0], targetPointCoords[1], color=QColor('yellow')))
-    movablePoint = Point(MARGIN + MARGIN * 5, MARGIN + 4.25 * (DEFAULT_FONT.pointSize() * 2), movable=True)
+    (cx, cy) = UI.getCenter()
+    targetPoint = Point(cx, cy, color=QColor('yellow'))
+    UI.addObject(targetPoint)
+    movablePoint = Point(MARGIN + MARGIN + DEFAULT_FONT.pointSize() * 2 * 16, MARGIN + 3.4 * (DEFAULT_FONT.pointSize() * 2), movable=True)
     UI.addObject(movablePoint)
 
     def onMouseMove(x, y):
-        if not movablePoint.isHover(targetPointCoords[0], targetPointCoords[1]):
+        if not movablePoint.isHover(targetPoint.x, targetPoint.y):
             return
         UI.clearMouseCallbacks()
         configureThaumWindow(UI)
@@ -303,6 +302,10 @@ def waitForCreatingTI(UI: OverlayUI):
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     UI.clearAll()
+
+    # TI.getAvailableAspects()
+    # TI.printAvailableAspects()
+    # breakpoint()
 
     TI.insertPaper()
     TI.renderDelay()

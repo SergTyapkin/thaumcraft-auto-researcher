@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Union, Callable, Any
 
 import keyboard
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import Qt, QThread, QObject, QEvent
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
@@ -28,19 +28,44 @@ class KeyboardKeys(Enum):
     space = 57
 
 
+class TimedEvent:
+    callback: Callable[[], None]
+    timeLeftMs: int
+    args: list[any]
+    kwargs: dict[any]
+    onChangeCallback: Callable[[int], None]
+    def __init__(self, timeLeftMs: int, callback: Callable[[], None], args=[], kwargs={}, onChangeCallback: Callable[[int], None] = lambda timeLeft: None):
+        self.callback = callback
+        self.timeLeftMs = timeLeftMs
+        self.args = args
+        self.kwargs = kwargs
+        self.onChangeCallback = onChangeCallback
+    def decreaseTime(self, timeMs):
+        self.timeLeftMs -= timeMs
+    def execCallbackIfTime0(self) -> bool:
+        if self.timeLeftMs <= 0:
+            self.callback(*self.args, **self.kwargs)
+            return True
+        return False
+    def execOnChangeCallback(self):
+        self.onChangeCallback(self.timeLeftMs)
+
 class _Window(QMainWindow):
-    objects: list[UIPrimitive] = []
+    objects: set[UIPrimitive] = set()
     keysCallbacks: dict[KeyboardKeys, (Callable, list[Any])] = {}
     mousePressCallbacks: list[(Callable, list[Any])] = []
     mouseReleaseCallbacks: list[(Callable, list[Any])] = []
     mouseMoveCallbacks: list[(Callable, list[Any])] = []
     currentMovingObject = None
+    timedEvents: set[TimedEvent] = set()
+
 
     def __init__(self, opacity=1.0, w=None, h=None):
-        QMainWindow.__init__(self, None,
-                             Qt.FramelessWindowHint | Qt.MSWindowsFixedSizeDialogHint | Qt.WindowStaysOnTopHint
-                             # | Qt.Popup | Qt.WindowDoesNotAcceptFocus | Qt.WindowTransparentForInput
-                             )
+        QMainWindow.__init__(
+            self, None,
+            Qt.FramelessWindowHint | Qt.MSWindowsFixedSizeDialogHint | Qt.WindowStaysOnTopHint
+            # | Qt.Popup | Qt.WindowDoesNotAcceptFocus | Qt.WindowTransparentForInput
+        )
         fillScreenGeometry = QDesktopWidget().availableGeometry()
         self.w = w or fillScreenGeometry.width()
         self.h = h or fillScreenGeometry.height()
@@ -61,12 +86,20 @@ class _Window(QMainWindow):
                     self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
         keyboard._listener.add_handler(onKeyboardEvent)
 
-        _ = self.startTimer(FRAME_TIME)
+        self.startTimer(FRAME_TIME)
 
     def getCenter(self):
         return self.w / 2, self.h / 2
 
     def timerEvent(self, t):
+        eventsToDelete = set()
+        for event in self.timedEvents:
+            event.decreaseTime(FRAME_TIME)
+            event.execOnChangeCallback()
+            if event.execCallbackIfTime0():
+                eventsToDelete.add(event)
+        for event in eventsToDelete:
+            self.timedEvents.remove(event)
         self.update()
 
     def paintEvent(self, event):
@@ -104,14 +137,26 @@ class _Window(QMainWindow):
         for callback in self.mouseReleaseCallbacks:
             callback[0](event.x(), event.y(), *callback[1])
 
+    def setTimeout(self, timeoutMs: int, callback: Callable, args=[], kwargs={}, onChangeCallback=lambda timeLeft: None):
+        self.timedEvents.add(TimedEvent(timeoutMs, callback, args, kwargs, onChangeCallback))
+        # or simpler but not works: QtCore.QTimer.singleShot(timeoutMs, callback)
+
+    def addObjectAndDeleteAfterTime(self, obj: UIPrimitive, timeoutMS: int, onChangeCallback=lambda timeLeft: None):
+        self.setTimeout(timeoutMS, lambda: self.removeObject(obj), [], {}, onChangeCallback)
+        return self.addObject(obj)
+
     def addObject(self, obj: UIPrimitive):
-        self.objects.append(obj)
+        self.objects.add(obj)
+        return obj
+
+    def removeObject(self, obj: UIPrimitive):
+        self.objects.remove(obj)
         return obj
 
     def clear(self):
-        self.objects = []
+        self.objects.clear()
 
-    def getObjectsByFilter(self, objectType: UIPrimitive):
+    def getObjectsByType(self, objectType: UIPrimitive):
         res = []
         for obj in self.objects:
             if isinstance(obj, objectType):

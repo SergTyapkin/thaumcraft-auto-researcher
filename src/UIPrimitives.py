@@ -25,6 +25,7 @@ class _Object:
     id = None
     lineWidth = DEFAULT_LINE_WIDTH
     color = DEFAULT_COLOR
+    visible = True
 
     def __init__(self):
         self.id = next(_objectIdValue)
@@ -33,12 +34,37 @@ class _Object:
             self._pen.setColor(QColor('transparent'))
         self._brush = QBrush(self.color)
 
-    def render(self, painter: QPainter) -> None:
-        painter.setBrush(self._brush)
-        painter.setPen(self._pen)
+    def render(self, painter: QPainter) -> bool:
+        if self.visible:
+            painter.setBrush(self._brush)
+            painter.setPen(self._pen)
+        return self.visible
 
     def isHover(self, x: float, y: float) -> bool:
         return False
+
+    def setVisibility(self, state: bool) -> None:
+        self.visible = state
+
+
+class Circle(_Object):
+    def __init__(self, x: float, y: float, r: float, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH): #, fill=None, fillOpacity=1):
+        self.x = x
+        self.y = y
+        self.r = r
+        self.color = color
+        self.lineWidth = lineWidth
+        # self.fill = fill
+        # if fill is not None: self.fill.setAlpha(opacityToAlpha(fillOpacity))
+
+        super().__init__()
+
+    def render(self, painter: QPainter):
+        if not super().render(painter): return
+        painter.drawEllipse(int(self.x - self.r), int(self.y - self.r), int(self.r * 2), int(self.r * 2))
+
+    def isHover(self, x: float, y: float):
+        return distance(x, y, self.x, self.y) <= self.r
 
 class Point(_Object):
     def __init__(self, x: float, y: float, size=DEFAULT_POINT_SIZE, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
@@ -54,7 +80,7 @@ class Point(_Object):
         super().__init__()
 
     def render(self, painter: QPainter):
-        super().render(painter)
+        if not super().render(painter): return
         painter.drawLine(int(self.x), int(self.y - self.size / 2), int(self.x), int(self.y + self.size / 2))
         painter.drawLine(int(self.x - self.size / 2), int(self.y), int(self.x + self.size / 2), int(self.y))
         if self.movable:
@@ -82,7 +108,7 @@ class Line(_Object):
             self._pen.setDashPattern([8, 5])
 
     def render(self, painter: QPainter):
-        super().render(painter)
+        if not super().render(painter): return
         painter.drawLine(int(self.S.x), int(self.S.y), int(self.E.x), int(self.E.y))
 
     def isHover(self, x: float, y: float):
@@ -103,7 +129,7 @@ class Line(_Object):
 
 class Rect(_Object):
     def __init__(self, x1: float, y1: float, x2: float, y2: float, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 dashed=False, fill=QColor('transparent'), fillOpacity=0):
+                 dashed=False, fill=None, fillOpacity=1):
         self.LT = Point(x1, y1, color)
         self.RT = Point(x2, y1, color)
         self.RB = Point(x2, y2, color)
@@ -117,23 +143,62 @@ class Rect(_Object):
         self.color = color
         self.lineWidth = lineWidth
         self.fill = fill
-        self.fill.setAlpha(opacityToAlpha(fillOpacity))
+        if fill is not None: self.fill.setAlpha(opacityToAlpha(fillOpacity))
 
         super().__init__()
 
     def render(self, painter: QPainter):
-        super().render(painter)
+        if not super().render(painter): return
         self.T.render(painter)
         self.R.render(painter)
         self.B.render(painter)
         self.L.render(painter)
-        painter.fillRect(int(self.LT.x), int(self.LT.y), int(self.w), int(self.h), self.fill)
+        if self.fill is not None: painter.fillRect(int(self.LT.x), int(self.LT.y), int(self.w), int(self.h), self.fill)
 
     def isHover(self, x: float, y: float):
         return (
             min(self.LT.x, self.RB.x) <= x <= max(self.LT.x, self.RB.x) and
             min(self.LT.y, self.RB.y) <= y <= max(self.LT.y, self.RB.y)
         )
+
+    def setLx(self, val):
+        self.LT.x = val
+        self.LB.x = val
+        self.L.S.x = val
+        self.L.E.x = val
+        self.T.S.x = val
+        self.B.E.x = val
+        self.w = self.RB.x - self.LT.x
+    def setLy(self, val):
+        self.LT.y = val
+        self.LB.y = val
+        self.L.E.y = val
+        self.R.S.y = val
+        self.T.S.y = val
+        self.T.E.y = val
+        self.h = self.RB.y - self.LT.y
+    def setRx(self, val):
+        self.RT.x = val
+        self.RB.x = val
+        self.R.S.x = val
+        self.R.E.x = val
+        self.T.E.x = val
+        self.B.S.x = val
+        self.w = self.RB.x - self.LT.x
+    def setRy(self, val):
+        self.RT.y = val
+        self.RB.y = val
+        self.L.S.y = val
+        self.R.E.y = val
+        self.B.S.y = val
+        self.B.E.y = val
+        self.h = self.RB.y - self.LT.y
+    def setCoords(self, xLT, yLT, xRB, yRB):
+        self.setLx(xLT)
+        self.setLy(yLT)
+        self.setRx(xRB)
+        self.setRy(yRB)
+
 
 class Align(Enum):
     left = Qt.AlignLeft
@@ -185,7 +250,7 @@ class Text(_Object):
         super().__init__()
 
     def render(self, painter: QPainter):
-        super().render(painter)
+        if not super().render(painter): return
         painter.setFont(self.font)
         if self.withBackground:
             painter.fillRect(int(self.x), int(self.y), int(self.w), int(self.h), self.backgroundColor)
@@ -222,7 +287,7 @@ class Image(_Object):
         super().__init__()
 
     def render(self, painter: QPainter):
-        super().render(painter)
+        if not super().render(painter): return
         painter.drawPixmap(int(self.rect.LT.x), int(self.rect.LB.y), int(self.rect.w), int(self.rect.h), self.image)
 
     def isHover(self, x: float, y: float):
