@@ -451,7 +451,8 @@ class ThaumInteractor:
         freeHexagons = []
         noneHexagons = []
         for x in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
-            for y in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(x) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(x) + 1) // 2 + 1):
+            for y in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(x) // 2 + 1,
+                           THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(x) + 1) // 2 + 1):
                 print(x, y)
                 # find pos of hexagons
                 slotLTx = self.rectHexagonsCC.x + x * self.hexagonSlotSizeX - self.hexagonSlotSizeX / 2
@@ -461,26 +462,39 @@ class ThaumInteractor:
 
                 screenshotLTy = slotLTy - (self.hexagonSlotSizeX - realHexagonSlotHeight) / 2
                 if DEBUG:
-                    debugHighlightingRect.setCoords(slotLTx, screenshotLTy, slotLTx + self.hexagonSlotSizeX, slotLTy + self.hexagonSlotSizeX)
+                    debugHighlightingRect.setCoords(slotLTx, screenshotLTy, slotLTx + self.hexagonSlotSizeX,
+                                                    slotLTy + self.hexagonSlotSizeX)
                     if x >= -2:
                         self.renderDelay()
                     debugHighlightingRect.setVisibility(False)
                     time.sleep(0.1)
-                imageInSlot = self.imageResize(pyautogui.screenshot(region=(
-                    slotLTx, screenshotLTy,
-                    self.hexagonSlotSizeX, self.hexagonSlotSizeX
-                )))
+
+                # Ensure values are integers before taking screenshot
+                region = (
+                    int(slotLTx),
+                    int(screenshotLTy),
+                    int(self.hexagonSlotSizeX),
+                    int(self.hexagonSlotSizeX)
+                )
+
+                # Print region values for debugging
+                print(f"Region values: {region}")
+                print(f"Region types: {tuple(type(value) for value in region)}")
+
+                imageInSlot = self.imageResize(pyautogui.screenshot(region=region))
 
                 if DEBUG:
                     debugHighlightingRect.setVisibility(True)
-                minDiffAspect = self.findClosestAspectImage(imageInSlot, mask=self.hexagonBorderMaskImage, specialReturns=[(self.freeHexagonImages, -1), (self.noneHexagonImage, -2)])
-                if minDiffAspect == -1:    # free slot
+                minDiffAspect = self.findClosestAspectImage(imageInSlot, mask=self.hexagonBorderMaskImage,
+                                                            specialReturns=[(self.freeHexagonImages, -1),
+                                                                            (self.noneHexagonImage, -2)])
+                if minDiffAspect == -1:  # free slot
                     print("FREE")
                     freeHexagons.append((x, y))
                 elif minDiffAspect == -2:  # none slot
                     print("NONE (NO CELL)")
                     noneHexagons.append((x, y))
-                else:                      # aspect in slot
+                else:  # aspect in slot
                     print(minDiffAspect.name)
                     existingAspects.append((minDiffAspect, (x, y)))
         print("END!!!")
