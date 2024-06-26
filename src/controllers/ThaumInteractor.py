@@ -9,16 +9,17 @@ import imgcompare  # for aspects images compare
 from PIL import Image
 from PyQt5.QtGui import QColor
 
-from src import Scenarios, UIPrimitives
-from src.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
+from src.UI import UIPrimitives
+from src.controllers import Scenarios
+from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, DELAY_BETWEEN_EVENTS, ASPECTS_IMAGES_SIZE, THAUM_TRANSLATION_CONFIG_PATH, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, EMPTY_ASPECT_SLOT_IMAGE_PATH, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
     getImagePathByNumber, ASPECT_COUNT_NUMBER_SIZE, DELAY_BETWEEN_RENDER, THAUM_VERSION_CONFIG_PATH, DEBUG, \
     HEXAGON_BORDER_MASK_IMAGE_PATH
-from src.constants import getAspectImagePath
-from src.utils import getImagesDiffPercent, readJSONConfig
+from src.utils.constants import getAspectImagePath
+from src.utils.utils import getImagesDiffPercent, readJSONConfig
 
 
 def createTI(UI):

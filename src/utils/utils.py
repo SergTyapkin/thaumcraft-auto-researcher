@@ -5,8 +5,8 @@ import re
 
 from PIL import Image
 
-from src.LinkableValue import linkableValueDumpsToJSON
-from src.constants import THAUM_CONTROLS_CONFIG_PATH
+from src.utils.LinkableValue import linkableValueDumpsToJSON
+from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH
 
 
 def distance(x1, y1, x2, y2):

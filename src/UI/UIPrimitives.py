@@ -6,8 +6,8 @@ from typing import Callable
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QPixmap, QFont, QPen, QBrush
 
-from src.LinkableValue import LinkableValue, editLinkableValue
-from src.utils import distance
+from src.utils.LinkableValue import LinkableValue, editLinkableValue
+from src.utils.utils import distance
 
 DEFAULT_POINT_SIZE = 21
 DEFAULT_COLOR = QColor('red')

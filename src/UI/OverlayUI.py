@@ -8,9 +8,9 @@ from PyQt5.QtCore import Qt, QThread, QObject, QEvent
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
-from src.LinkableValue import editLinkableValue
-from src.utils import distance
-from src.UIPrimitives import Point, Line, Rect, Text, Image
+from src.utils.LinkableValue import editLinkableValue
+from src.utils.utils import distance
+from src.UI.UIPrimitives import Point, Line, Rect, Text, Image
 
 UIPrimitive = Union[Point, Line, Rect, Text, Image]
 

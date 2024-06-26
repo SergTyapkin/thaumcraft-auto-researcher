@@ -5,14 +5,14 @@ from math import cos
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
 
-from src.LinkableValue import LinkableCoord, LinkableValue
-from src.LinksGeneration import generateLinkMap
-from src.OverlayUI import OverlayUI, KeyboardKeys
-from src.ThaumInteractor import ThaumInteractor, createTI
-from src.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
-from src.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
+from src.utils.LinkableValue import LinkableCoord, LinkableValue
+from src.logic.LinksGeneration import generateLinkMap
+from src.UI.OverlayUI import OverlayUI, KeyboardKeys
+from src.controllers.ThaumInteractor import ThaumInteractor, createTI
+from src.UI.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
+from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
-from src.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig
+from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
