@@ -319,4 +319,4 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
     TI.insertPaper()
     TI.renderDelay()
-    TI.getExistingAspectsOnField(fillMapAndStartAgain)
+    TI.getExistingAspectsOnField(fillMapAndStartAgain, generateLinkMap)

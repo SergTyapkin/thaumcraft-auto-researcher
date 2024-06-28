@@ -531,7 +531,7 @@ class ThaumInteractor:
         # return existingAspects, freeHexagons
 
 
-    def getExistingAspectsOnField(self, callbackAfterFinish):
+    def getExistingAspectsOnField(self, callbackAfterFinish, generateLinkMap):
         self.printAvailableAspects()
         class Cell:
             x: int = None
@@ -552,7 +552,16 @@ class ThaumInteractor:
         cellColorFree.setAlpha(20)
         cellColorNone.setAlpha(150)
         cellColorAspect.setAlpha(200)
-
+        
+        def getExistingAspectsNoneHexagons():
+          existingAspects = {}
+          noneHexagons = []
+          for item in items:
+            if cell.isNone:
+                noneHexagons.append((cell.x, cell.y))
+            elif cell.aspect is not None:
+                existingAspects[cell.aspect.name] = (cell.x, cell.y)
+          
         def onClickCellIsNone():
             if selectedCell[0] is None:
                 return
@@ -562,6 +571,7 @@ class ThaumInteractor:
             selectedCell[0].aspect = None
             setCellDialogueVisibility(False)
             selectedCell[0] = None
+            updateShadowSolveImages()
 
         def onClickCellIsAspect(aspect: Aspect):
             if selectedCell[0] is None:
@@ -572,6 +582,7 @@ class ThaumInteractor:
             selectedCell[0].aspect = aspect
             setCellDialogueVisibility(False)
             selectedCell[0] = None
+            updateShadowSolveImages()
 
         def onClickCellIsFree():
             if selectedCell[0] is None:
@@ -582,7 +593,21 @@ class ThaumInteractor:
             selectedCell[0].aspect = None
             setCellDialogueVisibility(False)
             selectedCell[0] = None
-
+            updateShadowSolveImages()
+        
+        def updateShadowSolveImages():
+          for cell in cells:
+            cell.imageObject.clearImage()
+          (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
+          linkMap = generateLinkMap(existingAspects, noneHexagons)
+          for aspect in linkMap:
+            coords = linkMap[aspect]
+            for cell in cells:
+              if (cell.x == coords[0]) and (cell.y == coords[1]):
+                aspectObj = self.getAspectByName(aspect)
+                cell.imageObject.setImage(aspectObj.pixMapImage)
+                break
+          
         # draw cell dialogue
         cellDialogueObjects = []
         textYCoord = MARGIN
@@ -695,13 +720,7 @@ class ThaumInteractor:
             print("END OF CONFIGURING ASPECTS!!!")
             self.UI.clearAll()
             self.UI.clearKeyCallbacks()
-            existingAspects = {}
-            noneHexagons = []
-            for cell in cells:
-                if cell.isNone:
-                    noneHexagons.append((cell.x, cell.y))
-                elif cell.aspect is not None:
-                    existingAspects[cell.aspect.name] = (cell.x, cell.y)
+            (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
             callbackAfterFinish(existingAspects, noneHexagons)
         self.UI.setKeyCallback(KeyboardKeys.enter, callbackToFinish)
         self.UI.setKeyCallback(KeyboardKeys.n, onClickCellIsNone)
