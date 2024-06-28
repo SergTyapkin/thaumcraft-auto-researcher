@@ -12,7 +12,7 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.UI.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
-from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig, loadRecipesForVersion
+from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
@@ -304,20 +304,19 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     # TI.printAvailableAspects()
     # breakpoint()
 
-    def fillMapAndStartAgain(existingAspects, freeHexagons):
+    def fillMapAndStartAgain(existingAspects, noneHexagons):
         print("Existing aspects:", existingAspects)
-        print("Free hexagons:", freeHexagons)
-        aspectsRecipes = loadRecipesForVersion()
-        print(aspectsRecipes)
-        linkMap = generateLinkMap(existingAspects, freeHexagons, aspectsRecipes)
+        print("Free hexagons:", noneHexagons)
+        linkMap = generateLinkMap(existingAspects, noneHexagons)
+        print("Solved:", linkMap)
+        # breakpoint()
+        print("Starting to put aspects on field...")
         TI.fillByLinkMap(linkMap)
+        print("Putting aspects is done")
         TI.takeOutPaper()
         TI.eventsDelay()
-        breakpoint()
         runResearching(UI, TI)
 
     TI.insertPaper()
     TI.renderDelay()
     TI.getExistingAspectsOnField(fillMapAndStartAgain)
-
-

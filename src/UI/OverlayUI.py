@@ -204,7 +204,10 @@ class _Window(QMainWindow):
         return obj
 
     def removeObject(self, obj: UIPrimitive):
-        self.objects.remove(obj)
+        try:
+            self.objects.remove(obj)
+        except ValueError: # list.remove(x): x not in list
+            pass
         return obj
 
     def clear(self):

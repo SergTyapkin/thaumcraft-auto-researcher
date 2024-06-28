@@ -112,8 +112,7 @@ def getImagesDiffPercent(image1: Image.Image, image2: Image.Image, masks: list[I
 
     return percentDiff
 
-def loadRecipesForVersion():
+def loadRecipesForSelectedVersion():
     selectedVersion = readJSONConfig(THAUM_VERSION_CONFIG_PATH)['version']
     allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
-    print(allRecipes)
     return allRecipes.get(selectedVersion)

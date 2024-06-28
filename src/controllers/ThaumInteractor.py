@@ -96,11 +96,11 @@ class ThaumInteractor:
     UI = None
 
     workingInventorySlot = -1  # can be 0..26 (inventory 9x3)
-    currentAspectsPageIdx = None
+    currentAspectsPageIdx = 0
     allAspects: list[Aspect] = []
     availableAspects: list[Aspect] = []
     recipes: dict[str, [str, str]]
-    maxPagesCount: int = None
+    maxPagesCount: int = 1
     numbersImages: list[Image.Image] = []
 
     pointWritingMaterials: P
@@ -249,22 +249,16 @@ class ThaumInteractor:
         slotWidth = areaWidth / THAUM_ASPECTS_INVENTORY_SLOTS_X
         slotHeight = areaHeight / THAUM_ASPECTS_INVENTORY_SLOTS_Y
         aspectPoint = P(
-            self.rectAspectsListingLT.x + (slotWidth * 0.5) + slotWidth * cellX,
-            self.rectAspectsListingLT.y + (slotHeight * 0.5) + slotHeight * cellY
+            self.rectAspectsListingLT.x + slotWidth * (cellX + 0.5),
+            self.rectAspectsListingLT.y + slotHeight * (cellY + 0.5)
         )
         aspectPoint.hold()
         self._showDebugClick(aspectPoint, QColor('blue'))
 
     def putAspect(self, cellX, cellY):
-        areaWidth = self.rectHexagonsRB.x - self.rectHexagonsLT.x
-        areaHeight = self.rectHexagonsRB.y - self.rectHexagonsLT.y
-
-        slotWidth = areaWidth / THAUM_ASPECTS_INVENTORY_SLOTS_X
-        slotHeight = areaHeight / THAUM_ASPECTS_INVENTORY_SLOTS_Y
-
         aspectPoint = P(
-            self.rectHexagonsLT.x + (slotWidth * 0.5) + slotWidth * cellX,
-            self.rectHexagonsLT.y + (slotHeight * 0.5) + slotHeight * cellY
+            self.rectHexagonsCC.x + self.hexagonSlotSizeX * cellX,
+            self.rectHexagonsCC.y + self.hexagonSlotSizeY * cellY + (cellX % 2) * (self.hexagonSlotSizeY / 2)
         )
         aspectPoint.release()
         self._showDebugClick(aspectPoint, QColor('red'))
@@ -279,7 +273,7 @@ class ThaumInteractor:
         cellX = aspect.idx // THAUM_ASPECTS_INVENTORY_SLOTS_Y
         cellY = aspect.idx % THAUM_ASPECTS_INVENTORY_SLOTS_Y
 
-        cellPageIdxMin = max(cellX - 4, 0)
+        cellPageIdxMin = max(cellX - THAUM_ASPECTS_INVENTORY_SLOTS_X + 1, 0)
         cellPageIdxMax = min(cellX, self.maxPagesCount)
 
         if self.currentAspectsPageIdx < cellPageIdxMin:
@@ -288,10 +282,10 @@ class ThaumInteractor:
                 self.eventsDelay()
         elif self.currentAspectsPageIdx > cellPageIdxMax:
             for _ in range(cellPageIdxMax, self.currentAspectsPageIdx):
-                self.scrollRight()
+                self.scrollLeft()
                 self.eventsDelay()
 
-        return cellX, cellY - self.currentAspectsPageIdx
+        return cellX - self.currentAspectsPageIdx, cellY
 
     def takeAspect(self, aspect: Aspect):
         (cellX, cellY) = self.scrollToAspect(aspect)
@@ -373,9 +367,67 @@ class ThaumInteractor:
                 print(imageToCompare.size, diffWithSpecialImage, "| Min: ", minDiffAspect, minDiff)
         return minDiffAspect
 
+    # def getAvailableAspects(self):
+    #     print("Detecting available aspects...")
+    #     availableAspects = []
+    #     debugHighlightingRect = None
+    #     if DEBUG:
+    #         debugHighlightingRect = UIPrimitives.Rect(self.rectAspectsListingLT.x, self.rectAspectsListingLT.y, self.rectAspectsListingRB.x, self.rectAspectsListingRB.y, fill=QColor('blue'), fillOpacity=0.3, lineWidth=1, color=QColor('blue'))
+    #         self.UI.addObject(debugHighlightingRect)
+    #     slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
+    #     slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
+    #     self.scrollToLeftSide()
+    #     x = 0
+    #     while True:
+    #         for y in range(THAUM_ASPECTS_INVENTORY_SLOTS_Y):
+    #             regionLX = self.rectAspectsListingLT.x + x * slotWidth
+    #             regionLY = self.rectAspectsListingLT.y + y * slotHeight
+    #             if DEBUG:
+    #                 debugHighlightingRect.setCoords(
+    #                     regionLX, regionLY,
+    #                     regionLX + slotWidth, regionLY + slotHeight
+    #                 )
+    #                 debugHighlightingRect.setVisibility(False)
+    #                 self.renderDelay()
+    #             imageInSlot = self.imageResize(pyautogui.screenshot(region=(
+    #                 regionLX, regionLY,
+    #                 slotWidth, slotHeight
+    #             )))
+    #             if DEBUG:
+    #                 debugHighlightingRect.setVisibility(True)
+    #             diffWithEmpty = getImagesDiffPercent(imageInSlot, self.emptyAspectInventorySlotImage, [self.maskOnlyNumbers])
+    #             if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:
+    #                 print("Found empty place. Detection ends")
+    #                 self.maxPagesCount = self.currentAspectsPageIdx
+    #                 if DEBUG: self.UI.removeObject(debugHighlightingRect)
+    #                 return availableAspects
+    #             minDiffAspect = self.findClosestAspectImage(imageInSlot, self.maskWithoutNumbers)
+    #
+    #             aspectCount = 0
+    #             for i in range(2, -1, -1):
+    #                 numberImage = imageInSlot.crop((
+    #                     ASPECTS_IMAGES_SIZE - ASPECT_COUNT_NUMBER_SIZE[0] * (i + 1), ASPECTS_IMAGES_SIZE - ASPECT_COUNT_NUMBER_SIZE[1],
+    #                     ASPECTS_IMAGES_SIZE - ASPECT_COUNT_NUMBER_SIZE[0] * i, ASPECTS_IMAGES_SIZE
+    #                 ))
+    #                 minDiffCount = 100
+    #                 minNum = None
+    #                 for idx in range(len(self.numbersImages)):
+    #                     curDiff = getImagesDiffPercent(numberImage, self.numbersImages[idx])
+    #                     if curDiff < minDiffCount:
+    #                         minDiffCount = curDiff
+    #                         minNum = idx
+    #                 aspectCount = int(aspectCount) * 10 + int(minNum)
+    #             minDiffAspect.count = aspectCount
+    #             print(minDiffAspect)
+    #
+    #             availableAspects.append(minDiffAspect)
+    #         if x == THAUM_ASPECTS_INVENTORY_SLOTS_X - 1:
+    #             self.scrollRight()
+    #             self.eventsDelay()
+    #         else:
+    #             x += 1
     def getAvailableAspects(self):
         print("Detecting available aspects...")
-        availableAspects = []
         debugHighlightingRect = None
         if DEBUG:
             debugHighlightingRect = UIPrimitives.Rect(self.rectAspectsListingLT.x, self.rectAspectsListingLT.y, self.rectAspectsListingRB.x, self.rectAspectsListingRB.y, fill=QColor('blue'), fillOpacity=0.3, lineWidth=1, color=QColor('blue'))
@@ -383,55 +435,38 @@ class ThaumInteractor:
         slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
         slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
         self.scrollToLeftSide()
-        x = 0
+        xCell = THAUM_ASPECTS_INVENTORY_SLOTS_X - 1
+        yCell = 0
+        regionLX = self.rectAspectsListingLT.x + xCell * slotWidth
+        regionLY = self.rectAspectsListingLT.y + yCell * slotHeight
+        previousImageInSlot = None
         while True:
-            for y in range(THAUM_ASPECTS_INVENTORY_SLOTS_Y):
-                regionLX = self.rectAspectsListingLT.x + x * slotWidth
-                regionLY = self.rectAspectsListingLT.y + y * slotHeight
-                if DEBUG:
-                    debugHighlightingRect.setCoords(
-                        regionLX, regionLY,
-                        regionLX + slotWidth, regionLY + slotHeight
-                    )
-                    debugHighlightingRect.setVisibility(False)
-                    self.renderDelay()
-                imageInSlot = self.imageResize(pyautogui.screenshot(region=(
+            if DEBUG:
+                debugHighlightingRect.setCoords(
                     regionLX, regionLY,
-                    slotWidth, slotHeight
-                )))
-                if DEBUG:
-                    debugHighlightingRect.setVisibility(True)
-                diffWithEmpty = getImagesDiffPercent(imageInSlot, self.emptyAspectInventorySlotImage, [self.maskOnlyNumbers])
+                    regionLX + slotWidth, regionLY + slotHeight
+                )
+                debugHighlightingRect.setVisibility(False)
+                self.renderDelay()
+            imageInSlot = self.imageResize(pyautogui.screenshot(region=(
+                regionLX, regionLY,
+                slotWidth, slotHeight
+            )))
+            if DEBUG:
+                debugHighlightingRect.setVisibility(True)
+            if previousImageInSlot:
+                diffWithEmpty = getImagesDiffPercent(previousImageInSlot, imageInSlot)
                 if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:
-                    print("Found empty place. Detection ends")
+                    print("Found end of inventory. Detection ends. Total pages:", self.currentAspectsPageIdx)
                     self.maxPagesCount = self.currentAspectsPageIdx
                     if DEBUG: self.UI.removeObject(debugHighlightingRect)
-                    return availableAspects
-                minDiffAspect = self.findClosestAspectImage(imageInSlot, self.maskWithoutNumbers)
+                    break
+            previousImageInSlot = imageInSlot
+            self.scrollRight()
+            self.eventsDelay()
 
-                aspectCount = 0
-                for i in range(2, -1, -1):
-                    numberImage = imageInSlot.crop((
-                        ASPECTS_IMAGES_SIZE - ASPECT_COUNT_NUMBER_SIZE[0] * (i + 1), ASPECTS_IMAGES_SIZE - ASPECT_COUNT_NUMBER_SIZE[1],
-                        ASPECTS_IMAGES_SIZE - ASPECT_COUNT_NUMBER_SIZE[0] * i, ASPECTS_IMAGES_SIZE
-                    ))
-                    minDiffCount = 100
-                    minNum = None
-                    for idx in range(len(self.numbersImages)):
-                        curDiff = getImagesDiffPercent(numberImage, self.numbersImages[idx])
-                        if curDiff < minDiffCount:
-                            minDiffCount = curDiff
-                            minNum = idx
-                    aspectCount = int(aspectCount) * 10 + int(minNum)
-                minDiffAspect.count = aspectCount
-                print(minDiffAspect)
-
-                availableAspects.append(minDiffAspect)
-            if x == THAUM_ASPECTS_INVENTORY_SLOTS_X - 1:
-                self.scrollRight()
-                self.eventsDelay()
-            else:
-                x += 1
+        availableAspects = []
+        return availableAspects
 
 
     def printAvailableAspects(self):
@@ -658,6 +693,8 @@ class ThaumInteractor:
 
         def callbackToFinish():
             print("END OF CONFIGURING ASPECTS!!!")
+            self.UI.clearAll()
+            self.UI.clearKeyCallbacks()
             existingAspects = {}
             noneHexagons = []
             for cell in cells:
