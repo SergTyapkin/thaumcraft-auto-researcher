@@ -9,6 +9,7 @@ THAUM_VERSION_CONFIG_PATH = 'user_configs/thaumVersionConfig.json'
 THAUM_CONTROLS_CONFIG_PATH = 'user_configs/thaumControlsConfig.json'
 THAUM_ASPECT_RECIPES_CONFIG_PATH = 'aspects_configs/aspectsRecipes.json'
 THAUM_TRANSLATION_CONFIG_PATH = 'aspects_configs/translationDictionary.json'
+THAUM_ASPECTS_ORDER_CONFIG_PATH = 'aspects_configs/aspectsOrder.json'
 def getAspectImagePath(aspectName, colored=True):
     return f"images/{'color' if colored else 'mono'}/{aspectName}.png"
 def getImagePathByNumber(number):

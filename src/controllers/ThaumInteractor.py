@@ -14,7 +14,7 @@ from src.UI.OverlayUI import KeyboardKeys
 from src.controllers import Scenarios
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, DELAY_BETWEEN_EVENTS, ASPECTS_IMAGES_SIZE, THAUM_TRANSLATION_CONFIG_PATH, \
-    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, EMPTY_ASPECT_SLOT_IMAGE_PATH, \
+    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, EMPTY_ASPECT_SLOT_IMAGE_PATH, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
     getImagePathByNumber, ASPECT_COUNT_NUMBER_SIZE, DELAY_BETWEEN_RENDER, THAUM_VERSION_CONFIG_PATH, DEBUG, \
@@ -46,7 +46,11 @@ def createTI(UI):
     for aspectNameEng in recipesConfig.keys():
         aspectNameLat = translationsConfig[aspectNameEng]
         recipesConfigTranslated[aspectNameLat] = recipesConfig[aspectNameEng]
-    return ThaumInteractor(UI, pointsConfig, recipesConfigTranslated, list(recipesConfigTranslated.keys()))
+    
+    aspectsOrserConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
+    aspectsOrserConfig = aspectsOrserConfig['aspects']
+    
+    return ThaumInteractor(UI, pointsConfig, recipesConfigTranslated, aspectsOrserConfig)
 
 
 class P:
