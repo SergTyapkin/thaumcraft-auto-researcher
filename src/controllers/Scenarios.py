@@ -12,7 +12,7 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.UI.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
-from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig
+from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig, loadRecipesForVersion
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
@@ -59,7 +59,8 @@ def configureThaumWindow(UI: OverlayUI):
 Открой интерфейс стола исследований, а потом передвинь две точки так, 
 чтобы прямоугольник обозначал границу этого окна.
 
-Как будет готово, жми [Enter].""",
+Как будет готово, жми [Enter].
+Чтобы вернуться назад, нажми [Backspace]""",
             color=QColor('white'),
             padding=MARGIN,
             withBackground=True,
@@ -79,6 +80,7 @@ def configureThaumWindow(UI: OverlayUI):
         UI.setKeyCallback(KeyboardKeys.enter, confirmThaumWindowSlots,
                           rectThaumWindow.LT.x, rectThaumWindow.LT.y,
                           rectThaumWindow.RB.x, rectThaumWindow.RB.y)
+        UI.setKeyCallback(KeyboardKeys.backspace, enroll, UI)
 
     def confirmThaumWindowSlots(LTx, LTy, RBx, RBy):
         W = RBx - LTx
@@ -90,17 +92,20 @@ def configureThaumWindow(UI: OverlayUI):
         UI.addObject(Text(
             pointTextAnchor.x, pointTextAnchor.y,
             """Программа автоматически определила положения кнопок взаимодействия 
-так, как ты видишь. Не факт, что это правильно, так что внимательно посмотри на точки,
+так, как ты видишь. Скорее всего сделала она это не точно, так что внимательно посмотри на точки,
 и, если нужно, передвинь их точно на нужные слоты / кнопки. Вот список, где какие точки:
 
 Желтые - слот для \"бумаги и пера\", слот для \"изучений\";
-Зеленая область - страница выбора из 5х5 аспектов;
+Зеленая область - выбор аспектов из стола 5х5. Важно, чтобы все
+ линии с точностью до пары пикселей разделяли аспекты;
 Голубые - переход по страницам аспектов влево / вправо;
 Розовые - удаление аспектов из смешивателя, смешение аспектов;
-Оранжевая область - место выкладывания аспектов в шестиугольники (очень важен центр);
+Шестиугольная область - место выкладывания аспектов в ячейки 
+ (очень важно совпадение всех центров ячеек на пересечениях линий);
 Фиолетовая область - 9х3 внутренних слотов инвентаря.
 
 Как будет готово - жми [Enter]
+Чтобы вернуться назад, нажми [Backspace]
 (!!! После завершения этой конфигурации, если окно с игрой не во весь экран, 
 не передвигайте его по экрану !!)""",
             color=QColor('white'),
@@ -148,24 +153,17 @@ def configureThaumWindow(UI: OverlayUI):
                 yVal = rectAspectsLT.y + y * rectH / THAUM_ASPECTS_INVENTORY_SLOTS_Y
                 horizontalListingLines[y - 1].S.y = yVal
                 horizontalListingLines[y - 1].E.y = yVal
-        UI.addObject(Point(rectAspectsLT.x, rectAspectsLT.y, movable=True,
-                           onMoveCallback=updateListingRectCoords))
-        UI.addObject(Point(rectAspectsRB.x, rectAspectsRB.y, movable=True,
-                           onMoveCallback=updateListingRectCoords))  # aspects listing rectangle
+        UI.addObject(Point(rectAspectsLT.x, rectAspectsLT.y, movable=True,onMoveCallback=updateListingRectCoords))
+        UI.addObject(Point(rectAspectsRB.x, rectAspectsRB.y, movable=True,onMoveCallback=updateListingRectCoords))  # aspects listing rectangle
 
         aspectsScrollY = LinkableValue(LTy + Hs * 7.65)
-        pointAspectsScrollLeft = UI.addObject(
-            Point(LTx + Ws * 2, aspectsScrollY, movable=True, color=QColor('lightblue')))  # aspects scroll left
-        pointAspectsScrollRight = UI.addObject(
-            Point(LTx + Ws * 3.5, aspectsScrollY, movable=True, color=QColor('lightblue')))  # aspects scroll right
+        pointAspectsScrollLeft = UI.addObject(Point(LTx + Ws * 2, aspectsScrollY, movable=True, color=QColor('lightblue')))  # aspects scroll left
+        pointAspectsScrollRight = UI.addObject(Point(LTx + Ws * 3.5, aspectsScrollY, movable=True, color=QColor('lightblue')))  # aspects scroll right
 
         aspectsMixY = LinkableValue(LTy + Hs * 9)
-        pointAspectsMixLeft = UI.addObject(
-            Point(LTx + Ws * 1, aspectsMixY, movable=True, color=QColor('pink')))  # aspects mix left
-        pointAspectsMixCreate = UI.addObject(
-            Point(LTx + Ws * 2.75, aspectsMixY, movable=True, color=QColor('pink')))  # aspects mix create
-        pointAspectsMixRight = UI.addObject(
-            Point(LTx + Ws * 4.5, aspectsMixY, movable=True, color=QColor('pink')))  # aspects mix right
+        pointAspectsMixLeft = UI.addObject(Point(LTx + Ws * 1, aspectsMixY, movable=True, color=QColor('pink')))  # aspects mix left
+        pointAspectsMixCreate = UI.addObject(Point(LTx + Ws * 2.75, aspectsMixY, movable=True, color=QColor('pink')))  # aspects mix create
+        pointAspectsMixRight = UI.addObject(Point(LTx + Ws * 4.5, aspectsMixY, movable=True, color=QColor('pink')))  # aspects mix right
 
         rectLT = LinkableCoord(LTx + Ws * 2.55, LTy + Hs * 10.8)
         rectRB = LinkableCoord(LTx + Ws * 12.4, LTy + Hs * 14)
@@ -228,6 +226,7 @@ def configureThaumWindow(UI: OverlayUI):
             waitForCreatingTI(UI)
 
         UI.setKeyCallback(KeyboardKeys.enter, saveControls)
+        UI.setKeyCallback(KeyboardKeys.backspace, configureThaumWindow, UI)
 
     getThaumWindowCoords()
 
@@ -236,7 +235,9 @@ def chooseThaumVersion(UI: OverlayUI):
     infoText = UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
         f"""Выберите версию Thaumcraft.
-От этого будут зависеть рецепты получения аспектов""",
+От этого будут зависеть рецепты получения аспектов.
+
+Чтобы вернуться назад, нажми [Backspace]""",
         color=QColor('white'),
         withBackground=True,
         backgroundColor=QColor('black'),
@@ -253,37 +254,33 @@ def chooseThaumVersion(UI: OverlayUI):
 
     infoText.LT.onMoveCallback = updateVersionsY
     for i in range(len(versions)):
+        version = versions[i]
+        def onClickVersion():
+            print("Selected thaum version:", version)
+            saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {'version': version})
+            waitForCreatingTI(UI)
         versionObject = UI.addObject(Text(
             pointTextAnchor.x, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,
-            versions[i],
+            version,
             color=QColor('white'),
             withBackground=True,
             backgroundColor=QColor('black'),
             padding=MARGIN,
             UI=UI,
+            onClickCallback=onClickVersion,
         ))
         versionsObjects.append(versionObject)
-    def onMousePress(x, y):
-        selectedObj = None
-        for versionObject in versionsObjects:
-            if versionObject.isHover(x, y):
-                selectedObj = versionObject
-        if selectedObj is None:
-            return
-        version = selectedObj.text
-        print("Selected thaum version:", version)
-        saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {'version': version})
-        waitForCreatingTI(UI)
-
-    UI.setMouseCallback(QEvent.MouseButtonPress, onMousePress)
+    UI.setKeyCallback(KeyboardKeys.backspace, configureThaumWindow, UI)
 
 def waitForCreatingTI(UI: OverlayUI):
     UI.clearAll()
+
     UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
         """Определяем аспекты в твоем столе.
 Перенеси это окно так, чтобы оно не перекрывало окно с игрой
-и нажми [Enter]""",
+и нажми [Enter]
+Чтобы вернуться назад, нажми [Backspace]""",
         color=QColor('white'),
         withBackground=True,
         backgroundColor=QColor('black'),
@@ -297,7 +294,7 @@ def waitForCreatingTI(UI: OverlayUI):
         if TI is not None:
             runResearching(UI, TI)
     UI.setKeyCallback(KeyboardKeys.enter, startCreatingTI)
-
+    UI.setKeyCallback(KeyboardKeys.backspace, chooseThaumVersion, UI)
 
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
@@ -307,15 +304,20 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     # TI.printAvailableAspects()
     # breakpoint()
 
+    def fillMapAndStartAgain(existingAspects, freeHexagons):
+        print("Existing aspects:", existingAspects)
+        print("Free hexagons:", freeHexagons)
+        aspectsRecipes = loadRecipesForVersion()
+        print(aspectsRecipes)
+        linkMap = generateLinkMap(existingAspects, freeHexagons, aspectsRecipes)
+        TI.fillByLinkMap(linkMap)
+        TI.takeOutPaper()
+        TI.eventsDelay()
+        breakpoint()
+        runResearching(UI, TI)
+
     TI.insertPaper()
     TI.renderDelay()
-    (existingAspects, freeHexagons) = TI.getExistingAspectsOnField()
-    print("Existing aspects:", existingAspects)
-    print("Free hexagons:", freeHexagons)
-    breakpoint()
-    linkMap = generateLinkMap(existingAspects, freeHexagons)
-    TI.fillByLinkMap(linkMap)
-    TI.takeOutPaper()
-    TI.eventsDelay()
+    TI.getExistingAspectsOnField(fillMapAndStartAgain)
 
 

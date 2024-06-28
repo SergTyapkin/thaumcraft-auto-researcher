@@ -6,7 +6,7 @@ import re
 from PIL import Image
 
 from src.utils.LinkableValue import linkableValueDumpsToJSON
-from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH
+from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
 
 
 def distance(x1, y1, x2, y2):
@@ -111,3 +111,9 @@ def getImagesDiffPercent(image1: Image.Image, image2: Image.Image, masks: list[I
         # print(diffs[i : i + image1.width])
 
     return percentDiff
+
+def loadRecipesForVersion():
+    selectedVersion = readJSONConfig(THAUM_VERSION_CONFIG_PATH)['version']
+    allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
+    print(allRecipes)
+    return allRecipes.get(selectedVersion)
