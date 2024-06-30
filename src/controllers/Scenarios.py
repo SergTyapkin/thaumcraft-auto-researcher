@@ -305,16 +305,14 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     # breakpoint()
 
     def fillMapAndStartAgain(existingAspects, noneHexagons):
-        print("Existing aspects:", existingAspects)
-        print("Free hexagons:", noneHexagons)
         linkMap = generateLinkMap(existingAspects, noneHexagons)
-        print("Solved:", linkMap)
         # breakpoint()
         print("Starting to put aspects on field...")
         TI.fillByLinkMap(linkMap)
         print("Putting aspects is done")
         TI.takeOutPaper()
         TI.eventsDelay()
+        TI.increaseWorkingSlot()
         runResearching(UI, TI)
 
     TI.insertPaper()

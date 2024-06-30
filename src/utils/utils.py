@@ -2,11 +2,13 @@ import json
 import math
 import os
 import re
+import time
 
 from PIL import Image
 
 from src.utils.LinkableValue import linkableValueDumpsToJSON
-from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
+from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH, \
+    DELAY_BETWEEN_EVENTS, DELAY_BETWEEN_RENDER
 
 
 def distance(x1, y1, x2, y2):
@@ -116,3 +118,9 @@ def loadRecipesForSelectedVersion():
     selectedVersion = readJSONConfig(THAUM_VERSION_CONFIG_PATH)['version']
     allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     return allRecipes.get(selectedVersion)
+
+def eventsDelay():
+    time.sleep(DELAY_BETWEEN_EVENTS)
+
+def renderDelay():
+    time.sleep(DELAY_BETWEEN_RENDER)

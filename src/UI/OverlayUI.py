@@ -175,11 +175,14 @@ class _Window(QMainWindow):
                 (self.anchorMouseMovePoint[0] == event.x()) and (self.anchorMouseMovePoint[1] == event.y())
                 or (not self.currentPressedObject.movable)
         ):
+            objToClick = None
             for obj in self.objects:
                 if obj.isHover(event.x(), event.y()) \
                         and (getattr(obj, 'onClickCallback') is not None):
                         # and (self.currentPressedObject is obj):
-                    obj.onClickCallback(*obj.onClickCallbackArgs)
+                    objToClick = obj
+            if objToClick is not None:
+                objToClick.onClickCallback(*objToClick.onClickCallbackArgs)
         self.lastMouseMovePoint = None
         self.anchorMouseMovePoint = None
         self.currentPressedObject = None

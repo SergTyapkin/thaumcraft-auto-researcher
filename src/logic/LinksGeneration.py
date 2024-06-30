@@ -60,6 +60,9 @@ class AspectGraph:
         return f"Aspect(name={self.name})"
 
 def generateLinkMap(existingAspects, noneHexagons):
+    print("Started solving...")
+    print("Existing aspects:", existingAspects)
+    print("Free hexagons:", noneHexagons)
     aspect_graph = AspectGraph()
 
     aspect_graph.add_aspect_combinations()
@@ -88,7 +91,7 @@ def generateLinkMap(existingAspects, noneHexagons):
                                 result[aspect] = free_coord
                                 placed_aspects[free_coord] = aspect
                                 current_coord = free_coord
-
+    print("Solved:", result)
     return result
 
 def find_free_coordinate(placed_aspects, holes_set, start_coord):

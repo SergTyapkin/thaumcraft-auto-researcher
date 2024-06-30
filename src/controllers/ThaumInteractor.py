@@ -13,14 +13,14 @@ from src.UI import UIPrimitives
 from src.UI.OverlayUI import KeyboardKeys
 from src.controllers import Scenarios
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
-    THAUM_ASPECTS_INVENTORY_SLOTS_Y, DELAY_BETWEEN_EVENTS, ASPECTS_IMAGES_SIZE, THAUM_TRANSLATION_CONFIG_PATH, \
-    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, EMPTY_ASPECT_SLOT_IMAGE_PATH, \
-    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
+    THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, THAUM_TRANSLATION_CONFIG_PATH, \
+    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
+    EMPTY_ASPECT_SLOT_IMAGE_PATH, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
-    getImagePathByNumber, ASPECT_COUNT_NUMBER_SIZE, DELAY_BETWEEN_RENDER, THAUM_VERSION_CONFIG_PATH, DEBUG, \
+    getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
     HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN
 from src.utils.constants import getAspectImagePath
-from src.utils.utils import getImagesDiffPercent, readJSONConfig
+from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay
 
 
 def createTI(UI):
@@ -46,10 +46,10 @@ def createTI(UI):
     for aspectNameEng in recipesConfig.keys():
         aspectNameLat = translationsConfig[aspectNameEng]
         recipesConfigTranslated[aspectNameLat] = recipesConfig[aspectNameEng]
-    
+
     aspectsOrserConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
     aspectsOrserConfig = aspectsOrserConfig['aspects']
-    
+
     return ThaumInteractor(UI, pointsConfig, recipesConfigTranslated, aspectsOrserConfig)
 
 
@@ -59,7 +59,10 @@ class P:
         self.y = y
 
     def move(self):
-        mouse.move(self.x, self.y)
+        mousePos = mouse.get_position()
+        if mousePos[0] != self.x or mousePos[1] != self.y:
+            mouse.move(self.x, self.y)
+            eventsDelay()
 
     def click(self, button=mouse.LEFT, shift=False):
         self.move()
@@ -67,7 +70,9 @@ class P:
             mouse.click(button)
             return
         keyboard.press('shift')
+        eventsDelay()
         mouse.click(button)
+        eventsDelay()
         keyboard.release('shift')
 
     def hold(self, button=mouse.LEFT):
@@ -77,7 +82,6 @@ class P:
     def release(self, button=mouse.LEFT):
         self.move()
         mouse.release(button)
-
 
 
 class Aspect:
@@ -131,8 +135,8 @@ class ThaumInteractor:
     maskOnlyNumbers: Image.Image = None
     maskWithoutNumbers: Image.Image = None
 
-
-    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], availableAspects: list[str]):
+    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]],
+                 availableAspects: list[str]):
         self.UI = UI
 
         c = controlsConfig
@@ -193,25 +197,30 @@ class ThaumInteractor:
         self.pointAspectsScrollLeft.click()
         self._showDebugClick(self.pointAspectsScrollLeft)
         self.currentAspectsPageIdx -= 1
+
     def scrollRight(self):
         if self.currentAspectsPageIdx == self.maxPagesCount:
             return
         self.pointAspectsScrollRight.click()
         self._showDebugClick(self.pointAspectsScrollRight)
         self.currentAspectsPageIdx += 1
+
     def scrollToLeftSide(self):
         if self.currentAspectsPageIdx is None:
             self.currentAspectsPageIdx = self.maxPagesCount
         for _ in range(self.currentAspectsPageIdx):
             self.scrollLeft()
-            self.eventsDelay()
+            eventsDelay()
         self.currentAspectsPageIdx = 0
+
     def _showDebugClick(self, point, color=QColor('lightgreen')):
         if not DEBUG:
             return
         clickCircle = UIPrimitives.Circle(point.x, point.y, 20, color=color)
+
         def onTimeCallback(timeLeft):
             clickCircle.r = timeLeft / 1000 * 20
+
         self.UI.addObjectAndDeleteAfterTime(clickCircle, 1000, onTimeCallback)
 
     def scrollToRightSide(self):
@@ -219,21 +228,23 @@ class ThaumInteractor:
             self.currentAspectsPageIdx = 0
         for _ in range(self.maxPagesCount - self.currentAspectsPageIdx):
             self.scrollRight()
-            self.eventsDelay()
+            eventsDelay()
         self.currentAspectsPageIdx = self.maxPagesCount
+
     def takeOutPaper(self):
         self.pointPapers.click()
         self._showDebugClick(self.pointPapers)
-        self.eventsDelay()
+        eventsDelay()
         self.pointWorkingInventorySlot.click()
         self._showDebugClick(self.pointWorkingInventorySlot)
+
     def insertPaper(self):
-        self.pointWorkingInventorySlot.click()
+        self.pointWorkingInventorySlot.click(shift=True)
         self._showDebugClick(self.pointWorkingInventorySlot)
-        self.eventsDelay()
-        self.pointPapers.click()
-        self._showDebugClick(self.pointPapers)
-        # self.pointWorkingInventorySlot.move()
+        eventsDelay()
+        # self.pointPapers.click()
+        # self._showDebugClick(self.pointPapers)
+
     def increaseWorkingSlot(self):
         self.workingInventorySlot += 1
 
@@ -283,22 +294,17 @@ class ThaumInteractor:
         if self.currentAspectsPageIdx < cellPageIdxMin:
             for _ in range(self.currentAspectsPageIdx, cellPageIdxMin):
                 self.scrollRight()
-                self.eventsDelay()
+                eventsDelay()
         elif self.currentAspectsPageIdx > cellPageIdxMax:
             for _ in range(cellPageIdxMax, self.currentAspectsPageIdx):
                 self.scrollLeft()
-                self.eventsDelay()
+                eventsDelay()
 
         return cellX - self.currentAspectsPageIdx, cellY
 
     def takeAspect(self, aspect: Aspect):
         (cellX, cellY) = self.scrollToAspect(aspect)
         self.takeAspectByCellCoords(cellX, cellY)
-
-    def eventsDelay(self):
-        time.sleep(DELAY_BETWEEN_EVENTS)
-    def renderDelay(self):
-        time.sleep(DELAY_BETWEEN_RENDER)
 
     def mixAspect(self, aspect: Aspect, useShift=True):
         recipe = self.recipes.get(aspect.name)
@@ -309,36 +315,39 @@ class ThaumInteractor:
 
         if useShift:
             (cellX, cellY) = self.scrollToAspect(aspect)
-            self.eventsDelay()
+            eventsDelay()
             P(cellX, cellY).click(shift=True)
             self._showDebugClick(P(cellX, cellY))
             return
 
         (cellX, cellY) = self.scrollToAspect(recipe[0])
-        self.eventsDelay()
+        eventsDelay()
         P(cellX, cellY).click()
         self._showDebugClick(P(cellX, cellY))
-        self.eventsDelay()
+        eventsDelay()
         (cellX, cellY) = self.scrollToAspect(recipe[1])
-        self.eventsDelay()
+        eventsDelay()
         P(cellX, cellY).click()
         self._showDebugClick(P(cellX, cellY))
-        self.eventsDelay()
+        eventsDelay()
         self.pointAspectsMixCreate.click()
         self._showDebugClick(self.pointAspectsMixCreate)
 
     def fillByLinkMap(self, aspectsMap: dict[str, (int, int)]):
+        self.currentAspectsPageIdx = None
+        self.scrollToLeftSide()
         for aspectName in aspectsMap.keys():
             aspect = self.getAspectByName(aspectName)
             self.takeAspect(aspect)
-            self.eventsDelay()
+            eventsDelay()
             self.putAspect(*aspectsMap[aspectName])
-            self.eventsDelay()
+            eventsDelay()
 
     def imageResize(self, image: Image.Image):
         return image.resize((ASPECTS_IMAGES_SIZE, ASPECTS_IMAGES_SIZE), Image.Resampling.LANCZOS)
 
-    def findClosestAspectImage(self, image: Image.Image, mask: Image.Image = None, specialReturns: list[(Union[Image.Image, list[Image.Image]], Any)] = []):
+    def findClosestAspectImage(self, image: Image.Image, mask: Image.Image = None,
+                               specialReturns: list[(Union[Image.Image, list[Image.Image]], Any)] = []):
         minDiff = 100
         minDiffAspect = None
         for aspect in self.allAspects:
@@ -427,14 +436,17 @@ class ThaumInteractor:
     #             availableAspects.append(minDiffAspect)
     #         if x == THAUM_ASPECTS_INVENTORY_SLOTS_X - 1:
     #             self.scrollRight()
-    #             self.eventsDelay()
+    #             eventsDelay()
     #         else:
     #             x += 1
     def getAvailableAspects(self):
         print("Detecting available aspects...")
         debugHighlightingRect = None
         if DEBUG:
-            debugHighlightingRect = UIPrimitives.Rect(self.rectAspectsListingLT.x, self.rectAspectsListingLT.y, self.rectAspectsListingRB.x, self.rectAspectsListingRB.y, fill=QColor('blue'), fillOpacity=0.3, lineWidth=1, color=QColor('blue'))
+            debugHighlightingRect = UIPrimitives.Rect(self.rectAspectsListingLT.x, self.rectAspectsListingLT.y,
+                                                      self.rectAspectsListingRB.x, self.rectAspectsListingRB.y,
+                                                      fill=QColor('blue'), fillOpacity=0.3, lineWidth=1,
+                                                      color=QColor('blue'))
             self.UI.addObject(debugHighlightingRect)
         slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
         slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
@@ -467,11 +479,10 @@ class ThaumInteractor:
                     break
             previousImageInSlot = imageInSlot
             self.scrollRight()
-            self.eventsDelay()
+            eventsDelay()
 
         availableAspects = []
         return availableAspects
-
 
     def printAvailableAspects(self):
         for i in range(len(self.availableAspects)):
@@ -481,62 +492,62 @@ class ThaumInteractor:
         print()
 
     # def getExistingAspectsOnField(self):
-        # self.printAvailableAspects()
-        # debugHighlightingRect = None
-        # if DEBUG:
-        #     debugHighlightingRect = UIPrimitives.Rect(
-        #         self.rectHexagonsCC.x + (-THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeX,
-        #         self.rectHexagonsCC.y + (-THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeY,
-        #         self.rectHexagonsCC.x + (THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeX,
-        #         self.rectHexagonsCC.y + THAUM_HEXAGONS_SLOTS_COUNT / 2 * self.hexagonSlotSizeY,
-        #         fill=QColor('blue'), fillOpacity=0.3, lineWidth=1, color=QColor('blue'))
-        #     self.UI.addObject(debugHighlightingRect)
-        #     self.renderDelay()
-        # realHexagonSlotHeight = self.hexagonSlotSizeY * 0.85
-        # existingAspects = []
-        # freeHexagons = []
-        # noneHexagons = []
-        # for x in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
-        #     for y in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(x) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(x) + 1) // 2 + 1):
-        #         print(x, y)
-        #         # find pos of hexagons
-        #         slotLTx = self.rectHexagonsCC.x + x * self.hexagonSlotSizeX - self.hexagonSlotSizeX / 2
-        #         slotLTy = self.rectHexagonsCC.y + y * self.hexagonSlotSizeY - self.hexagonSlotSizeX / 2
-        #         if x % 2 == 1:
-        #             slotLTy += self.hexagonSlotSizeY / 2
-        #
-        #         screenshotLTy = slotLTy - (self.hexagonSlotSizeX - realHexagonSlotHeight) / 2
-        #         if DEBUG:
-        #             debugHighlightingRect.setCoords(slotLTx, screenshotLTy, slotLTx + self.hexagonSlotSizeX, slotLTy + self.hexagonSlotSizeX)
-        #             if x >= -2:
-        #                 self.renderDelay()
-        #             debugHighlightingRect.setVisibility(False)
-        #             time.sleep(0.1)
-        #         imageInSlot = self.imageResize(pyautogui.screenshot(region=(
-        #             slotLTx, screenshotLTy,
-        #             self.hexagonSlotSizeX, self.hexagonSlotSizeX
-        #         )))
-        #
-        #         if DEBUG:
-        #             debugHighlightingRect.setVisibility(True)
-        #         minDiffAspect = self.findClosestAspectImage(imageInSlot, mask=self.hexagonBorderMaskImage, specialReturns=[(self.freeHexagonImages, -1), (self.noneHexagonImage, -2)])
-        #         if minDiffAspect == -1:    # free slot
-        #             print("FREE")
-        #             freeHexagons.append((x, y))
-        #         elif minDiffAspect == -2:  # none slot
-        #             print("NONE (NO CELL)")
-        #             noneHexagons.append((x, y))
-        #         else:                      # aspect in slot
-        #             print(minDiffAspect.name)
-        #             existingAspects.append((minDiffAspect, (x, y)))
-        # print("END!!!")
-        # print(existingAspects, noneHexagons)
-        # exit()
-        # return existingAspects, freeHexagons
-
+    # self.printAvailableAspects()
+    # debugHighlightingRect = None
+    # if DEBUG:
+    #     debugHighlightingRect = UIPrimitives.Rect(
+    #         self.rectHexagonsCC.x + (-THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeX,
+    #         self.rectHexagonsCC.y + (-THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeY,
+    #         self.rectHexagonsCC.x + (THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeX,
+    #         self.rectHexagonsCC.y + THAUM_HEXAGONS_SLOTS_COUNT / 2 * self.hexagonSlotSizeY,
+    #         fill=QColor('blue'), fillOpacity=0.3, lineWidth=1, color=QColor('blue'))
+    #     self.UI.addObject(debugHighlightingRect)
+    #     self.renderDelay()
+    # realHexagonSlotHeight = self.hexagonSlotSizeY * 0.85
+    # existingAspects = []
+    # freeHexagons = []
+    # noneHexagons = []
+    # for x in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
+    #     for y in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(x) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(x) + 1) // 2 + 1):
+    #         print(x, y)
+    #         # find pos of hexagons
+    #         slotLTx = self.rectHexagonsCC.x + x * self.hexagonSlotSizeX - self.hexagonSlotSizeX / 2
+    #         slotLTy = self.rectHexagonsCC.y + y * self.hexagonSlotSizeY - self.hexagonSlotSizeX / 2
+    #         if x % 2 == 1:
+    #             slotLTy += self.hexagonSlotSizeY / 2
+    #
+    #         screenshotLTy = slotLTy - (self.hexagonSlotSizeX - realHexagonSlotHeight) / 2
+    #         if DEBUG:
+    #             debugHighlightingRect.setCoords(slotLTx, screenshotLTy, slotLTx + self.hexagonSlotSizeX, slotLTy + self.hexagonSlotSizeX)
+    #             if x >= -2:
+    #                 self.renderDelay()
+    #             debugHighlightingRect.setVisibility(False)
+    #             time.sleep(0.1)
+    #         imageInSlot = self.imageResize(pyautogui.screenshot(region=(
+    #             slotLTx, screenshotLTy,
+    #             self.hexagonSlotSizeX, self.hexagonSlotSizeX
+    #         )))
+    #
+    #         if DEBUG:
+    #             debugHighlightingRect.setVisibility(True)
+    #         minDiffAspect = self.findClosestAspectImage(imageInSlot, mask=self.hexagonBorderMaskImage, specialReturns=[(self.freeHexagonImages, -1), (self.noneHexagonImage, -2)])
+    #         if minDiffAspect == -1:    # free slot
+    #             print("FREE")
+    #             freeHexagons.append((x, y))
+    #         elif minDiffAspect == -2:  # none slot
+    #             print("NONE (NO CELL)")
+    #             noneHexagons.append((x, y))
+    #         else:                      # aspect in slot
+    #             print(minDiffAspect.name)
+    #             existingAspects.append((minDiffAspect, (x, y)))
+    # print("END!!!")
+    # print(existingAspects, noneHexagons)
+    # exit()
+    # return existingAspects, freeHexagons
 
     def getExistingAspectsOnField(self, callbackAfterFinish, generateLinkMap):
         self.printAvailableAspects()
+
         class Cell:
             x: int = None
             y: int = None
@@ -544,11 +555,13 @@ class ThaumInteractor:
             imageObject: UIPrimitives.Image = None
             aspect: Aspect = None
             isNone: bool = False
+
             def __init__(self, x: int, y: int):
                 self.x = x
                 self.y = y
+
         cells: list[Cell] = []
-        selectedCell: list[Cell | None, QColor | None] = [None, None] # list to make it mutable
+        selectedCell: list[Cell | None, QColor | None] = [None, None]  # list to make it mutable
 
         cellColorFree = QColor('white')
         cellColorNone = QColor('black')
@@ -556,16 +569,17 @@ class ThaumInteractor:
         cellColorFree.setAlpha(20)
         cellColorNone.setAlpha(150)
         cellColorAspect.setAlpha(200)
-        
+
         def getExistingAspectsNoneHexagons():
-          existingAspects = {}
-          noneHexagons = []
-          for item in items:
-            if cell.isNone:
-                noneHexagons.append((cell.x, cell.y))
-            elif cell.aspect is not None:
-                existingAspects[cell.aspect.name] = (cell.x, cell.y)
-          
+            existingAspects = {}
+            noneHexagons = []
+            for cell in cells:
+                if cell.isNone:
+                    noneHexagons.append((cell.x, cell.y))
+                elif cell.aspect is not None:
+                    existingAspects[cell.aspect.name] = (cell.x, cell.y)
+            return existingAspects, noneHexagons
+
         def onClickCellIsNone():
             if selectedCell[0] is None:
                 return
@@ -598,20 +612,62 @@ class ThaumInteractor:
             setCellDialogueVisibility(False)
             selectedCell[0] = None
             updateShadowSolveImages()
-        
+
         def updateShadowSolveImages():
-          for cell in cells:
-            cell.imageObject.clearImage()
-          (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
-          linkMap = generateLinkMap(existingAspects, noneHexagons)
-          for aspect in linkMap:
-            coords = linkMap[aspect]
             for cell in cells:
-              if (cell.x == coords[0]) and (cell.y == coords[1]):
-                aspectObj = self.getAspectByName(aspect)
-                cell.imageObject.setImage(aspectObj.pixMapImage)
-                break
-          
+                cell.imageObject.clearImage()
+            (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
+            linkMap = generateLinkMap(existingAspects, noneHexagons)
+            for aspect in linkMap:
+                coords = linkMap[aspect]
+                for cell in cells:
+                    if (cell.x == coords[0]) and (cell.y == coords[1]):
+                        aspectObj = self.getAspectByName(aspect)
+                        cell.imageObject.setImage(aspectObj.pixMapImage)
+                        break
+
+        def startCellDialogue(cell: Cell):
+            setCellDialogueVisibility(True)
+            if selectedCell[0]:
+                newColor = QColor(selectedCell[0].object.color)
+                newColor.setAlpha(selectedCell[1])
+                selectedCell[0].object.setColor(newColor)
+            selectedCell[0] = cell
+            newColor = QColor(cell.object.color)
+            selectedCell[1] = newColor.alpha()
+            newColor.setAlpha(130)
+            cell.object.setColor(newColor)
+
+        # draw clickable cells
+        for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
+            for iy in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(ix) // 2 + 1,
+                            THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(ix) + 1) // 2 + 1):
+                hexagonCenterX = self.rectHexagonsCC.x + ix * self.hexagonSlotSizeX
+                hexagonCenterY = self.rectHexagonsCC.y + iy * self.hexagonSlotSizeY + (
+                        ix % 2) * self.hexagonSlotSizeY / 2
+                cell = Cell(ix, iy)
+                cellObject = UIPrimitives.Circle(
+                    hexagonCenterX,
+                    hexagonCenterY,
+                    r=self.hexagonSlotSizeY / 2,
+                    color=cellColorFree,
+                    onClickCallback=startCellDialogue,
+                    onClickCallbackArgs=[cell]
+                )
+                cell.object = cellObject
+                imageSide = self.hexagonSlotSizeY / math.sqrt(2)
+                cellAspectImageObject = UIPrimitives.Image(
+                    hexagonCenterX,
+                    hexagonCenterY - imageSide,
+                    imageSide,
+                    imageSide,
+                    None
+                )
+                cell.imageObject = cellAspectImageObject
+                cells.append(cell)
+                self.UI.addObject(cellObject)
+                self.UI.addObject(cellAspectImageObject)
+
         # draw cell dialogue
         cellDialogueObjects = []
         textYCoord = MARGIN
@@ -660,20 +716,6 @@ class ThaumInteractor:
                 textYCoord = startTextYCoord
                 textXCoord += 200
 
-        def startCellDialogue(cell: Cell):
-            setCellDialogueVisibility(True)
-            if selectedCell[0]:
-                newColor = QColor(selectedCell[0].object.color)
-                newColor.setAlpha(selectedCell[1])
-                selectedCell[0].object.setColor(newColor)
-            selectedCell[0] = cell
-            newColor = QColor(cell.object.color)
-            selectedCell[1] = newColor.alpha()
-            newColor.setAlpha(130)
-            cell.object.setColor(newColor)
-
-
-        # draw clickable cells
         textControls = self.UI.addObject(UIPrimitives.Text(
             MARGIN, MARGIN,
             f"""Кликни на ячейки, которых нет, и в которых есть аспекты.
@@ -691,34 +733,8 @@ class ThaumInteractor:
             for obj in cellDialogueObjects:
                 obj.visible = state
             textControls.visible = not state
-        setCellDialogueVisibility(False)
 
-        for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
-            for iy in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(ix) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(ix) + 1) // 2 + 1):
-                hexagonCenterX = self.rectHexagonsCC.x + ix * self.hexagonSlotSizeX
-                hexagonCenterY = self.rectHexagonsCC.y + iy * self.hexagonSlotSizeY + (ix % 2) * self.hexagonSlotSizeY / 2
-                cell = Cell(ix, iy)
-                cellObject = UIPrimitives.Circle(
-                    hexagonCenterX,
-                    hexagonCenterY,
-                    r=self.hexagonSlotSizeY / 2,
-                    color=cellColorFree,
-                    onClickCallback=startCellDialogue,
-                    onClickCallbackArgs=[cell]
-                )
-                cell.object = cellObject
-                imageSide = self.hexagonSlotSizeY / math.sqrt(2)
-                cellAspectImageObject = UIPrimitives.Image(
-                    hexagonCenterX,
-                    hexagonCenterY - imageSide,
-                    imageSide,
-                    imageSide,
-                    None
-                )
-                cell.imageObject = cellAspectImageObject
-                cells.append(cell)
-                self.UI.addObject(cellObject)
-                self.UI.addObject(cellAspectImageObject)
+        setCellDialogueVisibility(False)
 
         def callbackToFinish():
             print("END OF CONFIGURING ASPECTS!!!")
@@ -726,6 +742,7 @@ class ThaumInteractor:
             self.UI.clearKeyCallbacks()
             (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
             callbackAfterFinish(existingAspects, noneHexagons)
+
         self.UI.setKeyCallback(KeyboardKeys.enter, callbackToFinish)
         self.UI.setKeyCallback(KeyboardKeys.n, onClickCellIsNone)
         self.UI.setKeyCallback(KeyboardKeys.f, onClickCellIsFree)
