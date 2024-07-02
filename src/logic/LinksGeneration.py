@@ -1,7 +1,8 @@
 import heapq
 
-from src.utils.constants import THAUM_TRANSLATION_CONFIG_PATH
 from src.utils.utils import loadRecipesForSelectedVersion, readJSONConfig
+
+MAX_PATH_LEN = 10
 
 class PathElement:
     def __init__(self, path, length):
@@ -12,17 +13,16 @@ class PathElement:
         return self.length < other.length
 
 class AspectGraph:
-    def __init__(self):
-        self.graph = {}
-        self.translation_dictionary = readJSONConfig(THAUM_TRANSLATION_CONFIG_PATH)
-        self.combinations = loadRecipesForSelectedVersion()
+    graph: dict[str, [str, str]] = {}
 
-    def add_aspect_combinations(self):
-        for aspect, components in self.combinations.items():
-            translated_aspect = self.translate_aspect(aspect)
-            for component in components:
-                translated_component = self.translate_aspect(component)
-                self.add_connection(translated_aspect, translated_component)
+    def __init__(self, aspectRecipes: dict[str, [str, str]]):
+        self.regenerate_graph_combinations(aspectRecipes)
+
+    def regenerate_graph_combinations(self, aspectRecipes: dict[str, [str, str]]):
+        self.graph.clear()
+        for aspectName, recipe in aspectRecipes.items():
+            for component in recipe:
+                self.add_connection(aspectName, component)
 
     def add_connection(self, aspect1, aspect2):
         if aspect1 not in self.graph:
@@ -51,46 +51,72 @@ class AspectGraph:
         visited = set()
         return search(queue, to_aspect, visited)
 
-    def translate_aspect(self, aspect):
-        translated = self.translation_dictionary.get(aspect, aspect)
-        # print(f"Translated aspect: {aspect} to {translated}")  # Debug
-        return translated
-
     def __repr__(self):
-        return f"Aspect(name={self.name})"
+        return f"AspectsGraph(graph={self.graph})"
 
-def generateLinkMap(existingAspects, noneHexagons):
+
+class Aspect:
+    name: str
+    coord: (int, int)
+    linked_to_initials: set[str] = set()
+    def __init__(self, name, coord):
+        self.name = name
+        self.coord = coord
+    def get_distance_to(self, other_aspect):
+        return (
+            other_aspect.coord[0] - self.coord[0] +
+            other_aspect.coord[1] - self.coord[1]
+        )
+
+
+def generateLinkMap(existing_aspects: dict[str, (int, int)], holes_set: set[(int, int)]) -> dict[str, (int, int)]:
     print("Started solving...")
-    print("Existing aspects:", existingAspects)
-    print("Free hexagons:", noneHexagons)
-    aspect_graph = AspectGraph()
+    print("Existing aspects:", existing_aspects)
+    print("Free hexagons:", holes_set)
+    aspect_recipes = loadRecipesForSelectedVersion()
+    aspect_graph = AspectGraph(aspect_recipes)
 
-    aspect_graph.add_aspect_combinations()
-
-    holes_set = set(tuple(hole) for hole in noneHexagons)
     result = {}
-    placed_aspects = {}
+    initial_aspects: set[Aspect] = set()
+    aspects_on_field: set[Aspect] = set()
 
-    for aspect in existingAspects:
-        coord = existingAspects[aspect]
-        if tuple(coord) not in holes_set:
-            translated_aspect = aspect_graph.translate_aspect(aspect)
-            placed_aspects[tuple(coord)] = translated_aspect
-            result[translated_aspect] = coord
+    for aspectName, coord in existing_aspects.items():
+        coord = existing_aspects[aspectName]
+        initial_aspects.add = Aspect(aspectName, coord)
+        aspects_on_field.add = Aspect(aspectName, coord)
+        result[aspectName] = coord
 
-    for start_coord, start_aspect in list(placed_aspects.items()):
-        for end_coord, end_aspect in list(placed_aspects.items()):
-            if start_coord != end_coord:
-                path = aspect_graph.find_path(start_aspect, end_aspect, 10)
-                if path:
-                    current_coord = start_coord
-                    for aspect in path[1:]:
-                        if aspect not in placed_aspects.values():
-                            free_coord = find_free_coordinate(placed_aspects, holes_set, current_coord)
-                            if free_coord:
-                                result[aspect] = free_coord
-                                placed_aspects[free_coord] = aspect
-                                current_coord = free_coord
+    for start_aspect in initial_aspects:
+        aspect_not_linked_to = start_aspect.linked_to_initials.difference(initial_aspects)
+        target_initial_aspect = aspect_not_linked_to.pop()
+        min_len_aspect = None
+        min_len_to_aspect = 0
+        for end_aspect_candidate in aspects_on_field:
+            if start_aspect.coord == end_aspect_candidate.coord:
+                continue
+            if target_initial_aspect not in end_aspect_candidate.linked_to_initials:
+                continue
+
+            path_len = start_aspect.get_distance_to(target_initial_aspect)
+            if (min_len_aspect is None) or (path_len < min_len_to_aspect):
+                min_len_aspect = end_aspect_candidate
+                min_len_to_aspect = path_len
+
+        end_aspect = min_len_aspect
+        for target_path_len in range(min_len_to_aspect, MAX_PATH_LEN):
+            path = aspect_graph.find_path(start_aspect, end_aspect, 10) # TODO: find length of path
+            if not path:
+                continue
+
+            current_coord = start_coord
+            for aspect in path[1:]:
+                # if aspect not in placed_aspects.values():
+                    free_coord = find_free_coordinate(placed_aspects, holes_set, current_coord)
+                    if not free_coord:
+                        continue
+                    result[aspect] = free_coord
+                    placed_aspects[free_coord] = aspect
+                    current_coord = free_coord
     print("Solved:", result)
     return result
 

@@ -13,7 +13,7 @@ from src.UI import UIPrimitives
 from src.UI.OverlayUI import KeyboardKeys
 from src.controllers import Scenarios
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
-    THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, THAUM_TRANSLATION_CONFIG_PATH, \
+    THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
     EMPTY_ASPECT_SLOT_IMAGE_PATH, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
@@ -28,29 +28,20 @@ def createTI(UI):
     if pointsConfig is None:
         Scenarios.enroll(UI)
         return None
-    thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
-    if thaum_version is None:
+    selected_thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
+    if selected_thaum_version is None:
         Scenarios.chooseThaumVersion(UI)
         return None
 
     recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     if recipesConfig is None:
         raise ValueError("Can't open recipes config")
-    recipesConfig = recipesConfig[thaum_version['version']]
+    recipesConfig = recipesConfig[selected_thaum_version['version']]
 
-    translationsConfig = readJSONConfig(THAUM_TRANSLATION_CONFIG_PATH)
-    if translationsConfig is None:
-        raise ValueError("Can't open translations config")
+    aspectsOrderConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
+    aspectsOrderConfig = aspectsOrderConfig['aspects']
 
-    recipesConfigTranslated = {}
-    for aspectNameEng in recipesConfig.keys():
-        aspectNameLat = translationsConfig[aspectNameEng]
-        recipesConfigTranslated[aspectNameLat] = recipesConfig[aspectNameEng]
-
-    aspectsOrserConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
-    aspectsOrserConfig = aspectsOrserConfig['aspects']
-
-    return ThaumInteractor(UI, pointsConfig, recipesConfigTranslated, aspectsOrserConfig)
+    return ThaumInteractor(UI, pointsConfig, recipesConfig, aspectsOrderConfig)
 
 
 class P:
@@ -135,8 +126,7 @@ class ThaumInteractor:
     maskOnlyNumbers: Image.Image = None
     maskWithoutNumbers: Image.Image = None
 
-    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]],
-                 availableAspects: list[str]):
+    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], availableAspects: list[str]):
         self.UI = UI
 
         c = controlsConfig
@@ -572,10 +562,10 @@ class ThaumInteractor:
 
         def getExistingAspectsNoneHexagons():
             existingAspects = {}
-            noneHexagons = []
+            noneHexagons = set()
             for cell in cells:
                 if cell.isNone:
-                    noneHexagons.append((cell.x, cell.y))
+                    noneHexagons.add((cell.x, cell.y))
                 elif cell.aspect is not None:
                     existingAspects[cell.aspect.name] = (cell.x, cell.y)
             return existingAspects, noneHexagons
