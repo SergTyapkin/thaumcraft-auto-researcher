@@ -16,6 +16,15 @@ DEFAULT_FONT = QFont('Arial', 14, 500, False)
 DEFAULT_PADDING = 20
 
 
+def mixColors(color1: QColor, color2: QColor, ratio: float = 0.5, mixAlpha: bool = False) -> QColor:
+    r = color1.red() * (1 - ratio) + color2.red() * ratio
+    g = color1.green() * (1 - ratio) + color2.green() * ratio
+    b = color1.blue() * (1 - ratio) + color2.blue() * ratio
+    a = color1.alpha()
+    if mixAlpha:
+        a = color1.alpha() * (1 - ratio) + color2.alpha() * ratio
+    return QColor(int(r), int(g), int(b), int(a))
+
 def opacityToAlpha(opacity: float) -> int:
     return int(opacity * 255)
 
@@ -25,8 +34,11 @@ class _Object:
     id = None
     lineWidth = DEFAULT_LINE_WIDTH
     color = DEFAULT_COLOR
+    hoverColor = None
+    _currentColor = None
     visible = True
     movable = False
+    hoverable = False
     onClickCallback = None
     onClickCallbackArgs = []
     _pen: QPen = None
@@ -34,23 +46,30 @@ class _Object:
 
     def __init__(self):
         self.id = next(_objectIdValue)
+        self._currentColor = self.color
         self._init()
 
     def setColor(self, color: QColor):
         self.color = color
+        self._currentColor = color
+        self._init()
+
+    def _setCurrentColor(self, color: QColor):
+        self._currentColor = color
         self._init()
 
     def _init(self):
-        self._pen = QPen(self.color, self.lineWidth, cap=Qt.RoundCap, join=Qt.RoundJoin)
+        self._pen = QPen(self._currentColor, self.lineWidth, cap=Qt.RoundCap, join=Qt.RoundJoin)
         if self.lineWidth == 0:
             self._pen.setColor(QColor('transparent'))
-        self._brush = QBrush(self.color)
+        self._brush = QBrush(self._currentColor)
 
     def render(self, painter: QPainter) -> bool:
-        if self.visible:
-            painter.setBrush(self._brush)
-            painter.setPen(self._pen)
-        return self.visible
+        if not self.visible:
+            return False
+        painter.setBrush(self._brush)
+        painter.setPen(self._pen)
+        return True
 
     def isHover(self, x: float, y: float) -> bool:
         return False
@@ -58,16 +77,37 @@ class _Object:
     def setVisibility(self, state: bool) -> None:
         self.visible = state
 
+    def _updateHoverState(self, x: float, y: float, isMouseRelease: bool, targetFieldName: str = "color"):
+        if not self.hoverable:
+            return
+        if not isMouseRelease and self.isHover(x, y):
+            newColor = self.hoverColor
+            if newColor is None:
+                oldColor = getattr(self, targetFieldName)
+                if oldColor.lightness() > 230:
+                    additionalColor = QColor('black')
+                else:
+                    additionalColor = QColor('white')
+                newColor = mixColors(oldColor, additionalColor, 0.2)
+            self._setCurrentColor(newColor)
+        else:
+            self._setCurrentColor(getattr(self, targetFieldName))
+
+    def updateHoverState(self, x: float, y: float, isMouseRelease: bool = False):
+        self._updateHoverState(x, y, isMouseRelease)
+
 
 class Circle(_Object):
     def __init__(self, x: float, y: float, r: float, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 movable: bool = False, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []): #, fill=None, fillOpacity=1):
+                 movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []): #, fill=None, fillOpacity=1):
         self.x = x
         self.y = y
         self.r = r
         self.color = color
         self.lineWidth = lineWidth
         self.movable = movable
+        self.hoverable = hoverable
+        self.hoverColor = hoverColor
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
@@ -83,15 +123,19 @@ class Circle(_Object):
     def isHover(self, x: float, y: float):
         return distance(x, y, self.x, self.y) <= self.r
 
+
+
 class Point(_Object):
     def __init__(self, x: float, y: float, size=DEFAULT_POINT_SIZE, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 movable=False, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 movable=False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
         self.x = x
         self.y = y
         self.size = size
         self.color = color
         self.lineWidth = lineWidth
         self.movable = movable
+        self.hoverable = hoverable
+        self.hoverColor = hoverColor
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
@@ -117,12 +161,14 @@ class Point(_Object):
 
 class Line(_Object):
     def __init__(self, x1: float, y1: float, x2: float, y2: float, color=DEFAULT_COLOR, width=DEFAULT_LINE_WIDTH,
-                 dashed=False, movable: bool = False, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 dashed=False, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
         self.S = Point(x1, y1, color)
         self.E = Point(x2, y2, color)
         self.color = color
         self.lineWidth = width
         self.movable = movable
+        self.hoverable = hoverable
+        self.hoverColor = hoverColor
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
@@ -156,7 +202,7 @@ class Line(_Object):
 
 class Rect(_Object):
     def __init__(self, x1: float, y1: float, x2: float, y2: float, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 dashed=False, fill=None, fillOpacity=1, movable: bool = False, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 dashed=False, fill=None, fillOpacity=1, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
         self.LT = Point(x1, y1, color)
         self.RT = Point(x2, y1, color)
         self.RB = Point(x2, y2, color)
@@ -172,6 +218,8 @@ class Rect(_Object):
         self.fill = fill
         if fill is not None: self.fill.setAlpha(opacityToAlpha(fillOpacity))
         self.movable = movable
+        self.hoverable = hoverable
+        self.hoverColor = hoverColor
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
@@ -244,7 +292,7 @@ class Align(Enum):
 class Text(_Object):
     def __init__(self, x: float, y: float, text: str, font=DEFAULT_FONT, color=DEFAULT_COLOR, align: Align = Align.left,
                  withBackground=False, backgroundColor=QColor('black'), backgroundOpacity=0.5, padding=DEFAULT_PADDING,
-                 movable: bool = False, onMoveCallback: Callable = None, UI=None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, UI=None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
         lines = text.split('\n')
         self.w = max(map(len, lines)) * font.pointSize() / 1.05
         self.h = font.pointSize() * 2 * len(lines)
@@ -271,6 +319,8 @@ class Text(_Object):
 
         self.UI = UI
         self.movable = False
+        self.hoverable = hoverable
+        self.hoverColor = hoverColor
         # self.movable = movable
         if movable:
             if self.UI is None:
@@ -285,12 +335,13 @@ class Text(_Object):
             self.UI.addObject(self.LT)
 
         super().__init__()
+        self._currentColor = self.backgroundColor
 
     def render(self, painter: QPainter):
         if not super().render(painter): return
         painter.setFont(self.font)
         if self.withBackground:
-            painter.fillRect(int(self.x), int(self.y), int(self.w), int(self.h), self.backgroundColor)
+            painter.fillRect(int(self.x), int(self.y), int(self.w), int(self.h), self._currentColor)
             painter.drawText(
                 int(self.x + self.padding), int(self.y + self.padding),
                 int(self.w - self.padding * 2), int(self.h - self.padding * 2),
@@ -310,8 +361,14 @@ class Text(_Object):
             self.y <= y <= self.y + self.h
         )
 
+    def updateHoverState(self, x: float, y: float, isMouseRelease: bool = False):
+        self._updateHoverState(x, y, isMouseRelease, "backgroundColor" if self.withBackground else "color")
+    def _setCurrentColor(self, color: QColor):
+        self._currentColor = color
+
+
 class Image(_Object):
-    def __init__(self, x: float, y: float, w: float, h: float, path: str | None, movable: bool = False, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+    def __init__(self, x: float, y: float, w: float, h: float, path: str | None, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
         self.rect = Rect(x - w / 2, y - h / 2, x + w / 2, y + h / 2)
         self.w = w
         self.h = h
@@ -320,6 +377,8 @@ class Image(_Object):
         if path is not None:
             self.image = QPixmap(path)
         self.movable = movable
+        self.hoverable = hoverable
+        self.hoverColor = hoverColor
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs

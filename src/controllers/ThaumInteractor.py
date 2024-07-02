@@ -20,7 +20,7 @@ from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPE
     getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
     HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN
 from src.utils.constants import getAspectImagePath
-from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay
+from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay
 
 
 def createTI(UI):
@@ -401,7 +401,7 @@ class ThaumInteractor:
     #                     regionLX + slotWidth, regionLY + slotHeight
     #                 )
     #                 debugHighlightingRect.setVisibility(False)
-    #                 self.renderDelay()
+    #                 renderDelay()
     #             imageInSlot = self.imageResize(pyautogui.screenshot(region=(
     #                 regionLX, regionLY,
     #                 slotWidth, slotHeight
@@ -463,7 +463,7 @@ class ThaumInteractor:
                     regionLX + slotWidth, regionLY + slotHeight
                 )
                 debugHighlightingRect.setVisibility(False)
-                self.renderDelay()
+                renderDelay()
             imageInSlot = self.imageResize(pyautogui.screenshot(region=(
                 regionLX, regionLY,
                 slotWidth, slotHeight
@@ -502,7 +502,7 @@ class ThaumInteractor:
     #         self.rectHexagonsCC.y + THAUM_HEXAGONS_SLOTS_COUNT / 2 * self.hexagonSlotSizeY,
     #         fill=QColor('blue'), fillOpacity=0.3, lineWidth=1, color=QColor('blue'))
     #     self.UI.addObject(debugHighlightingRect)
-    #     self.renderDelay()
+    #     renderDelay()
     # realHexagonSlotHeight = self.hexagonSlotSizeY * 0.85
     # existingAspects = []
     # freeHexagons = []
@@ -520,7 +520,7 @@ class ThaumInteractor:
     #         if DEBUG:
     #             debugHighlightingRect.setCoords(slotLTx, screenshotLTy, slotLTx + self.hexagonSlotSizeX, slotLTy + self.hexagonSlotSizeX)
     #             if x >= -2:
-    #                 self.renderDelay()
+    #                 renderDelay()
     #             debugHighlightingRect.setVisibility(False)
     #             time.sleep(0.1)
     #         imageInSlot = self.imageResize(pyautogui.screenshot(region=(
@@ -638,6 +638,13 @@ class ThaumInteractor:
             newColor.setAlpha(130)
             cell.object.setColor(newColor)
 
+        def exitCellDialogue():
+            setCellDialogueVisibility(False)
+            newColor = QColor(selectedCell[0].object.color)
+            newColor.setAlpha(selectedCell[1])
+            selectedCell[0].object.setColor(newColor)
+            selectedCell[0] = None
+
         # draw clickable cells
         for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
             for iy in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(ix) // 2 + 1,
@@ -652,7 +659,8 @@ class ThaumInteractor:
                     r=self.hexagonSlotSizeY / 2,
                     color=cellColorFree,
                     onClickCallback=startCellDialogue,
-                    onClickCallbackArgs=[cell]
+                    onClickCallbackArgs=[cell],
+                    hoverable=True,
                 )
                 cell.object = cellObject
                 imageSide = self.hexagonSlotSizeY / math.sqrt(2)
@@ -679,7 +687,8 @@ class ThaumInteractor:
             backgroundColor=QColor('black'),
             padding=MARGIN,
             UI=self.UI,
-            onClickCallback=onClickCellIsNone
+            onClickCallback=onClickCellIsNone,
+            hoverable=True,
         ))
         cellDialogueObjects.append(textCellIsNone)
         textYCoord += textCellIsNone.h + MARGIN
@@ -691,7 +700,8 @@ class ThaumInteractor:
             backgroundColor=QColor('black'),
             padding=MARGIN,
             UI=self.UI,
-            onClickCallback=onClickCellIsFree
+            onClickCallback=onClickCellIsFree,
+            hoverable=True,
         ))
         cellDialogueObjects.append(textCellIsFree)
         textYCoord += textCellIsFree.h + MARGIN * 2
@@ -709,6 +719,7 @@ class ThaumInteractor:
                 UI=self.UI,
                 onClickCallback=onClickCellIsAspect,
                 onClickCallbackArgs=[aspect],
+                hoverable=True,
             ))
             cellDialogueObjects.append(textAspect)
             textYCoord += textAspect.h
@@ -727,6 +738,7 @@ class ThaumInteractor:
             backgroundColor=QColor('black'),
             padding=MARGIN,
             UI=self.UI,
+            movable=True
         ))
 
         def setCellDialogueVisibility(state: bool):
@@ -737,7 +749,7 @@ class ThaumInteractor:
         setCellDialogueVisibility(False)
 
         def callbackToFinish():
-            print("END OF CONFIGURING ASPECTS!!!")
+            print("END OF CONFIGURING ASPECTS IN FIELD")
             self.UI.clearAll()
             self.UI.clearKeyCallbacks()
             (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
@@ -746,3 +758,4 @@ class ThaumInteractor:
         self.UI.setKeyCallback(KeyboardKeys.enter, callbackToFinish)
         self.UI.setKeyCallback(KeyboardKeys.n, onClickCellIsNone)
         self.UI.setKeyCallback(KeyboardKeys.f, onClickCellIsFree)
+        self.UI.setKeyCallback(KeyboardKeys.esc, exitCellDialogue)

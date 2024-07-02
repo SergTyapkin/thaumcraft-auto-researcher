@@ -5,6 +5,7 @@ import re
 import time
 
 from PIL import Image
+from PyQt5.QtGui import QColor
 
 from src.utils.LinkableValue import linkableValueDumpsToJSON
 from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH, \
@@ -52,6 +53,7 @@ def saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListi
         "rectHexagonsCC": {"x": rectHexagonsCC.x, "y": rectHexagonsCC.y},
         "hexagonSlotSizeY": hexagonSlotSizeY,
     })
+
 
 def readJSONConfig(fullpath: str):
     if not os.path.isfile(fullpath):
@@ -110,17 +112,21 @@ def getImagesDiffPercent(image1: Image.Image, image2: Image.Image, masks: list[I
     percentDiff = totalDiff / (activePixelsCount * directions * 255)
 
     # for i in range(0, len(pixels1), image1.width):
-        # print(diffs[i : i + image1.width])
+    # print(diffs[i : i + image1.width])
 
     return percentDiff
+
 
 def loadRecipesForSelectedVersion():
     selectedVersion = readJSONConfig(THAUM_VERSION_CONFIG_PATH)['version']
     allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     return allRecipes.get(selectedVersion)
 
+
 def eventsDelay():
     time.sleep(DELAY_BETWEEN_EVENTS)
 
+
 def renderDelay():
     time.sleep(DELAY_BETWEEN_RENDER)
+

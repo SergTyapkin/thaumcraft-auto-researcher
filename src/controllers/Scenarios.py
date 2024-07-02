@@ -12,7 +12,7 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.UI.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
-from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig
+from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig, eventsDelay, renderDelay
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
@@ -242,7 +242,8 @@ def chooseThaumVersion(UI: OverlayUI):
         withBackground=True,
         backgroundColor=QColor('black'),
         padding=MARGIN,
-        movable=True, UI=UI,
+        movable=True,
+        UI=UI,
     ))
     recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     versions = list(recipesConfig.keys())
@@ -268,6 +269,7 @@ def chooseThaumVersion(UI: OverlayUI):
             padding=MARGIN,
             UI=UI,
             onClickCallback=onClickVersion,
+            hoverable=True,
         ))
         versionsObjects.append(versionObject)
     UI.setKeyCallback(KeyboardKeys.backspace, configureThaumWindow, UI)
@@ -311,10 +313,10 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         TI.fillByLinkMap(linkMap)
         print("Putting aspects is done")
         TI.takeOutPaper()
-        TI.eventsDelay()
+        eventsDelay()
         TI.increaseWorkingSlot()
         runResearching(UI, TI)
 
     TI.insertPaper()
-    TI.renderDelay()
+    renderDelay()
     TI.getExistingAspectsOnField(fillMapAndStartAgain, generateLinkMap)
