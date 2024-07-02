@@ -3,16 +3,13 @@ from enum import Enum
 from typing import Union, Callable, Any
 
 import keyboard
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QThread, QObject, QEvent
-from PyQt5.QtGui import QPainter
+from PyQt5.QtGui import QPainter, QMouseEvent
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
-from src.LinkableValue import editLinkableValue
-from src.utils import distance
-from src.UIPrimitives import Point, Line, Rect, Text, Image
-
-UIPrimitive = Union[Point, Line, Rect, Text, Image]
+from src.utils.LinkableValue import editLinkableValue
+from src.UI.UIPrimitives import Point, Line, Rect, Text, Image, UIPrimitive
 
 FPS = 60
 FRAME_TIME = int(1000 / FPS)
@@ -26,6 +23,33 @@ class KeyboardKeys(Enum):
     tab = 15
     enter = 28
     space = 57
+    backspace = 14
+    a = 30
+    b = 48
+    c = 46
+    d = 32
+    e = 18
+    f = 33
+    g = 34
+    h = 35
+    i = 23
+    j = 36
+    k = 37
+    l = 38
+    m = 50
+    n = 49
+    o = 24
+    p = 25
+    q = 16
+    r = 19
+    s = 31
+    t = 20
+    u = 22
+    v = 47
+    w = 17
+    x = 45
+    y = 21
+    z = 44
 
 
 class TimedEvent:
@@ -51,12 +75,15 @@ class TimedEvent:
         self.onChangeCallback(self.timeLeftMs)
 
 class _Window(QMainWindow):
-    objects: set[UIPrimitive] = set()
+    objects: list[UIPrimitive] = []
     keysCallbacks: dict[KeyboardKeys, (Callable, list[Any])] = {}
     mousePressCallbacks: list[(Callable, list[Any])] = []
     mouseReleaseCallbacks: list[(Callable, list[Any])] = []
     mouseMoveCallbacks: list[(Callable, list[Any])] = []
-    currentMovingObject = None
+    anchorMouseMovePoint: tuple[int, int] | None = None
+    lastMouseMovePoint: tuple[int, int] | None = None
+    currentMovingObject: UIPrimitive | None = None
+    currentPressedObject: UIPrimitive | None = None
     timedEvents: set[TimedEvent] = set()
 
 
@@ -82,6 +109,7 @@ class _Window(QMainWindow):
                 return
 
             for key in self.keysCallbacks.keys():
+                # print(event.name, event.scan_code)
                 if event.scan_code == key:
                     self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
         keyboard._listener.add_handler(onKeyboardEvent)
@@ -92,50 +120,92 @@ class _Window(QMainWindow):
         return self.w / 2, self.h / 2
 
     def timerEvent(self, t):
-        eventsToDelete = set()
-        for event in self.timedEvents:
-            event.decreaseTime(FRAME_TIME)
-            event.execOnChangeCallback()
-            if event.execCallbackIfTime0():
-                eventsToDelete.add(event)
-        for event in eventsToDelete:
-            self.timedEvents.remove(event)
-        self.update()
+        try:
+            eventsToDelete = set()
+            for event in self.timedEvents:
+                event.decreaseTime(FRAME_TIME)
+                event.execOnChangeCallback()
+                if event.execCallbackIfTime0():
+                    eventsToDelete.add(event)
+            for event in eventsToDelete:
+                self.timedEvents.remove(event)
+            self.update()
+        except KeyboardInterrupt:
+            print("Shutdown all")
+            exit()
 
     def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing, True)
+        try:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing, True)
+            objects = self.objects.copy()
+            for obj in objects:
+                obj.render(painter)
+        except KeyboardInterrupt:
+            print("Shutdown all")
+            exit()
+
+    def _updateObjectsHoverState(self, event: QMouseEvent, isMouseRelease: bool = False):
         for obj in self.objects:
-            obj.render(painter)
+            obj.updateHoverState(event.x(), event.y(), isMouseRelease)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        self.anchorMouseMovePoint = (event.x(), event.y())
+        self.lastMouseMovePoint = (event.x(), event.y())
         for obj in self.objects:
-            if isinstance(obj, Point) and obj.movable and (
-                    distance(obj.x, obj.y, event.x(), event.y()) <= (obj.size / 2)):
-                self.currentMovingObject = obj
-                break
+            if obj.isHover(event.x(), event.y()):
+                self.currentPressedObject = obj
+                if obj.movable:
+                    self.currentMovingObject = obj
 
         for callback in self.mousePressCallbacks:
             callback[0](event.x(), event.y(), *callback[1])
 
+        self._updateObjectsHoverState(event)
+
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-        if self.currentMovingObject is None:
-            return
+        if self.currentMovingObject is not None:
+            if isinstance(self.currentMovingObject, Point):
+                self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x, event.x())
+                self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y, event.y())
+            else:
+                self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x, self.currentMovingObject.x + (event.x() - self.lastMouseMovePoint[0]))
+                self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y, self.currentMovingObject.y + (event.y() - self.lastMouseMovePoint[1]))
 
-        self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x, event.x())
-        self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y, event.y())
+            self.lastMouseMovePoint = (event.x(), event.y())
 
-        onMoveCallback = getattr(self.currentMovingObject, 'onMoveCallback')
-        if onMoveCallback is not None:
-            onMoveCallback()
+            onMoveCallback = getattr(self.currentMovingObject, 'onMoveCallback')
+            if onMoveCallback is not None:
+                onMoveCallback()
 
         for callback in self.mouseMoveCallbacks:
             callback[0](event.x(), event.y(), *callback[1])
 
+        self._updateObjectsHoverState(event)
+
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        if self.currentPressedObject is not None and (
+                (self.anchorMouseMovePoint[0] == event.x()) and (self.anchorMouseMovePoint[1] == event.y())
+                or (not self.currentPressedObject.movable)
+        ):
+            objToClick = None
+            for obj in self.objects:
+                if obj.isHover(event.x(), event.y()) \
+                        and (getattr(obj, 'onClickCallback') is not None):
+                        # and (self.currentPressedObject is obj):
+                    objToClick = obj
+            if objToClick is not None:
+                objToClick.onClickCallback(*objToClick.onClickCallbackArgs)
+        self.lastMouseMovePoint = None
+        self.anchorMouseMovePoint = None
+        self.currentPressedObject = None
+
         self.currentMovingObject = None
         for callback in self.mouseReleaseCallbacks:
             callback[0](event.x(), event.y(), *callback[1])
+
+        self._updateObjectsHoverState(event, True)
+
 
     def setTimeout(self, timeoutMs: int, callback: Callable, args=[], kwargs={}, onChangeCallback=lambda timeLeft: None):
         self.timedEvents.add(TimedEvent(timeoutMs, callback, args, kwargs, onChangeCallback))
@@ -146,11 +216,16 @@ class _Window(QMainWindow):
         return self.addObject(obj)
 
     def addObject(self, obj: UIPrimitive):
-        self.objects.add(obj)
+        if not isinstance(obj, UIPrimitive):
+            raise TypeError(f"Trying to add object that is not one of UIPrimitives. Object type: {type(obj)}")
+        self.objects.append(obj)
         return obj
 
     def removeObject(self, obj: UIPrimitive):
-        self.objects.remove(obj)
+        try:
+            self.objects.remove(obj)
+        except ValueError: # list.remove(x): x not in list
+            pass
         return obj
 
     def clear(self):

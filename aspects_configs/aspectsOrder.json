@@ -1,0 +1,75 @@
+{
+  "aspects": [
+    "aer",
+    "alienis",
+    "aqua",
+    "arbor",
+    "auram",
+
+    "bestia",
+    "cognitio",
+    "corpus",
+    "exanimis",
+    "fabrico",
+
+    "fames",
+    "gelum",
+    "herba",
+    "humanus",
+    "ignis",
+
+    "instrumentum",
+    "iter",
+    "limus",
+    "lucrum",
+    "lux",
+
+    "machina",
+    "messis",
+    "metallum",
+    "meto",
+    "mortuus",
+
+    "motus",
+    "ordo",
+    "pannus",
+    "perditio",
+    "perfodio",
+
+    "permutatio",
+    "potentia",
+    "praecantatio",
+    "sano",
+    "sensus",
+
+    "spiritus",
+    "telum",
+    "tempestas",
+    "tenebrae",
+    "terminus",
+
+    "terra",
+    "tutamen",
+    "vacuos",
+    "venenum",
+    "victus",
+    "vinculum",
+
+    "vitium",
+    "vitreus",
+    "volatus",
+    "saxum",
+
+    "granum",
+    "ira",
+    "infernus",
+    "gula",
+    "invidia",
+
+    "desidia",
+    "superbia",
+    "luxuria",
+    "tempus",
+    "gula"
+  ]
+}
