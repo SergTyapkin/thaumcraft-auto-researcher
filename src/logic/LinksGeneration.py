@@ -4,6 +4,31 @@ from src.utils.utils import loadRecipesForSelectedVersion
 
 MAX_PATH_LEN = 10
 
+'''
+Описание работы алгоритма:
+
+1. Надо узнать, какой аспект с каким будем соединять, для этого: 
+1.1. Берём любой аспект из базовых (базовые - это те, что стояли. изначально). Он будет стартовым
+1.2. Смотрим, с какими базовыми он ещё не соединён, выбираем любой из них.
+1.3. Из всех аспектов на поле выбираем ближайший к стартовому, и соединенный с выбранным. Расстояние определяется алгоритмом Дейкстры.
+
+2. У нас есть 2 аспекта, которые надо соединить, и кратчайшее расстояние между ними. Ищем цепочку аспектов, реализующую это. Для этого (Этот алгоритм ест очень много ресурсов и памяти, в нем большая проблема):
+2.1. От стартового берем все аспекты, с которыми он может связаться (граф аспектов) (получаем длину цепочки 2), от них, от каждого, берём все аспекты, с которыми они могут связаться (получаем длину цепочки 3), и т.д. 
+2.2. Если любая из полученных цепочек имеет требуемую длину, и заканчивается на необходимый аспект, мы ее нашли!
+2.3. Если были перебраны все цепочки до MAX_PATH_LEN=10 длины, и среди них нет ни одной подходящей, выходим, запускаем всё это заново, но теперь будем пытаться найти цепочку на 1 длиннее.
+2.4. Если цепочка так и не была найдена - кидаем ошибку, так не должно быть.
+
+3. У нас есть два аспекта, и длина цепочки между ними. Надо найти положения, как будем раскладывать аспекты. Для этого:
+3.1. Запускаем алгоритм Дейкстры, который ищет не минимальное расстояние до целевой клетки, а только заданное расстояние. Таким образом находим маршрут до клетки.
+3.2. Если маршрут требуемой длины не найден - кидаем ошибку, так не должно быть
+
+4. Есть всё, подготовка к следующему шагу:
+4.1. Записываем полученные аспекты на полученные места.
+4.2. Говорим, что все аспекты соединены со всеми базовыми аспектами, с которыми был соединён стартовый, и с которыми был соединён целевой
+
+5. Заканчиваем, когда все базовые аспекты соединены друг с другом
+'''
+
 class AspectGraph:
     graph: dict[str, [str, str]]
 
@@ -38,7 +63,6 @@ class AspectGraph:
                 return self.length < other.length
 
         def search(queue, to):
-            print("START FINDING ASPECT PATH IN", steps, "STEPS...")
             while queue:
                 element = heapq.heappop(queue)
                 last_node = element.path[-1]
@@ -65,10 +89,10 @@ class Aspect:
     coord: (int, int)
     linked_to_initials: set
 
-    def __init__(self, name, coord):
+    def __init__(self, name, coord, linked_to_initials):
         self.name = name
         self.coord = coord
-        self.linked_to_initials = set()
+        self.linked_to_initials = linked_to_initials
 
     def __repr__(self):
         return f"{self.name}{self.coord}"
@@ -76,9 +100,11 @@ class Aspect:
     def get_min_distance_path_to(self, targetAspect, hexagonFieldRadius: int, holesSet: set[(int, int)], initial_aspects: set, minLength: int = 0):
         # Алгоритм Дейкстры
         # Для каждой клетки храним минимальное расстояние до неё. Или None, если клетка ещё не посещена
+        DEFAULT_INITIAL_PATH_LEN = 999999
+
         class PathElement:
             path: list[(int, int)]
-            dist: int = 999999
+            dist: int = DEFAULT_INITIAL_PATH_LEN
             coord: (int, int)
             def __init__(self, x: int, y: int):
                 self.coord = (x, y)
@@ -98,6 +124,8 @@ class Aspect:
                 unvisitedNodes.add(pathElem)
 
         # В начальной ставим расстояние 0
+        if cells.get(self.coord) is None:
+            return DEFAULT_INITIAL_PATH_LEN, set()
         startCell = cells[self.coord]
         startCell.dist = 0
         startCell.path = [self.coord]
@@ -128,23 +156,23 @@ class Aspect:
                     continue
                 tentative_value = currentNode.dist + 1
                 if neighborNode.coord == targetAspect.coord:
-                   if (tentative_value >= minLength) and (tentative_value < neighborNode.dist):
-                       neighborNode.dist = tentative_value
-                       neighborNode.path = currentNode.path + [neighborCoord]
+                    if (tentative_value >= minLength) and (tentative_value < neighborNode.dist):
+                        neighborNode.dist = tentative_value
+                        neighborNode.path = currentNode.path + [neighborCoord]
                 else:
                     if tentative_value < neighborNode.dist:
                         neighborNode.dist = tentative_value
                         neighborNode.path = currentNode.path + [neighborCoord]
             unvisitedNodes.remove(currentNode)
-        print(f"All dists to all cells (min dist: {minLength}):", cells)
         return cells[targetAspect.coord].dist, cells[targetAspect.coord].path
 
 
 def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int, int)]) -> dict[(int, int): str]:
     print("-----------")
-    print("Existing aspects:", existing_aspects)
-    print("Holes hexagons:", holes_set)
-    print("Started solving...")
+    print("START SOLVING")
+    print("#---0. Setting up:")
+    print("EXISTING ASPECTS:", existing_aspects)
+    print("HOLES HEXAGONS:", holes_set)
     aspect_recipes = loadRecipesForSelectedVersion()
     aspect_graph = AspectGraph(aspect_recipes)
 
@@ -156,15 +184,20 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
 
     # Первоначальная обработка входных данных
     for coord, aspectName in existing_aspects.items():
-        aspectObject = Aspect(aspectName, coord)
+        aspectObject = Aspect(aspectName, coord, set())
         initial_aspects.add(aspectObject)
         aspects_on_field.add(aspectObject)
         aspectObject.linked_to_initials.add(aspectObject)
+        # Важно отметить, что списков "linked_to_initials" на все клетки
+        # ровно столько, сколько изначальных объектов. И при объединении любых клеток,
+        # список клеток, с которыми они соединены, у них общий. Так можно добавлять в соединение
+        # любую клетку, а обновится этот список у всех клеток в цепочке
         result[coord] = aspectName
         maxX = max(maxX, abs(coord[0]))
         maxY = max(maxY, abs(coord[1]))
 
     hexagonFieldRadius = max(maxX, maxY)
+    print("Hexagon field radius:", hexagonFieldRadius)
 
     # Продолжаем, пока все изначальные аспекты не будут связаны
     isAllAspectsLinked = False
@@ -181,7 +214,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             initial_aspect_to_link = not_linked_to_aspects.pop()
             min_len_aspect = None
             min_len_to_aspect = 0
-            print("Needs to link", start_aspect, "to", initial_aspect_to_link)
+            print("#---1. Found aspects to link:", start_aspect, "to", initial_aspect_to_link)
             # Ищем ближайщий ПО РАССТОЯНИЮ аспект, связанный с тем, к которому хотим привязать
             for end_aspect_candidate in aspects_on_field:
                 if start_aspect.coord == end_aspect_candidate.coord:
@@ -197,33 +230,43 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             if min_len_to_aspect > MAX_PATH_LEN:
                 print(f"Error: End cell with aspect {start_aspect} is unreachable from any other aspects")
                 return existing_aspects
+            print("Min distance", min_len_to_aspect, "found to aspect:", min_len_aspect)
             # К выбранному аспекту пытаемся построить цепочки. Сначала самую короткую, потом всё длиннее
             end_aspect = min_len_aspect
             target_path_len = min_len_to_aspect
+            print("#---2. Trying to found aspects path from", start_aspect.name, "to", end_aspect.name)
             while target_path_len < MAX_PATH_LEN:
                 aspectsPath = aspect_graph.find_path(start_aspect.name, end_aspect.name, target_path_len) # TODO: find length of path
-                print(f"Trying to generate path from {start_aspect} to {end_aspect}, len: {target_path_len}")
                 if not aspectsPath:
+                    print("Path with len", target_path_len, "not found")
                     target_path_len += 1
                     continue
-                print(f"Path generated: {aspectsPath}")
+                print("Path with len:", target_path_len, "generated:", aspectsPath)
                 # Если цепочка найдена, пытаемся пройти найти маршрут заданной длины
-                _, coordsPath = start_aspect.get_min_distance_path_to(end_aspect, hexagonFieldRadius, holes_set, initial_aspects, target_path_len)
-                print(f"Coordinates path regenerated: {coordsPath}")
+                print("#--3. Trying to find coordinates path with len", target_path_len, "from", start_aspect, "to", end_aspect)
+                min_len_to_aspect, coordsPath = start_aspect.get_min_distance_path_to(end_aspect, hexagonFieldRadius, holes_set, initial_aspects, target_path_len)
+                if min_len_to_aspect > MAX_PATH_LEN:
+                    print("Coordinates path with len", target_path_len, "not found")
+                    target_path_len += 1
+                    continue
+                print(f"Coordinates path found: {coordsPath}")
 
-                print("Successfully generated path")
-                totalLinkedToInitials = start_aspect.linked_to_initials.union(end_aspect.linked_to_initials)
-                start_aspect.linked_to_initials = totalLinkedToInitials
-                end_aspect.linked_to_initials = totalLinkedToInitials
+                print("#--4. Fill gotten aspects and prepare to next step")
+                # Объединяем linked_to_initials, и записываем в оба исходых аспекта один и тот же этот список
+                start_aspect.linked_to_initials.update(end_aspect.linked_to_initials)
+                end_aspect.linked_to_initials.update(start_aspect.linked_to_initials)
+                print(start_aspect, "is now linked to", start_aspect.linked_to_initials)
+                print(end_aspect, "is now linked to", end_aspect.linked_to_initials)
                 for i in range(target_path_len):
                     result[coordsPath[i]] = aspectsPath[i]
-                    addedAspect = Aspect(aspectsPath[i], coordsPath[i])
-                    addedAspect.linked_to_initials = totalLinkedToInitials
+                    addedAspect = Aspect(aspectsPath[i], coordsPath[i], start_aspect.linked_to_initials)
                     aspects_on_field.add(addedAspect)
+                print("Aspect path putted on field. Total aspects:", aspects_on_field)
+                print("Iteration finished.")
                 break
             if target_path_len == MAX_PATH_LEN:
                 print(f"Error: Path from {start_aspect} to {end_aspect} cannot be generated")
                 return existing_aspects
-    print("Solved:", result)
+    print("SOLVED:", result)
     return result
 
