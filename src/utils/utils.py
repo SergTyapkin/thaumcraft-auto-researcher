@@ -9,7 +9,7 @@ from PyQt5.QtGui import QColor
 
 from src.utils.LinkableValue import linkableValueDumpsToJSON
 from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH, \
-    DELAY_BETWEEN_EVENTS, DELAY_BETWEEN_RENDER
+    DELAY_BETWEEN_EVENTS, DELAY_BETWEEN_RENDER, THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
 
 
 def distance(x1, y1, x2, y2):
@@ -117,10 +117,25 @@ def getImagesDiffPercent(image1: Image.Image, image2: Image.Image, masks: list[I
     return percentDiff
 
 
+def saveThaumVersionConfig(version: str, addons: list[str]):
+    saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {
+        'version': version,
+        'addons': addons
+    })
+def loadThaumVersionConfig():
+    conf = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
+    return conf['version'], conf['addons']
+
 def loadRecipesForSelectedVersion():
-    selectedVersion = readJSONConfig(THAUM_VERSION_CONFIG_PATH)['version']
+    selectedVersion, selectedAddons = loadThaumVersionConfig()
     allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
-    return allRecipes.get(selectedVersion)
+    versionRecipes = allRecipes.get(selectedVersion)
+    allAddonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
+    addonsRecipes = {}
+    for addonName in selectedAddons:
+        addonsRecipes |= allAddonsRecipes.get(addonName)
+    allRecipes = versionRecipes | addonsRecipes
+    return allRecipes
 
 
 def eventsDelay():

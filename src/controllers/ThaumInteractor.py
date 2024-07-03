@@ -21,7 +21,8 @@ from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPE
     getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
     HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN
 from src.utils.constants import getAspectImagePath
-from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay
+from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
+    loadRecipesForSelectedVersion
 
 
 def createTI(UI):
@@ -34,13 +35,14 @@ def createTI(UI):
         Scenarios.chooseThaumVersion(UI)
         return None
 
-    recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
-    if recipesConfig is None:
-        raise ValueError("Can't open recipes config")
-    recipesConfig = recipesConfig[selected_thaum_version['version']]
+    recipesConfig = loadRecipesForSelectedVersion()
 
     aspectsOrderConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
     aspectsOrderConfig = aspectsOrderConfig['aspects']
+
+    for aspect in aspectsOrderConfig:
+        if aspect not in recipesConfig:
+            aspectsOrderConfig.remove(aspect)
 
     return ThaumInteractor(UI, pointsConfig, recipesConfig, aspectsOrderConfig)
 
@@ -88,7 +90,7 @@ class Aspect:
         self.name = name
         self.idx = idx
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.name}({self.count})"
 
 
@@ -127,7 +129,7 @@ class ThaumInteractor:
     maskOnlyNumbers: Image.Image = None
     maskWithoutNumbers: Image.Image = None
 
-    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], availableAspects: list[str]):
+    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], orderedAvailableAspects: list[str]):
         self.UI = UI
 
         c = controlsConfig
@@ -157,12 +159,12 @@ class ThaumInteractor:
         for i in range(0, 10):
             self.numbersImages.append(self.loadImage(getImagePathByNumber(i), noResize=True))
 
-        self.maxPagesCount = max(((len(availableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
+        self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
 
         self.allAspects = []
-        for i in range(len(availableAspects)):
-            self.allAspects.append(Aspect(availableAspects[i], i))
+        for i in range(len(orderedAvailableAspects)):
+            self.allAspects.append(Aspect(orderedAvailableAspects[i], i))
         self.loadAspectsImages()
         # self.availableAspects = self.getAvailableAspects()
 
@@ -230,11 +232,11 @@ class ThaumInteractor:
         self._showDebugClick(self.pointWorkingInventorySlot)
 
     def insertPaper(self):
-        self.pointWorkingInventorySlot.click(shift=True)
+        self.pointWorkingInventorySlot.click()
         self._showDebugClick(self.pointWorkingInventorySlot)
         eventsDelay()
-        # self.pointPapers.click()
-        # self._showDebugClick(self.pointPapers)
+        self.pointPapers.click()
+        self._showDebugClick(self.pointPapers)
 
     def increaseWorkingSlot(self):
         self.workingInventorySlot += 1
@@ -537,9 +539,8 @@ class ThaumInteractor:
     # return existingAspects, freeHexagons
 
     def getExistingAspectsOnField(self):
-        self.printAvailableAspects()
         self.insertPaper()
-        renderDelay()
+        # renderDelay()
 
         class Cell:
             x: int = None
@@ -678,6 +679,7 @@ class ThaumInteractor:
             color=QColor('white'),
             withBackground=True,
             backgroundColor=QColor('black'),
+            backgroundOpacity=0.8,
             padding=MARGIN,
             UI=self.UI,
             onClickCallback=onClickCellIsNone,
@@ -691,6 +693,7 @@ class ThaumInteractor:
             color=QColor('white'),
             withBackground=True,
             backgroundColor=QColor('black'),
+            backgroundOpacity=0.8,
             padding=MARGIN,
             UI=self.UI,
             onClickCallback=onClickCellIsFree,
@@ -708,6 +711,7 @@ class ThaumInteractor:
                 color=QColor('white'),
                 withBackground=True,
                 backgroundColor=QColor('black'),
+                backgroundOpacity=0.8,
                 padding=(MARGIN, MARGIN, MARGIN, MARGIN * 4),
                 UI=self.UI,
                 onClickCallback=onClickCellIsAspect,
@@ -753,7 +757,11 @@ class ThaumInteractor:
             print("END OF CONFIGURING ASPECTS IN FIELD")
             self.UI.clearAll()
             self.UI.clearKeyCallbacks()
-            self.fillByLinkMap(currentLinkMap[0])
+            finalLinkMap = currentLinkMap[0].copy()
+            (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
+            for aspectCoords in existingAspects.keys():
+                del finalLinkMap[aspectCoords]
+            self.fillByLinkMap(finalLinkMap)
             print("Putting aspects is done")
             self.takeOutPaper()
             eventsDelay()

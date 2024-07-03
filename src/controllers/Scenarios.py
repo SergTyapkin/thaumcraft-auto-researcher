@@ -11,7 +11,8 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.UI.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
-from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig, eventsDelay, renderDelay
+from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig, eventsDelay, renderDelay, \
+    saveThaumVersionConfig
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
@@ -247,6 +248,8 @@ def chooseThaumVersion(UI: OverlayUI):
     recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     versions = list(recipesConfig.keys())
     versionsObjects = []
+    selectedAddons = []
+    selectedVersion = None
     def updateVersionsY():
         for i in range(len(versionsObjects)):
             versionObject = versionsObjects[i]
@@ -257,7 +260,8 @@ def chooseThaumVersion(UI: OverlayUI):
         version = versions[i]
         def onClickVersion():
             print("Selected thaum version:", version)
-            saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {'version': version})
+            print("Selected addons:", selectedAddons)
+            saveThaumVersionConfig(version, selectedAddons)
             waitForCreatingTI(UI)
         versionObject = UI.addObject(Text(
             pointTextAnchor.x, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,

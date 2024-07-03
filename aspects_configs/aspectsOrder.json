@@ -9,67 +9,72 @@
     "bestia",
     "cognitio",
     "corpus",
+    "desidia",
+    "electrum",
+
     "exanimis",
     "fabrico",
-
     "fames",
     "gelum",
+    "granum",
+    "gula",
+
     "herba",
     "humanus",
     "ignis",
-
+    "infernus",
     "instrumentum",
+
+    "invidia",
+    "ira",
     "iter",
     "limus",
     "lucrum",
-    "lux",
 
+    "lux",
+    "luxuria",
     "machina",
+    "magneto",
     "messis",
+
     "metallum",
     "meto",
     "mortuus",
-
     "motus",
+    "nebrisum",
+
     "ordo",
     "pannus",
     "perditio",
     "perfodio",
-
     "permutatio",
+
     "potentia",
     "praecantatio",
+    "radio",
     "sano",
+    "saxum",
     "sensus",
 
     "spiritus",
+    "strontio",
+    "superbia",
     "telum",
     "tempestas",
+
+    "tempus",
     "tenebrae",
     "terminus",
-
     "terra",
     "tutamen",
+
     "vacuos",
     "venenum",
     "victus",
     "vinculum",
-
     "vitium",
+
     "vitreus",
-    "volatus",
-    "saxum",
-
-    "granum",
-    "ira",
-    "infernus",
-    "gula",
-    "invidia",
-
-    "desidia",
-    "superbia",
-    "luxuria",
-    "tempus",
-    "gula"
+    "volatus"
   ]
 }

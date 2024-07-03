@@ -199,16 +199,7 @@
     "fabrico": ["humanus", "instrumentum"],
     "pannus": ["instrumentum", "bestia"],
     "machina": ["motus", "instrumentum"],
-    "vinculum": ["motus", "perditio"],
-    "gula": ["fames", "vacuos"],
-    "infernus": ["ignis", "praecantatio"],
-    "ira": ["telum", "ignis"],
-    "luxuria": ["corpus", "fames"],
-    "superbia": ["volatus", "vacuos"],
-    "terminus": ["lucrum", "alienis"],
-    "tempus": ["vacuos", "ordo"],
-    "desidia": ["vinculum", "spiritus"],
-    "invidia": ["sensus", "fames"]
+    "vinculum": ["motus", "perditio"]
   },
   "4.2.2.0": {
     "aer": [],
