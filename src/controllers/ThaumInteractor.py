@@ -708,17 +708,24 @@ class ThaumInteractor:
                 color=QColor('white'),
                 withBackground=True,
                 backgroundColor=QColor('black'),
-                padding=MARGIN,
+                padding=(MARGIN, MARGIN, MARGIN, MARGIN * 4),
                 UI=self.UI,
                 onClickCallback=onClickCellIsAspect,
                 onClickCallbackArgs=[aspect],
                 hoverable=True,
             ))
+            aspectImage = self.UI.addObject(UIPrimitives.Image(
+                textXCoord + MARGIN * 2, textYCoord,
+                MARGIN * 2, MARGIN * 2,
+                None,
+            ))
+            aspectImage.setImage(aspect.pixMapImage)
             cellDialogueObjects.append(textAspect)
+            cellDialogueObjects.append(aspectImage)
             textYCoord += textAspect.h
             if textYCoord > self.UI.height() - textAspect.h:
                 textYCoord = startTextYCoord
-                textXCoord += 200
+                textXCoord += 250
 
         textControls = self.UI.addObject(UIPrimitives.Text(
             MARGIN, MARGIN,
