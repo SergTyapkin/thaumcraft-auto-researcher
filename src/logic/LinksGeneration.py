@@ -2,7 +2,7 @@ import heapq
 
 from src.utils.utils import loadRecipesForSelectedVersion
 
-MAX_PATH_LEN = 10
+MAX_PATH_LEN = 15
 
 '''
 Описание работы алгоритма:
@@ -62,7 +62,7 @@ class AspectGraph:
             def __lt__(self, other):
                 return self.length < other.length
 
-        def search(queue, to):
+        def search(queue, to, visited):
             while queue:
                 element = heapq.heappop(queue)
                 last_node = element.path[-1]
@@ -71,14 +71,20 @@ class AspectGraph:
                 # print(self.graph.get(last_node, []))
                 if element.length > steps:
                     continue
+                if (last_node in visited) and (element.length in visited[last_node]):
+                    continue
                 if (last_node == to) and (element.length == steps):
                     return element.path
                 for neighbor in self.graph.get(last_node, []):
                     heapq.heappush(queue, PathElement(element.path + [neighbor], element.length + 1))
+                if last_node not in visited:
+                    visited[last_node] = []
+                visited[last_node].append(element.length)
             return None
 
         queue = [PathElement([from_aspect], 0)]
-        return search(queue, to_aspect)
+        visited = {}
+        return search(queue, to_aspect, visited)
 
     def __repr__(self):
         return f"AspectsGraph(graph={self.graph})"
