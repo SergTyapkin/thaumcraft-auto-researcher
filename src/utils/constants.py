@@ -8,6 +8,7 @@ FPS = 60
 THAUM_VERSION_CONFIG_PATH = 'user_configs/thaumVersionConfig.json'
 THAUM_CONTROLS_CONFIG_PATH = 'user_configs/thaumControlsConfig.json'
 THAUM_ASPECT_RECIPES_CONFIG_PATH = 'aspects_configs/aspectsRecipes.json'
+THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = 'aspects_configs/addonsAspectsRecipes.json'
 THAUM_ASPECTS_ORDER_CONFIG_PATH = 'aspects_configs/aspectsOrder.json'
 def getAspectImagePath(aspectName, colored=True):
     return f"images/{'color' if colored else 'mono'}/{aspectName}.png"
@@ -42,9 +43,9 @@ THAUM_ASPECTS_INVENTORY_SLOTS_Y = 5
 THAUM_HEXAGONS_SLOTS_COUNT = 9  # must be odd
 
 # DELAY_BETWEEN_EVENTS = 0.1  # seconds
-DELAY_BETWEEN_EVENTS = 1.0  # seconds
+DELAY_BETWEEN_EVENTS = 0.2  # seconds
 # DELAY_BETWEEN_RENDER = 0.5  # seconds
-DELAY_BETWEEN_RENDER = 1.5  # seconds
+DELAY_BETWEEN_RENDER = 0.5  # seconds
 
 EMPTY_TOLERANCE_PERCENT = 0.02
 

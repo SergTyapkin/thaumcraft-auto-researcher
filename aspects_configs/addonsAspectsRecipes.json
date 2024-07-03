@@ -1,0 +1,22 @@
+{
+  "Magic Bees": {
+    "tempus": ["vacuos", "ordo"]
+  },
+  "Forbidden Magic": {
+    "gula": ["fames", "vacuos"],
+    "infernus": ["ignis", "praecantatio"],
+    "ira": ["telum", "ignis"],
+    "luxuria": ["corpus", "fames"],
+    "superbia": ["volatus", "vacuos"],
+    "desidia": ["vinculum", "spiritus"],
+    "invidia": ["sensus", "fames"],
+    "terminus": ["lucrum", "alienis"]
+  },
+  "GregTech": {
+    "electrum": ["potentia", "machina"],
+    "magneto": ["metallum", "iter"],
+    "nebrisum": ["perfodio", "lucrum"],
+    "radio": ["luxuria", "potentia"],
+    "strontio": ["perditio", "cognitio"]
+  }
+}

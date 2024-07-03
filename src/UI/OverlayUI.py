@@ -131,7 +131,7 @@ class _Window(QMainWindow):
                 self.timedEvents.remove(event)
             self.update()
         except KeyboardInterrupt:
-            print("Shutdown all")
+            print("##############\nShutdown all...")
             exit()
 
     def paintEvent(self, event):
@@ -142,7 +142,7 @@ class _Window(QMainWindow):
             for obj in objects:
                 obj.render(painter)
         except KeyboardInterrupt:
-            print("Shutdown all")
+            print("##############\nShutdown all...")
             exit()
 
     def _updateObjectsHoverState(self, event: QMouseEvent, isMouseRelease: bool = False):

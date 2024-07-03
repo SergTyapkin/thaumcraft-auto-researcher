@@ -1,3 +1,4 @@
+import math
 from math import pi, tan
 from math import sin
 from math import cos
@@ -5,13 +6,17 @@ from math import cos
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
 
+from src.UI import UIPrimitives
+from src.logic.LinksGeneration import generateLinkMap
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
 from src.UI.OverlayUI import OverlayUI, KeyboardKeys
-from src.controllers.ThaumInteractor import ThaumInteractor, createTI
+from src.controllers.ThaumInteractor import ThaumInteractor, createTI, Aspect
 from src.UI.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
-    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
-from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig, eventsDelay, renderDelay
+    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH, \
+    THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
+from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONConfig, eventsDelay, renderDelay, \
+    saveThaumVersionConfig
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
@@ -233,10 +238,15 @@ def chooseThaumVersion(UI: OverlayUI):
     UI.clearAll()
     infoText = UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
-        f"""Выберите версию Thaumcraft.
+        f"""Выберите версию Thaumcraft и установленные моды-аддоны.
 От этого будут зависеть рецепты получения аспектов.
+Если установленный тобой аддон отсутствует в этом списке, то эта программа
+помочь тебе не сможет. Напиши нам об этом и мы добавим этот аддон
 
-Чтобы вернуться назад, нажми [Backspace]""",
+Когда выберешь, нажми [Enter]
+Чтобы вернуться назад, нажми [Backspace]
+
+Выбери версию:      Выбери аддоны:""",
         color=QColor('white'),
         withBackground=True,
         backgroundColor=QColor('black'),
@@ -247,18 +257,34 @@ def chooseThaumVersion(UI: OverlayUI):
     recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     versions = list(recipesConfig.keys())
     versionsObjects = []
-    def updateVersionsY():
+    addonsObjects = []
+    addonsRecipesConfig = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
+    addonsSelectingState: dict[str, bool] = {}
+    for addonName in addonsRecipesConfig.keys():
+        addonsSelectingState[addonName] = False
+
+    selectedVersionObject: list[Text|None] = [None]
+    selectedVersion: list[str|None] = [None]
+
+
+    def updateVersionsPosition():
         for i in range(len(versionsObjects)):
             versionObject = versionsObjects[i]
             versionObject.y = pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4
+        for i in range(len(addonsObjects)):
+            addonObject = addonsObjects[i]
+            addonObject.x = pointTextAnchor.x + 250
+            addonObject.y = pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4
 
-    infoText.LT.onMoveCallback = updateVersionsY
+    infoText.LT.onMoveCallback = updateVersionsPosition
     for i in range(len(versions)):
         version = versions[i]
-        def onClickVersion():
-            print("Selected thaum version:", version)
-            saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {'version': version})
-            waitForCreatingTI(UI)
+        def onClickVersion(versionObject, version):
+            if selectedVersionObject[0] is not None:
+                selectedVersionObject[0].setColor(QColor('white'))
+            selectedVersion[0] = version
+            selectedVersionObject[0] = versionObject
+            selectedVersionObject[0].setColor(QColor('purple'))
         versionObject = UI.addObject(Text(
             pointTextAnchor.x, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,
             version,
@@ -270,34 +296,319 @@ def chooseThaumVersion(UI: OverlayUI):
             onClickCallback=onClickVersion,
             hoverable=True,
         ))
+        versionObject.onClickCallbackArgs = [versionObject, version]
         versionsObjects.append(versionObject)
+
+    addonsNames = list(addonsSelectingState.keys())
+    for i in range(len(addonsNames)):
+        addonName = addonsNames[i]
+        def onClickAddon(addonObject, addonName):
+            addonsSelectingState[addonName] = not addonsSelectingState[addonName]
+            if addonsSelectingState[addonName] is True:
+                addonObject.setColor(QColor('green'))
+            else:
+                addonObject.setColor(QColor('white'))
+        addonObject = UI.addObject(Text(
+            pointTextAnchor.x + 250, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,
+            addonName,
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('black'),
+            padding=MARGIN,
+            UI=UI,
+            onClickCallback=onClickAddon,
+            hoverable=True,
+        ))
+        addonObject.onClickCallbackArgs = [addonObject, addonName]
+        addonsObjects.append(addonObject)
+
+    def onSumbit():
+        if selectedVersion[0] is None:
+            return
+        selectedAddons = []
+        for addon, state in addonsSelectingState.items():
+            if state is True:
+                selectedAddons.append(addon)
+        print("Selected thaum version:", selectedVersion[0])
+        print("Selected addons:", selectedAddons)
+        saveThaumVersionConfig(selectedVersion[0], selectedAddons)
+        waitForCreatingTI(UI)
+
+    UI.setKeyCallback(KeyboardKeys.enter, onSumbit)
     UI.setKeyCallback(KeyboardKeys.backspace, configureThaumWindow, UI)
 
 def waitForCreatingTI(UI: OverlayUI):
     UI.clearAll()
 
-    UI.addObject(Text(
-        pointTextAnchor.x, pointTextAnchor.y,
-        """Определяем аспекты в твоем столе.
-Перенеси это окно так, чтобы оно не перекрывало окно с игрой
-и нажми [Enter]
-Чтобы вернуться назад, нажми [Backspace]""",
-        color=QColor('white'),
-        withBackground=True,
-        backgroundColor=QColor('black'),
-        padding=MARGIN,
-        movable=True, UI=UI,
-    ))
+#     UI.addObject(Text(
+#         pointTextAnchor.x, pointTextAnchor.y,
+#         """Определяем аспекты в твоем столе.
+# Перенеси это окно так, чтобы оно не перекрывало окно с игрой
+# и нажми [Enter]
+# Чтобы вернуться назад, нажми [Backspace]""",
+#         color=QColor('white'),
+#         withBackground=True,
+#         backgroundColor=QColor('black'),
+#         padding=MARGIN,
+#         movable=True, UI=UI,
+#     ))
 
     def startCreatingTI():
         UI.clearAll()
         TI = createTI(UI)
         if TI is not None:
             runResearching(UI, TI)
-    UI.setKeyCallback(KeyboardKeys.enter, startCreatingTI)
-    UI.setKeyCallback(KeyboardKeys.backspace, chooseThaumVersion, UI)
+    # UI.setKeyCallback(KeyboardKeys.enter, startCreatingTI)
+    # UI.setKeyCallback(KeyboardKeys.backspace, chooseThaumVersion, UI)
+    startCreatingTI()
 
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     UI.clearAll()
-    TI.getExistingAspectsOnField()
+    TI.insertPaper()
+    # renderDelay()
+
+    class Cell:
+        x: int = None
+        y: int = None
+        object: UIPrimitives.Circle = None
+        imageObject: UIPrimitives.Image = None
+        aspect: Aspect = None
+        isNone: bool = False
+
+        def __init__(self, x: int, y: int):
+            self.x = x
+            self.y = y
+
+    cells: list[Cell] = []
+    selectedCell: list[Cell | None, QColor | None] = [None, None]  # list to make it mutable
+    currentLinkMap: list[dict[(int, int), str]] = [{}]  # list to make it mutable
+
+    cellColorFree = QColor('white')
+    cellColorNone = QColor('black')
+    cellColorAspect = QColor('antiquewhite')
+    cellColorFree.setAlpha(20)
+    cellColorNone.setAlpha(150)
+    cellColorAspect.setAlpha(200)
+
+    def getExistingAspectsNoneHexagons():
+        existingAspects = {}
+        noneHexagons = set()
+        for cell in cells:
+            if cell.isNone:
+                noneHexagons.add((cell.x, cell.y))
+            elif cell.aspect is not None:
+                existingAspects[(cell.x, cell.y)] = cell.aspect.name
+        return existingAspects, noneHexagons
+
+    def onClickCellIsNone():
+        if selectedCell[0] is None:
+            return
+        selectedCell[0].object.setColor(cellColorNone)
+        selectedCell[0].imageObject.clearImage()
+        selectedCell[0].isNone = True
+        selectedCell[0].aspect = None
+        setCellDialogueVisibility(False)
+        selectedCell[0] = None
+        updateSolve()
+
+    def onClickCellIsAspect(aspect: Aspect):
+        if selectedCell[0] is None:
+            return
+        selectedCell[0].object.setColor(cellColorAspect)
+        selectedCell[0].imageObject.setImage(aspect.pixMapImage)
+        selectedCell[0].isNone = False
+        selectedCell[0].aspect = aspect
+        setCellDialogueVisibility(False)
+        selectedCell[0] = None
+        updateSolve()
+
+    def onClickCellIsFree():
+        if selectedCell[0] is None:
+            return
+        selectedCell[0].object.setColor(cellColorFree)
+        selectedCell[0].imageObject.clearImage()
+        selectedCell[0].isNone = False
+        selectedCell[0].aspect = None
+        setCellDialogueVisibility(False)
+        selectedCell[0] = None
+        updateSolve()
+
+    def updateSolve():
+        for cell in cells:
+            cell.imageObject.clearImage()
+        (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
+        currentLinkMap[0] = generateLinkMap(existingAspects, noneHexagons)
+        for coords, aspectName in currentLinkMap[0].items():
+            for cell in cells:
+                if (cell.x == coords[0]) and (cell.y == coords[1]):
+                    aspectObj = TI.getAspectByName(aspectName)
+                    cell.imageObject.setImage(aspectObj.pixMapImage)
+                    break
+
+    def startCellDialogue(cell: Cell):
+        setCellDialogueVisibility(True)
+        if selectedCell[0]:
+            newColor = QColor(selectedCell[0].object.color)
+            newColor.setAlpha(selectedCell[1])
+            selectedCell[0].object.setColor(newColor)
+        selectedCell[0] = cell
+        newColor = QColor(cell.object.color)
+        selectedCell[1] = newColor.alpha()
+        newColor.setAlpha(130)
+        cell.object.setColor(newColor)
+
+    def exitCellDialogue():
+        setCellDialogueVisibility(False)
+        if not selectedCell[0]:
+            return
+        newColor = QColor(selectedCell[0].object.color)
+        newColor.setAlpha(selectedCell[1])
+        selectedCell[0].object.setColor(newColor)
+        selectedCell[0] = None
+
+    # draw clickable cells
+    for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
+        for iy in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + (abs(ix) + 1) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(ix)) // 2 + 1):
+            hexagonCenterX = TI.rectHexagonsCC.x + ix * TI.hexagonSlotSizeX
+            hexagonCenterY = TI.rectHexagonsCC.y + iy * TI.hexagonSlotSizeY - (ix % 2) * TI.hexagonSlotSizeY / 2
+            cell = Cell(ix, iy)
+            cellObject = UIPrimitives.Circle(
+                hexagonCenterX,
+                hexagonCenterY,
+                r=TI.hexagonSlotSizeY / 2,
+                color=cellColorFree,
+                onClickCallback=startCellDialogue,
+                onClickCallbackArgs=[cell],
+                hoverable=True,
+            )
+            cell.object = cellObject
+            imageSide = TI.hexagonSlotSizeY / math.sqrt(2)
+            cellAspectImageObject = UIPrimitives.Image(
+                hexagonCenterX,
+                hexagonCenterY - imageSide,
+                imageSide,
+                imageSide,
+                None
+            )
+            cell.imageObject = cellAspectImageObject
+            cells.append(cell)
+            UI.addObject(cellObject)
+            UI.addObject(cellAspectImageObject)
+
+    # draw cell dialogue
+    cellDialogueObjects = []
+    textYCoord = MARGIN
+    textCellIsNone = UI.addObject(UIPrimitives.Text(
+        MARGIN, textYCoord,
+        'Ячейка недоступна (N)',
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        backgroundOpacity=0.8,
+        padding=MARGIN,
+        UI=UI,
+        onClickCallback=onClickCellIsNone,
+        hoverable=True,
+    ))
+    cellDialogueObjects.append(textCellIsNone)
+    textYCoord += textCellIsNone.h + MARGIN
+    textCellIsFree = UI.addObject(UIPrimitives.Text(
+        MARGIN, textYCoord,
+        'Ячейка свободна (F)',
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        backgroundOpacity=0.8,
+        padding=MARGIN,
+        UI=UI,
+        onClickCallback=onClickCellIsFree,
+        hoverable=True,
+    ))
+    cellDialogueObjects.append(textCellIsFree)
+    textYCoord += textCellIsFree.h + MARGIN * 2
+    startTextYCoord = textYCoord
+    textXCoord = MARGIN
+    for i in range(len(TI.allAspects)):
+        aspect = TI.allAspects[i]
+        textAspect = UI.addObject(UIPrimitives.Text(
+            textXCoord, textYCoord,
+            aspect.name,
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('black'),
+            backgroundOpacity=0.8,
+            padding=(MARGIN, MARGIN, MARGIN, MARGIN * 4),
+            UI=UI,
+            onClickCallback=onClickCellIsAspect,
+            onClickCallbackArgs=[aspect],
+            hoverable=True,
+        ))
+        aspectImage = UI.addObject(UIPrimitives.Image(
+            textXCoord + MARGIN * 2, textYCoord,
+            MARGIN * 2, MARGIN * 2,
+            None,
+            ))
+        aspectImage.setImage(aspect.pixMapImage)
+        cellDialogueObjects.append(textAspect)
+        cellDialogueObjects.append(aspectImage)
+        textYCoord += textAspect.h
+        if textYCoord > UI.height() - textAspect.h:
+            textYCoord = startTextYCoord
+            textXCoord += 250
+
+    textControls = UI.addObject(UIPrimitives.Text(
+        MARGIN, MARGIN,
+        f"""Кликни на ячейки, которых нет, и в которых есть аспекты.
+Для каждой ячейки выбери в меню, какой аспект в ней лежит.
+Чтобы перегенерировать решение, нажми [R]
+
+Когда будет готово, жми [Enter]
+Чтобы вернуться назад, нажми [Backspace]""",
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=MARGIN,
+        UI=UI,
+        movable=True
+    ))
+
+    def setCellDialogueVisibility(state: bool):
+        for obj in cellDialogueObjects:
+            obj.visible = state
+        textControls.visible = not state
+
+    setCellDialogueVisibility(False)
+
+    def callbackToFinish():
+        print("END OF CONFIGURING ASPECTS IN FIELD")
+        UI.clearAll()
+        UI.addObject(UIPrimitives.Text(
+            MARGIN, MARGIN,
+            f"""Подожди, решение выкладывается на поле... 
+Не двигай мышью и не нажимай никакие кнопки""",
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('black'),
+            padding=MARGIN,
+        ))
+        UI.clearKeyCallbacks()
+        finalLinkMap = currentLinkMap[0].copy()
+        (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
+        # Удаляем исходные аспекты из карты заполнения
+        for aspectCoords in existingAspects.keys():
+            del finalLinkMap[aspectCoords]
+        TI.fillByLinkMap(finalLinkMap)
+        print("Putting aspects is done")
+        TI.takeOutPaper()
+        eventsDelay()
+        TI.increaseWorkingSlot()
+        runResearching(UI, TI)
+
+    UI.setKeyCallback(KeyboardKeys.enter, callbackToFinish)
+    UI.setKeyCallback(KeyboardKeys.n, onClickCellIsNone)
+    UI.setKeyCallback(KeyboardKeys.f, onClickCellIsFree)
+    UI.setKeyCallback(KeyboardKeys.r, updateSolve)
+    UI.setKeyCallback(KeyboardKeys.esc, exitCellDialogue)
+    UI.setKeyCallback(KeyboardKeys.backspace, chooseThaumVersion, UI)
+

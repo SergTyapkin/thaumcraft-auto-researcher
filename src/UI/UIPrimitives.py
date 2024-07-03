@@ -291,7 +291,7 @@ class Align(Enum):
 
 class Text(_Object):
     def __init__(self, x: float, y: float, text: str, font=DEFAULT_FONT, color=DEFAULT_COLOR, align: Align = Align.left,
-                 withBackground=False, backgroundColor=QColor('black'), backgroundOpacity=0.5, padding=DEFAULT_PADDING,
+                 withBackground=False, backgroundColor=QColor('black'), backgroundOpacity=0.5, padding: int|tuple[int, int, int, int] = DEFAULT_PADDING,
                  movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, UI=None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
         lines = text.split('\n')
         self.w = max(map(len, lines)) * font.pointSize() / 1.05
@@ -313,9 +313,11 @@ class Text(_Object):
         if self.withBackground:
             self.backgroundColor = backgroundColor
             self.backgroundColor.setAlpha(opacityToAlpha(backgroundOpacity))
+            if isinstance(padding, int):
+                padding = (padding, padding, padding, padding)
             self.padding = padding
-            self.w += padding * 2
-            self.h += padding * 2
+            self.w += padding[1] + padding[3]
+            self.h += padding[0] + padding[2]
 
         self.UI = UI
         self.movable = False
@@ -343,8 +345,8 @@ class Text(_Object):
         if self.withBackground:
             painter.fillRect(int(self.x), int(self.y), int(self.w), int(self.h), self._currentColor)
             painter.drawText(
-                int(self.x + self.padding), int(self.y + self.padding),
-                int(self.w - self.padding * 2), int(self.h - self.padding * 2),
+                int(self.x + self.padding[3]), int(self.y + self.padding[0]),
+                int(self.w - self.padding[1] - self.padding[3]), int(self.h - self.padding[0] - self.padding[2]),
                 self.align.value, self.text
             )
         else:

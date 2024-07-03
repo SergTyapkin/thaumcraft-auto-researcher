@@ -1,5 +1,4 @@
 import math
-import time
 from typing import Any, Union
 
 import keyboard
@@ -10,9 +9,7 @@ from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
 from src.UI import UIPrimitives
-from src.UI.OverlayUI import KeyboardKeys
 from src.controllers import Scenarios
-from src.logic.LinksGeneration import generateLinkMap
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
@@ -21,7 +18,8 @@ from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPE
     getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
     HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN
 from src.utils.constants import getAspectImagePath
-from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay
+from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
+    loadRecipesForSelectedVersion
 
 
 def createTI(UI):
@@ -34,13 +32,14 @@ def createTI(UI):
         Scenarios.chooseThaumVersion(UI)
         return None
 
-    recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
-    if recipesConfig is None:
-        raise ValueError("Can't open recipes config")
-    recipesConfig = recipesConfig[selected_thaum_version['version']]
+    recipesConfig = loadRecipesForSelectedVersion()
 
     aspectsOrderConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
     aspectsOrderConfig = aspectsOrderConfig['aspects']
+
+    for aspect in aspectsOrderConfig:
+        if aspect not in recipesConfig:
+            aspectsOrderConfig.remove(aspect)
 
     return ThaumInteractor(UI, pointsConfig, recipesConfig, aspectsOrderConfig)
 
@@ -88,7 +87,7 @@ class Aspect:
         self.name = name
         self.idx = idx
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.name}({self.count})"
 
 
@@ -127,7 +126,7 @@ class ThaumInteractor:
     maskOnlyNumbers: Image.Image = None
     maskWithoutNumbers: Image.Image = None
 
-    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], availableAspects: list[str]):
+    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], orderedAvailableAspects: list[str]):
         self.UI = UI
 
         c = controlsConfig
@@ -157,12 +156,12 @@ class ThaumInteractor:
         for i in range(0, 10):
             self.numbersImages.append(self.loadImage(getImagePathByNumber(i), noResize=True))
 
-        self.maxPagesCount = max(((len(availableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
+        self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
 
         self.allAspects = []
-        for i in range(len(availableAspects)):
-            self.allAspects.append(Aspect(availableAspects[i], i))
+        for i in range(len(orderedAvailableAspects)):
+            self.allAspects.append(Aspect(orderedAvailableAspects[i], i))
         self.loadAspectsImages()
         # self.availableAspects = self.getAvailableAspects()
 
@@ -230,11 +229,11 @@ class ThaumInteractor:
         self._showDebugClick(self.pointWorkingInventorySlot)
 
     def insertPaper(self):
-        self.pointWorkingInventorySlot.click(shift=True)
+        self.pointWorkingInventorySlot.click()
         self._showDebugClick(self.pointWorkingInventorySlot)
         eventsDelay()
-        # self.pointPapers.click()
-        # self._showDebugClick(self.pointPapers)
+        self.pointPapers.click()
+        self._showDebugClick(self.pointPapers)
 
     def increaseWorkingSlot(self):
         self.workingInventorySlot += 1
@@ -325,9 +324,19 @@ class ThaumInteractor:
         self._showDebugClick(self.pointAspectsMixCreate)
 
     def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
+        # Оптимизируем порядок аспектов, чтобы пришлось меньше листать инвентарь
+        aspectsListMap = list(aspectsMap.items())
+        def sortFunc(pair):
+            aspectName = pair[1]
+            for i in range(len(self.allAspects)):
+                if self.allAspects[i].name == aspectName:
+                    return i
+            return 999999
+        aspectsListMap.sort(key=sortFunc)
+        # Заполняем по одному аспекту, пролистывая к каждому следующему
         self.currentAspectsPageIdx = None
         self.scrollToLeftSide()
-        for coords, aspectName in aspectsMap.items():
+        for coords, aspectName in aspectsListMap:
             aspect = self.getAspectByName(aspectName)
             self.takeAspect(aspect)
             eventsDelay()
@@ -535,226 +544,3 @@ class ThaumInteractor:
     # print(existingAspects, noneHexagons)
     # exit()
     # return existingAspects, freeHexagons
-
-    def getExistingAspectsOnField(self):
-        self.printAvailableAspects()
-        self.insertPaper()
-        renderDelay()
-
-        class Cell:
-            x: int = None
-            y: int = None
-            object: UIPrimitives.Circle = None
-            imageObject: UIPrimitives.Image = None
-            aspect: Aspect = None
-            isNone: bool = False
-
-            def __init__(self, x: int, y: int):
-                self.x = x
-                self.y = y
-
-        cells: list[Cell] = []
-        selectedCell: list[Cell | None, QColor | None] = [None, None]  # list to make it mutable
-        currentLinkMap: list[dict[(int, int), str]] = [{}]  # list to make it mutable
-
-        cellColorFree = QColor('white')
-        cellColorNone = QColor('black')
-        cellColorAspect = QColor('antiquewhite')
-        cellColorFree.setAlpha(20)
-        cellColorNone.setAlpha(150)
-        cellColorAspect.setAlpha(200)
-
-        def getExistingAspectsNoneHexagons():
-            existingAspects = {}
-            noneHexagons = set()
-            for cell in cells:
-                if cell.isNone:
-                    noneHexagons.add((cell.x, cell.y))
-                elif cell.aspect is not None:
-                    existingAspects[(cell.x, cell.y)] = cell.aspect.name
-            return existingAspects, noneHexagons
-
-        def onClickCellIsNone():
-            if selectedCell[0] is None:
-                return
-            selectedCell[0].object.setColor(cellColorNone)
-            selectedCell[0].imageObject.clearImage()
-            selectedCell[0].isNone = True
-            selectedCell[0].aspect = None
-            setCellDialogueVisibility(False)
-            selectedCell[0] = None
-            updateSolve()
-
-        def onClickCellIsAspect(aspect: Aspect):
-            if selectedCell[0] is None:
-                return
-            selectedCell[0].object.setColor(cellColorAspect)
-            selectedCell[0].imageObject.setImage(aspect.pixMapImage)
-            selectedCell[0].isNone = False
-            selectedCell[0].aspect = aspect
-            setCellDialogueVisibility(False)
-            selectedCell[0] = None
-            updateSolve()
-
-        def onClickCellIsFree():
-            if selectedCell[0] is None:
-                return
-            selectedCell[0].object.setColor(cellColorFree)
-            selectedCell[0].imageObject.clearImage()
-            selectedCell[0].isNone = False
-            selectedCell[0].aspect = None
-            setCellDialogueVisibility(False)
-            selectedCell[0] = None
-            updateSolve()
-
-        def updateSolve():
-            for cell in cells:
-                cell.imageObject.clearImage()
-            (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
-            currentLinkMap[0] = generateLinkMap(existingAspects, noneHexagons)
-            for coords, aspectName in currentLinkMap[0].items():
-                for cell in cells:
-                    if (cell.x == coords[0]) and (cell.y == coords[1]):
-                        aspectObj = self.getAspectByName(aspectName)
-                        cell.imageObject.setImage(aspectObj.pixMapImage)
-                        break
-
-        def startCellDialogue(cell: Cell):
-            setCellDialogueVisibility(True)
-            if selectedCell[0]:
-                newColor = QColor(selectedCell[0].object.color)
-                newColor.setAlpha(selectedCell[1])
-                selectedCell[0].object.setColor(newColor)
-            selectedCell[0] = cell
-            newColor = QColor(cell.object.color)
-            selectedCell[1] = newColor.alpha()
-            newColor.setAlpha(130)
-            cell.object.setColor(newColor)
-
-        def exitCellDialogue():
-            setCellDialogueVisibility(False)
-            if not selectedCell[0]:
-                return
-            newColor = QColor(selectedCell[0].object.color)
-            newColor.setAlpha(selectedCell[1])
-            selectedCell[0].object.setColor(newColor)
-            selectedCell[0] = None
-
-        # draw clickable cells
-        for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
-            for iy in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + (abs(ix) + 1) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(ix)) // 2 + 1):
-                hexagonCenterX = self.rectHexagonsCC.x + ix * self.hexagonSlotSizeX
-                hexagonCenterY = self.rectHexagonsCC.y + iy * self.hexagonSlotSizeY - (ix % 2) * self.hexagonSlotSizeY / 2
-                cell = Cell(ix, iy)
-                cellObject = UIPrimitives.Circle(
-                    hexagonCenterX,
-                    hexagonCenterY,
-                    r=self.hexagonSlotSizeY / 2,
-                    color=cellColorFree,
-                    onClickCallback=startCellDialogue,
-                    onClickCallbackArgs=[cell],
-                    hoverable=True,
-                )
-                cell.object = cellObject
-                imageSide = self.hexagonSlotSizeY / math.sqrt(2)
-                cellAspectImageObject = UIPrimitives.Image(
-                    hexagonCenterX,
-                    hexagonCenterY - imageSide,
-                    imageSide,
-                    imageSide,
-                    None
-                )
-                cell.imageObject = cellAspectImageObject
-                cells.append(cell)
-                self.UI.addObject(cellObject)
-                self.UI.addObject(cellAspectImageObject)
-
-        # draw cell dialogue
-        cellDialogueObjects = []
-        textYCoord = MARGIN
-        textCellIsNone = self.UI.addObject(UIPrimitives.Text(
-            MARGIN, textYCoord,
-            'Ячейка недоступна (N)',
-            color=QColor('white'),
-            withBackground=True,
-            backgroundColor=QColor('black'),
-            padding=MARGIN,
-            UI=self.UI,
-            onClickCallback=onClickCellIsNone,
-            hoverable=True,
-        ))
-        cellDialogueObjects.append(textCellIsNone)
-        textYCoord += textCellIsNone.h + MARGIN
-        textCellIsFree = self.UI.addObject(UIPrimitives.Text(
-            MARGIN, textYCoord,
-            'Ячейка свободна (F)',
-            color=QColor('white'),
-            withBackground=True,
-            backgroundColor=QColor('black'),
-            padding=MARGIN,
-            UI=self.UI,
-            onClickCallback=onClickCellIsFree,
-            hoverable=True,
-        ))
-        cellDialogueObjects.append(textCellIsFree)
-        textYCoord += textCellIsFree.h + MARGIN * 2
-        startTextYCoord = textYCoord
-        textXCoord = MARGIN
-        for i in range(len(self.allAspects)):
-            aspect = self.allAspects[i]
-            textAspect = self.UI.addObject(UIPrimitives.Text(
-                textXCoord, textYCoord,
-                aspect.name,
-                color=QColor('white'),
-                withBackground=True,
-                backgroundColor=QColor('black'),
-                padding=MARGIN,
-                UI=self.UI,
-                onClickCallback=onClickCellIsAspect,
-                onClickCallbackArgs=[aspect],
-                hoverable=True,
-            ))
-            cellDialogueObjects.append(textAspect)
-            textYCoord += textAspect.h
-            if textYCoord > self.UI.height() - textAspect.h:
-                textYCoord = startTextYCoord
-                textXCoord += 200
-
-        textControls = self.UI.addObject(UIPrimitives.Text(
-            MARGIN, MARGIN,
-            f"""Кликни на ячейки, которых нет, и в которых есть аспекты.
-Для каждой ячейки выбери в меню, какой аспект в ней лежит.
-Чтобы перегенерировать решение, нажми [R]
-
-Когда будет готово, жми [Enter]""",
-            color=QColor('white'),
-            withBackground=True,
-            backgroundColor=QColor('black'),
-            padding=MARGIN,
-            UI=self.UI,
-            movable=True
-        ))
-
-        def setCellDialogueVisibility(state: bool):
-            for obj in cellDialogueObjects:
-                obj.visible = state
-            textControls.visible = not state
-
-        setCellDialogueVisibility(False)
-
-        def callbackToFinish():
-            print("END OF CONFIGURING ASPECTS IN FIELD")
-            self.UI.clearAll()
-            self.UI.clearKeyCallbacks()
-            self.fillByLinkMap(currentLinkMap[0])
-            print("Putting aspects is done")
-            self.takeOutPaper()
-            eventsDelay()
-            self.increaseWorkingSlot()
-            self.getExistingAspectsOnField()
-
-        self.UI.setKeyCallback(KeyboardKeys.enter, callbackToFinish)
-        self.UI.setKeyCallback(KeyboardKeys.n, onClickCellIsNone)
-        self.UI.setKeyCallback(KeyboardKeys.f, onClickCellIsFree)
-        self.UI.setKeyCallback(KeyboardKeys.r, updateSolve)
-        self.UI.setKeyCallback(KeyboardKeys.esc, exitCellDialogue)
