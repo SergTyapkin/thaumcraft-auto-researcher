@@ -12,6 +12,7 @@ from PyQt5.QtGui import QColor, QPixmap
 from src.UI import UIPrimitives
 from src.UI.OverlayUI import KeyboardKeys
 from src.controllers import Scenarios
+from src.logic.LinksGeneration import generateLinkMap
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
@@ -263,7 +264,7 @@ class ThaumInteractor:
     def putAspect(self, cellX, cellY):
         aspectPoint = P(
             self.rectHexagonsCC.x + self.hexagonSlotSizeX * cellX,
-            self.rectHexagonsCC.y + self.hexagonSlotSizeY * cellY + (cellX % 2) * (self.hexagonSlotSizeY / 2)
+            self.rectHexagonsCC.y + self.hexagonSlotSizeY * cellY - (cellX % 2) * (self.hexagonSlotSizeY / 2)
         )
         aspectPoint.release()
         self._showDebugClick(aspectPoint, QColor('red'))
@@ -323,14 +324,14 @@ class ThaumInteractor:
         self.pointAspectsMixCreate.click()
         self._showDebugClick(self.pointAspectsMixCreate)
 
-    def fillByLinkMap(self, aspectsMap: dict[str, (int, int)]):
+    def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
         self.currentAspectsPageIdx = None
         self.scrollToLeftSide()
-        for aspectName in aspectsMap.keys():
+        for coords, aspectName in aspectsMap.items():
             aspect = self.getAspectByName(aspectName)
             self.takeAspect(aspect)
             eventsDelay()
-            self.putAspect(*aspectsMap[aspectName])
+            self.putAspect(*coords)
             eventsDelay()
 
     def imageResize(self, image: Image.Image):
@@ -535,8 +536,10 @@ class ThaumInteractor:
     # exit()
     # return existingAspects, freeHexagons
 
-    def getExistingAspectsOnField(self, callbackAfterFinish, generateLinkMap):
+    def getExistingAspectsOnField(self):
         self.printAvailableAspects()
+        self.insertPaper()
+        renderDelay()
 
         class Cell:
             x: int = None
@@ -552,6 +555,7 @@ class ThaumInteractor:
 
         cells: list[Cell] = []
         selectedCell: list[Cell | None, QColor | None] = [None, None]  # list to make it mutable
+        currentLinkMap: list[dict[(int, int), str]] = [{}]  # list to make it mutable
 
         cellColorFree = QColor('white')
         cellColorNone = QColor('black')
@@ -567,7 +571,7 @@ class ThaumInteractor:
                 if cell.isNone:
                     noneHexagons.add((cell.x, cell.y))
                 elif cell.aspect is not None:
-                    existingAspects[cell.aspect.name] = (cell.x, cell.y)
+                    existingAspects[(cell.x, cell.y)] = cell.aspect.name
             return existingAspects, noneHexagons
 
         def onClickCellIsNone():
@@ -579,7 +583,7 @@ class ThaumInteractor:
             selectedCell[0].aspect = None
             setCellDialogueVisibility(False)
             selectedCell[0] = None
-            updateShadowSolveImages()
+            updateSolve()
 
         def onClickCellIsAspect(aspect: Aspect):
             if selectedCell[0] is None:
@@ -590,7 +594,7 @@ class ThaumInteractor:
             selectedCell[0].aspect = aspect
             setCellDialogueVisibility(False)
             selectedCell[0] = None
-            updateShadowSolveImages()
+            updateSolve()
 
         def onClickCellIsFree():
             if selectedCell[0] is None:
@@ -601,18 +605,17 @@ class ThaumInteractor:
             selectedCell[0].aspect = None
             setCellDialogueVisibility(False)
             selectedCell[0] = None
-            updateShadowSolveImages()
+            updateSolve()
 
-        def updateShadowSolveImages():
+        def updateSolve():
             for cell in cells:
                 cell.imageObject.clearImage()
             (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
-            linkMap = generateLinkMap(existingAspects, noneHexagons)
-            for aspect in linkMap:
-                coords = linkMap[aspect]
+            currentLinkMap[0] = generateLinkMap(existingAspects, noneHexagons)
+            for coords, aspectName in currentLinkMap[0].items():
                 for cell in cells:
                     if (cell.x == coords[0]) and (cell.y == coords[1]):
-                        aspectObj = self.getAspectByName(aspect)
+                        aspectObj = self.getAspectByName(aspectName)
                         cell.imageObject.setImage(aspectObj.pixMapImage)
                         break
 
@@ -630,6 +633,8 @@ class ThaumInteractor:
 
         def exitCellDialogue():
             setCellDialogueVisibility(False)
+            if not selectedCell[0]:
+                return
             newColor = QColor(selectedCell[0].object.color)
             newColor.setAlpha(selectedCell[1])
             selectedCell[0].object.setColor(newColor)
@@ -637,11 +642,9 @@ class ThaumInteractor:
 
         # draw clickable cells
         for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
-            for iy in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(ix) // 2 + 1,
-                            THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(ix) + 1) // 2 + 1):
+            for iy in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + (abs(ix) + 1) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(ix)) // 2 + 1):
                 hexagonCenterX = self.rectHexagonsCC.x + ix * self.hexagonSlotSizeX
-                hexagonCenterY = self.rectHexagonsCC.y + iy * self.hexagonSlotSizeY + (
-                        ix % 2) * self.hexagonSlotSizeY / 2
+                hexagonCenterY = self.rectHexagonsCC.y + iy * self.hexagonSlotSizeY - (ix % 2) * self.hexagonSlotSizeY / 2
                 cell = Cell(ix, iy)
                 cellObject = UIPrimitives.Circle(
                     hexagonCenterX,
@@ -720,7 +723,8 @@ class ThaumInteractor:
         textControls = self.UI.addObject(UIPrimitives.Text(
             MARGIN, MARGIN,
             f"""Кликни на ячейки, которых нет, и в которых есть аспекты.
-Для каждой ячейки выбери в меню, какой аспект в ней лежит
+Для каждой ячейки выбери в меню, какой аспект в ней лежит.
+Чтобы перегенерировать решение, нажми [R]
 
 Когда будет готово, жми [Enter]""",
             color=QColor('white'),
@@ -742,10 +746,15 @@ class ThaumInteractor:
             print("END OF CONFIGURING ASPECTS IN FIELD")
             self.UI.clearAll()
             self.UI.clearKeyCallbacks()
-            (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
-            callbackAfterFinish(existingAspects, noneHexagons)
+            self.fillByLinkMap(currentLinkMap[0])
+            print("Putting aspects is done")
+            self.takeOutPaper()
+            eventsDelay()
+            self.increaseWorkingSlot()
+            self.getExistingAspectsOnField()
 
         self.UI.setKeyCallback(KeyboardKeys.enter, callbackToFinish)
         self.UI.setKeyCallback(KeyboardKeys.n, onClickCellIsNone)
         self.UI.setKeyCallback(KeyboardKeys.f, onClickCellIsFree)
+        self.UI.setKeyCallback(KeyboardKeys.r, updateSolve)
         self.UI.setKeyCallback(KeyboardKeys.esc, exitCellDialogue)

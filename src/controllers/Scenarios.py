@@ -6,7 +6,6 @@ from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
 
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
-from src.logic.LinksGeneration import generateLinkMap
 from src.UI.OverlayUI import OverlayUI, KeyboardKeys
 from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.UI.UIPrimitives import Rect, Point, Line, Text, DEFAULT_FONT
@@ -301,22 +300,4 @@ def waitForCreatingTI(UI: OverlayUI):
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     UI.clearAll()
-
-    # TI.getAvailableAspects()
-    # TI.printAvailableAspects()
-    # breakpoint()
-
-    def fillMapAndStartAgain(existingAspects, noneHexagons):
-        linkMap = generateLinkMap(existingAspects, noneHexagons)
-        # breakpoint()
-        print("Starting to put aspects on field...")
-        TI.fillByLinkMap(linkMap)
-        print("Putting aspects is done")
-        TI.takeOutPaper()
-        eventsDelay()
-        TI.increaseWorkingSlot()
-        runResearching(UI, TI)
-
-    TI.insertPaper()
-    renderDelay()
-    TI.getExistingAspectsOnField(fillMapAndStartAgain, generateLinkMap)
+    TI.getExistingAspectsOnField()
