@@ -327,9 +327,19 @@ class ThaumInteractor:
         self._showDebugClick(self.pointAspectsMixCreate)
 
     def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
+        # Оптимизируем порядок аспектов, чтобы пришлось меньше листать инвентарь
+        aspectsListMap = list(aspectsMap.items())
+        def sortFunc(pair):
+            aspectName = pair[1]
+            for i in range(len(self.allAspects)):
+                if self.allAspects[i].name == aspectName:
+                    return i
+            return 999999
+        aspectsListMap.sort(key=sortFunc)
+        # Заполняем по одному аспекту, пролистывая к каждому следующему
         self.currentAspectsPageIdx = None
         self.scrollToLeftSide()
-        for coords, aspectName in aspectsMap.items():
+        for coords, aspectName in aspectsListMap:
             aspect = self.getAspectByName(aspectName)
             self.takeAspect(aspect)
             eventsDelay()
@@ -759,6 +769,7 @@ class ThaumInteractor:
             self.UI.clearKeyCallbacks()
             finalLinkMap = currentLinkMap[0].copy()
             (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
+            # Удаляем исходные аспекты из карты заполнения
             for aspectCoords in existingAspects.keys():
                 del finalLinkMap[aspectCoords]
             self.fillByLinkMap(finalLinkMap)
