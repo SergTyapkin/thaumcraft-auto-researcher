@@ -24,7 +24,6 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-
 def saveJSONConfig(fullpath: str, jsonToSave: dict):
     with open(fullpath, 'w') as file:
         json.dump(jsonToSave, file, indent=4, ensure_ascii=False, default=linkableValueDumpsToJSON)

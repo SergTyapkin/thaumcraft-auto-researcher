@@ -1,5 +1,5 @@
 .idea
 venv
 recordings
-thaumControlsConfig.json
-thaumVersionConfig.json
+user_configs
+output

@@ -1,33 +1,47 @@
+import os
+import sys
+
 THAUM_VERSION = '4.1.1.14'
 
 # UI and visual part
 MARGIN = 20
 FPS = 60
 
-# Files names
-THAUM_VERSION_CONFIG_PATH = 'user_configs/thaumVersionConfig.json'
-THAUM_CONTROLS_CONFIG_PATH = 'user_configs/thaumControlsConfig.json'
-THAUM_ASPECT_RECIPES_CONFIG_PATH = 'aspects_configs/aspectsRecipes.json'
-THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = 'aspects_configs/addonsAspectsRecipes.json'
-THAUM_ASPECTS_ORDER_CONFIG_PATH = 'aspects_configs/aspectsOrder.json'
+
+# Files paths
+def to_resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+    return os.path.join(base_path, relative_path)
+
+
+THAUM_VERSION_CONFIG_PATH = to_resource_path('user_configs/thaumVersionConfig.json')
+THAUM_CONTROLS_CONFIG_PATH = to_resource_path('user_configs/thaumControlsConfig.json')
+THAUM_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/aspectsRecipes.json')
+THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/addonsAspectsRecipes.json')
+THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('aspects_configs/aspectsOrder.json')
+
+
 def getAspectImagePath(aspectName, colored=True):
-    return f"images/{'color' if colored else 'mono'}/{aspectName}.png"
+    return to_resource_path(f"images/{'color' if colored else 'mono'}/{aspectName}.png")
 def getImagePathByNumber(number):
-    return f"images/numbers/{number}.png"
-EMPTY_ASPECT_SLOT_IMAGE_PATH = 'images/emptyAspectPlace.png'
-HEXAGON_MASK_IMAGE_PATH = 'images/hexagons/hexagonMask.png'
-HEXAGON_BORDER_MASK_IMAGE_PATH = 'images/hexagons/hexagonBorderMask.png'
-MASK_WITHOUT_NUMBER_IMAGE_PATH = 'images/maskWithoutNumbers.png'
-MASK_ONLY_NUMBER_IMAGE_PATH = 'images/maskOnlyNumbers.png'
-NONE_HEXAGON_SLOT_IMAGE_PATH = 'images/hexagons/noneHexagon.png'
+    return to_resource_path(f"images/numbers/{number}.png")
+
+
+EMPTY_ASPECT_SLOT_IMAGE_PATH = to_resource_path('images/emptyAspectPlace.png')
+HEXAGON_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonMask.png')
+HEXAGON_BORDER_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonBorderMask.png')
+MASK_WITHOUT_NUMBER_IMAGE_PATH = to_resource_path('images/maskWithoutNumbers.png')
+MASK_ONLY_NUMBER_IMAGE_PATH = to_resource_path('images/maskOnlyNumbers.png')
+NONE_HEXAGON_SLOT_IMAGE_PATH = to_resource_path('images/hexagons/noneHexagon.png')
 FREE_HEXAGON_SLOT_IMAGES_PATHS = [
-    'images/hexagons/freeHexagons/1.png',
-    'images/hexagons/freeHexagons/2.png',
-    'images/hexagons/freeHexagons/3.png',
-    'images/hexagons/freeHexagons/4.png',
-    'images/hexagons/freeHexagons/5.png',
-    'images/hexagons/freeHexagons/6.png',
-    'images/hexagons/freeHexagons/7.png',
+    to_resource_path('images/hexagons/freeHexagons/1.png'),
+    to_resource_path('images/hexagons/freeHexagons/2.png'),
+    to_resource_path('images/hexagons/freeHexagons/3.png'),
+    to_resource_path('images/hexagons/freeHexagons/4.png'),
+    to_resource_path('images/hexagons/freeHexagons/5.png'),
+    to_resource_path('images/hexagons/freeHexagons/6.png'),
+    to_resource_path('images/hexagons/freeHexagons/7.png'),
 ]
 ASPECTS_IMAGES_SIZE = 32  # px
 ASPECT_COUNT_NUMBER_SIZE = (6, 10)  # px
