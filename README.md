@@ -2,8 +2,8 @@
 > _**Thaumcraft**_ - мод для игры _Minecraft_, часто устанавливающийся в магические сборки модов на популярных серверах
 ---
 
-## [Доступные релизы](./releases)
-[Последняя версия `v0.1.0-alpha`](./releases/tag/v0.1.0-alpha)
+## [Доступные релизы](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
+[Последняя версия `v0.1.0-alpha`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v0.1.0-alpha)
 
 По любым вопросам/предложеиям, пишите: [t.me/tyapkin_s](https://t.me/tyapkin_s)
 
