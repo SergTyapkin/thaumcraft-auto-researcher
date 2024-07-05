@@ -378,6 +378,7 @@ def waitForCreatingTI(UI: OverlayUI):
         TI = createTI(UI)
         if TI is None:
             logging.critical(f"ThaumcraftInteractor was not created!")
+            return
         runResearching(UI, TI)
     # UI.setKeyCallback(KeyboardKeys.enter, startCreatingTI)
     # UI.setKeyCallback(KeyboardKeys.backspace, chooseThaumVersion, UI)

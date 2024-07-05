@@ -110,7 +110,7 @@ class _Window(QMainWindow):
                 return
 
             for key in self.keysCallbacks.keys():
-                # logging.debug(event.name, event.scan_code)
+                # logging.debug(f"{event.name}, {event.scan_code}")
                 if event.scan_code == key:
                     self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
         keyboard._listener.add_handler(onKeyboardEvent)

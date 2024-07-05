@@ -55,7 +55,7 @@ class P:
     def move(self):
         mousePos = mouse.get_position()
         if mousePos[0] != self.x or mousePos[1] != self.y:
-            logging.debug(f"Move mouse to point {self} - move and wait...")
+            logging.debug(f"Move mouse to point {self}")
             mouse.move(self.x, self.y)
             eventsDelay()
         else:
@@ -389,7 +389,7 @@ class ThaumInteractor:
                 minDiffAspect = aspect
             image.save('image_compare1.png')
             aspect.image.save('image_compare2.png')
-            # logging.debug("Cur:", aspect.name, curDiff, "| Min:", minDiffAspect.name, minDiff)
+            # logging.debug(f"Cur: {aspect.name}, {curDiff} | Min: {minDiffAspect.name}, {minDiff}")
 
         for specialPair in specialReturns:
             imagesToCompare = specialPair[0]
@@ -405,7 +405,7 @@ class ThaumInteractor:
                     minDiffAspect = specialPair[1]
                 image.save('image_compare1.png')
                 imageToCompare.save('image_compare2.png')
-                logging.debug(imageToCompare.size, diffWithSpecialImage, "| Min: ", minDiffAspect, minDiff)
+                logging.debug(f"{imageToCompare.size}, {diffWithSpecialImage} | Min: {minDiffAspect}, {minDiff}")
         return minDiffAspect
 
     # def getAvailableAspects(self):
@@ -502,7 +502,7 @@ class ThaumInteractor:
             if previousImageInSlot:
                 diffWithEmpty = getImagesDiffPercent(previousImageInSlot, imageInSlot)
                 if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:
-                    logging.info("Found end of inventory. Detection ends. Total pages:", self.currentAspectsPageIdx)
+                    logging.info(f"Found end of inventory. Detection ends. Total pages: {self.currentAspectsPageIdx}")
                     self.maxPagesCount = self.currentAspectsPageIdx
                     if DEBUG: self.UI.removeObject(debugHighlightingRect)
                     break
@@ -540,7 +540,7 @@ class ThaumInteractor:
     # noneHexagons = []
     # for x in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
     #     for y in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(x) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(x) + 1) // 2 + 1):
-    #         logging.debug(x, y)
+    #         logging.debug(f"{x}, {y}")
     #         # find pos of hexagons
     #         slotLTx = self.rectHexagonsCC.x + x * self.hexagonSlotSizeX - self.hexagonSlotSizeX / 2
     #         slotLTy = self.rectHexagonsCC.y + y * self.hexagonSlotSizeY - self.hexagonSlotSizeX / 2
@@ -572,6 +572,6 @@ class ThaumInteractor:
     #             logging.debug(minDiffAspect.name)
     #             existingAspects.append((minDiffAspect, (x, y)))
     # logging.debug("END!!!")
-    # logging.debug(existingAspects, noneHexagons)
+    # logging.debug(f"{existingAspects}, {noneHexagons}")
     # exit()
     # return existingAspects, freeHexagons

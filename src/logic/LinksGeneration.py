@@ -166,8 +166,8 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
     logging.debug("-----------")
     logging.info("START SOLVING")
     logging.debug("#---0. Setting up:")
-    logging.info("EXISTING ASPECTS:", existing_aspects)
-    logging.info("HOLES HEXAGONS:", holes_set)
+    logging.info(f"EXISTING ASPECTS: {existing_aspects}")
+    logging.info(f"HOLES HEXAGONS: {holes_set}")
     aspect_recipes = loadRecipesForSelectedVersion()
     aspect_graph = AspectGraph(aspect_recipes)
 
@@ -188,7 +188,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
         maxY = max(maxY, abs(coord[1]))
 
     hexagonFieldRadius = max(maxX, maxY)
-    logging.debug("Hexagon field radius:", hexagonFieldRadius)
+    logging.debug(f"Hexagon field radius: {hexagonFieldRadius}")
 
     # Продолжаем, пока все изначальные аспекты не будут связаны
     isAllAspectsLinked = False
@@ -199,7 +199,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             # Получаем, к каким изначальынм аспектам он не привязан
             # Говорим, что хотим привязать его к первому из них
             not_linked_to_aspects = initial_aspects.difference(start_initial_aspect.linked_to_initials)
-            logging.debug(start_initial_aspect, "not linked to", not_linked_to_aspects)
+            logging.debug(f"{start_initial_aspect} not linked to {not_linked_to_aspects}")
             if len(not_linked_to_aspects) == 0:
                 continue
             isAllAspectsLinked = False
@@ -207,7 +207,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             min_start_aspect = None
             min_end_aspect = None
             min_len_between_aspects = 0
-            logging.debug("#---1. Found initial aspects to link:", start_initial_aspect, "to", end_initial_aspect)
+            logging.debug(f"#---1. Found initial aspects to link: {start_initial_aspect} to {end_initial_aspect}")
             # Ищем ближайшие ПО РАССТОЯНИЮ аспекты, связанные с теми, от котороо и к которому хотим привязать
             for start_aspect_candidate in aspects_on_field:
                 if start_initial_aspect not in start_aspect_candidate.linked_to_initials:
@@ -227,25 +227,25 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             if min_len_between_aspects > MAX_PATH_LEN:
                 logging.error(f"Error: End cell with aspect {end_initial_aspect} is unreachable from {start_initial_aspect}")
                 return existing_aspects
-            logging.debug("Min distance", min_len_between_aspects, "found from aspect:", min_start_aspect, "to aspect:", min_end_aspect)
+            logging.debug(f"Min distance {min_len_between_aspects} found from aspect: {min_start_aspect} to aspect: {min_end_aspect}")
             # К выбранному аспекту пытаемся построить цепочки. Сначала самую короткую, потом всё длиннее
             end_aspect = min_end_aspect
             start_aspect = min_start_aspect
             target_path_len = min_len_between_aspects
-            logging.debug("#---2. Trying to found aspects path from", start_aspect.name, "to", end_aspect.name)
+            logging.debug(f"#---2. Trying to found aspects path from {start_aspect.name} to {end_aspect.name}")
             while target_path_len < MAX_PATH_LEN:
                 aspectsPath = aspect_graph.find_path(start_aspect.name, end_aspect.name, target_path_len) # TODO: find length of path
                 if not aspectsPath:
-                    logging.debug("Path with len", target_path_len, "not found")
+                    logging.debug(f"Path with len {target_path_len} not found")
                     target_path_len += 1
                     continue
-                logging.debug("Path with len:", target_path_len, "generated:", aspectsPath)
+                logging.debug(f"Path with len: {target_path_len} generated: {aspectsPath}")
                 # Если цепочка найдена, пытаемся пройти найти маршрут заданной длины
-                logging.debug("#---3. Trying to find coordinates path with len", target_path_len, "from", start_aspect, "to", end_aspect)
+                logging.debug(f"#---3. Trying to find coordinates path with len {target_path_len} from {start_aspect} to {end_aspect}")
                 all_holes_set = holes_set | set(map(lambda asp: asp.coord, aspects_on_field))
                 min_len_between_aspects, coordsPath = start_aspect.get_min_distance_path_to(end_aspect, hexagonFieldRadius, all_holes_set, initial_aspects, target_path_len)
                 if min_len_between_aspects > MAX_PATH_LEN:
-                    logging.debug("Coordinates path with len", target_path_len, "not found")
+                    logging.debug(f"Coordinates path with len {target_path_len} not found")
                     target_path_len += 1
                     continue
                 logging.debug(f"Coordinates path found: {coordsPath}")
@@ -270,14 +270,14 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                     for initial_aspect in from_initial.linked_to_initials:
                         update_all_linked_aspects(initial_aspect)
                 update_all_linked_aspects(end_initial_aspect)
-                logging.debug("Aspects", visited_initials, "is now linked to themselves")
+                logging.debug(f"Aspects {visited_initials} is now linked between themselves")
 
-                logging.debug("Aspect path putted on field. Total aspects:", aspects_on_field)
+                logging.debug(f"Aspect path putted on field. Total aspects: {aspects_on_field}")
                 logging.debug("Iteration finished.")
                 break
             if target_path_len == MAX_PATH_LEN:
                 logging.error(f"Error: Path from {start_aspect} to {end_aspect} cannot be generated")
                 return existing_aspects
-    logging.info("SOLVED:", result)
+    logging.info(f"Final solving: {result}")
     return result
 
