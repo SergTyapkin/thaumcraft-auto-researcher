@@ -10,7 +10,7 @@
 ---
 
 ## [Доступные релизы](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
-[Последняя версия `v0.2.0-alpha`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v0.2.0-alpha)
+[Последняя версия `v1.0.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.0.0)
 <details>
 <summary>Changelog:</summary>
 <option>- Ускорено решение цепочек аспектов в ~8 раз</option>
