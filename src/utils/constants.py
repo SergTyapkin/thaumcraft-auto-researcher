@@ -63,7 +63,7 @@ DELAY_BETWEEN_RENDER = 0.5  # seconds
 
 EMPTY_TOLERANCE_PERCENT = 0.02
 
-LOG_FILE_PATH = "logs/logs.log"
+LOG_FILE_PATH = to_resource_path("logs/logs.log")
 MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 # 1 Mb
 # DEBUG = True
 DEBUG = False
