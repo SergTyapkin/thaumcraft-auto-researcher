@@ -1,3 +1,4 @@
+import logging
 import sys
 from enum import Enum
 from typing import Union, Callable, Any
@@ -109,7 +110,7 @@ class _Window(QMainWindow):
                 return
 
             for key in self.keysCallbacks.keys():
-                # print(event.name, event.scan_code)
+                # logging.debug(event.name, event.scan_code)
                 if event.scan_code == key:
                     self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
         keyboard._listener.add_handler(onKeyboardEvent)
@@ -131,7 +132,8 @@ class _Window(QMainWindow):
                 self.timedEvents.remove(event)
             self.update()
         except KeyboardInterrupt:
-            print("##############\nShutdown all...")
+            logging.info("##############")
+            logging.info("Shutdown all...")
             exit()
 
     def paintEvent(self, event):
@@ -142,7 +144,8 @@ class _Window(QMainWindow):
             for obj in objects:
                 obj.render(painter)
         except KeyboardInterrupt:
-            print("##############\nShutdown all...")
+            logging.info("##############")
+            logging.info("Shutdown all...")
             exit()
 
     def _updateObjectsHoverState(self, event: QMouseEvent, isMouseRelease: bool = False):
@@ -274,9 +277,10 @@ class _Worker(QObject):
 
 class OverlayUI(_Window):
     def __init__(self, opacity=1.0):
-        print("UI INIT!")
+        logging.info("UI initializing started...")
         self.app = QApplication(sys.argv)
         _Window.__init__(self, opacity=opacity)
+        logging.info("UI successfully initialized")
 
     def start(self, otherProcessFoo):
         self.otherProcessThread = QThread()

@@ -1,3 +1,4 @@
+import logging
 import math
 from typing import Any, Union
 
@@ -48,30 +49,39 @@ class P:
     def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
+    def __repr__(self):
+        return f"({self.x}, {self.y})"
 
     def move(self):
         mousePos = mouse.get_position()
         if mousePos[0] != self.x or mousePos[1] != self.y:
+            logging.debug(f"Move mouse to point {self} - move and wait...")
             mouse.move(self.x, self.y)
             eventsDelay()
+        else:
+            logging.debug(f"Move mouse to point {self} - mouse already in this pos")
 
     def click(self, button=mouse.LEFT, shift=False):
         self.move()
         if not shift:
+            logging.debug(f"Click mouse on point {self}")
             mouse.click(button)
             return
         keyboard.press('shift')
         eventsDelay()
+        logging.debug(f"Click on point {self} with shift")
         mouse.click(button)
         eventsDelay()
         keyboard.release('shift')
 
     def hold(self, button=mouse.LEFT):
         self.move()
+        logging.debug(f"Hold mouse on point {self}")
         mouse.press(button)
 
     def release(self, button=mouse.LEFT):
         self.move()
+        logging.debug(f"Release mouse on point {self}")
         mouse.release(button)
 
 
@@ -163,6 +173,7 @@ class ThaumInteractor:
         for i in range(len(orderedAvailableAspects)):
             self.allAspects.append(Aspect(orderedAvailableAspects[i], i))
         self.loadAspectsImages()
+        logging.info(f"ThaumcraftInteractor successfully initialized")
         # self.availableAspects = self.getAvailableAspects()
 
     def loadImage(self, path: str, backgroundImage: Image.Image = None, noResize: bool = False) -> Image.Image:
@@ -173,9 +184,12 @@ class ThaumInteractor:
         backgroundImage = backgroundImage or Image.new("RGBA", image.size, "BLACK")  # Create a white rgba background
         newImage = backgroundImage.convert("RGBA")
         newImage.paste(image, mask=image)  # Paste the image on the background. Go to the links given below for details.
-        return newImage.convert('RGB')
+        result = newImage.convert('RGB')
+        logging.debug(f"Loaded image {path}")
+        return result
 
     def loadAspectsImages(self):
+        logging.info(f"Loading thaum aspects images...")
         for aspect in self.allAspects:
             aspect.image = self.loadImage(getAspectImagePath(aspect.name), self.emptyAspectInventorySlotImage)
             aspect.pixMapImage = QPixmap(getAspectImagePath(aspect.name))
@@ -184,6 +198,7 @@ class ThaumInteractor:
     def scrollLeft(self):
         if self.currentAspectsPageIdx <= 0:
             return
+        logging.info(f"Thaum inventory scrolling left")
         self.pointAspectsScrollLeft.click()
         self._showDebugClick(self.pointAspectsScrollLeft)
         self.currentAspectsPageIdx -= 1
@@ -191,17 +206,28 @@ class ThaumInteractor:
     def scrollRight(self):
         if self.currentAspectsPageIdx == self.maxPagesCount:
             return
+        logging.info(f"Thaum inventory scrolling right")
         self.pointAspectsScrollRight.click()
         self._showDebugClick(self.pointAspectsScrollRight)
         self.currentAspectsPageIdx += 1
 
     def scrollToLeftSide(self):
+        logging.info(f"Thaum inventory scrolling to left side border...")
         if self.currentAspectsPageIdx is None:
             self.currentAspectsPageIdx = self.maxPagesCount
         for _ in range(self.currentAspectsPageIdx):
             self.scrollLeft()
             eventsDelay()
         self.currentAspectsPageIdx = 0
+
+    def scrollToRightSide(self):
+        logging.info(f"Thaum inventory scrolling to right side border...")
+        if self.currentAspectsPageIdx is None:
+            self.currentAspectsPageIdx = 0
+        for _ in range(self.maxPagesCount - self.currentAspectsPageIdx):
+            self.scrollRight()
+            eventsDelay()
+        self.currentAspectsPageIdx = self.maxPagesCount
 
     def _showDebugClick(self, point, color=QColor('lightgreen')):
         if not DEBUG:
@@ -213,15 +239,8 @@ class ThaumInteractor:
 
         self.UI.addObjectAndDeleteAfterTime(clickCircle, 1000, onTimeCallback)
 
-    def scrollToRightSide(self):
-        if self.currentAspectsPageIdx is None:
-            self.currentAspectsPageIdx = 0
-        for _ in range(self.maxPagesCount - self.currentAspectsPageIdx):
-            self.scrollRight()
-            eventsDelay()
-        self.currentAspectsPageIdx = self.maxPagesCount
-
     def takeOutPaper(self):
+        logging.info(f"Take out paper from thaum inventory")
         self.pointPapers.click()
         self._showDebugClick(self.pointPapers)
         eventsDelay()
@@ -229,6 +248,7 @@ class ThaumInteractor:
         self._showDebugClick(self.pointWorkingInventorySlot)
 
     def insertPaper(self):
+        logging.info(f"Insert paper into thaum inventory")
         self.pointWorkingInventorySlot.click()
         self._showDebugClick(self.pointWorkingInventorySlot)
         eventsDelay()
@@ -247,6 +267,7 @@ class ThaumInteractor:
             self.rectInventoryLT.x + (slotWidth * 0.5) + slotWidth * (self.workingInventorySlot % INVENTORY_SLOTS_X),
             self.rectInventoryLT.y + (slotHeight * 0.5) + slotHeight * (self.workingInventorySlot // INVENTORY_SLOTS_X)
         )
+        logging.info(f"Current working slot increased to {self.workingInventorySlot}. New slot coordinates: {self.pointWorkingInventorySlot}")
 
     def takeAspectByCellCoords(self, cellX, cellY):
         areaWidth = self.rectAspectsListingRB.x - self.rectAspectsListingLT.x
@@ -257,6 +278,7 @@ class ThaumInteractor:
             self.rectAspectsListingLT.x + slotWidth * (cellX + 0.5),
             self.rectAspectsListingLT.y + slotHeight * (cellY + 0.5)
         )
+        logging.info(f"Take aspect from cell ({cellX, cellY}), coordinates: {aspectPoint}")
         aspectPoint.hold()
         self._showDebugClick(aspectPoint, QColor('blue'))
 
@@ -265,6 +287,7 @@ class ThaumInteractor:
             self.rectHexagonsCC.x + self.hexagonSlotSizeX * cellX,
             self.rectHexagonsCC.y + self.hexagonSlotSizeY * cellY - (cellX % 2) * (self.hexagonSlotSizeY / 2)
         )
+        logging.info(f"Put aspect to hexagon cell ({cellX, cellY}), coordinates: {aspectPoint}")
         aspectPoint.release()
         self._showDebugClick(aspectPoint, QColor('red'))
 
@@ -277,6 +300,7 @@ class ThaumInteractor:
     def scrollToAspect(self, aspect: Aspect) -> (int, int):
         cellX = aspect.idx // THAUM_ASPECTS_INVENTORY_SLOTS_Y
         cellY = aspect.idx % THAUM_ASPECTS_INVENTORY_SLOTS_Y
+        logging.info(f"Scroll to aspect {aspect}, in cell[absolute] ({cellX}, {cellY})")
 
         cellPageIdxMin = max(cellX - THAUM_ASPECTS_INVENTORY_SLOTS_X + 1, 0)
         cellPageIdxMax = min(cellX, self.maxPagesCount)
@@ -293,10 +317,12 @@ class ThaumInteractor:
         return cellX - self.currentAspectsPageIdx, cellY
 
     def takeAspect(self, aspect: Aspect):
+        logging.info(f"Take aspect {aspect}...")
         (cellX, cellY) = self.scrollToAspect(aspect)
         self.takeAspectByCellCoords(cellX, cellY)
 
     def mixAspect(self, aspect: Aspect, useShift=True):
+        logging.info(f"Mixing aspect {aspect}...")
         recipe = self.recipes.get(aspect.name)
         if recipe is None:
             raise ValueError(f"Aspect {aspect.name} not exists in known aspects recipes")
@@ -324,6 +350,7 @@ class ThaumInteractor:
         self._showDebugClick(self.pointAspectsMixCreate)
 
     def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
+        logging.info(f"Filling aspects by link map: {aspectsMap}")
         # Оптимизируем порядок аспектов, чтобы пришлось меньше листать инвентарь
         aspectsListMap = list(aspectsMap.items())
         def sortFunc(pair):
@@ -333,6 +360,7 @@ class ThaumInteractor:
                     return i
             return 999999
         aspectsListMap.sort(key=sortFunc)
+        logging.debug(f"Sorted aspects link map: {aspectsListMap}")
         # Заполняем по одному аспекту, пролистывая к каждому следующему
         self.currentAspectsPageIdx = None
         self.scrollToLeftSide()
@@ -361,7 +389,7 @@ class ThaumInteractor:
                 minDiffAspect = aspect
             image.save('image_compare1.png')
             aspect.image.save('image_compare2.png')
-            # print("Cur:", aspect.name, curDiff, "| Min:", minDiffAspect.name, minDiff)
+            # logging.debug("Cur:", aspect.name, curDiff, "| Min:", minDiffAspect.name, minDiff)
 
         for specialPair in specialReturns:
             imagesToCompare = specialPair[0]
@@ -377,11 +405,11 @@ class ThaumInteractor:
                     minDiffAspect = specialPair[1]
                 image.save('image_compare1.png')
                 imageToCompare.save('image_compare2.png')
-                print(imageToCompare.size, diffWithSpecialImage, "| Min: ", minDiffAspect, minDiff)
+                logging.debug(imageToCompare.size, diffWithSpecialImage, "| Min: ", minDiffAspect, minDiff)
         return minDiffAspect
 
     # def getAvailableAspects(self):
-    #     print("Detecting available aspects...")
+    #     logging.info("Detecting available aspects...")
     #     availableAspects = []
     #     debugHighlightingRect = None
     #     if DEBUG:
@@ -410,7 +438,7 @@ class ThaumInteractor:
     #                 debugHighlightingRect.setVisibility(True)
     #             diffWithEmpty = getImagesDiffPercent(imageInSlot, self.emptyAspectInventorySlotImage, [self.maskOnlyNumbers])
     #             if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:
-    #                 print("Found empty place. Detection ends")
+    #                 logging.debug("Found empty place. Detection ends")
     #                 self.maxPagesCount = self.currentAspectsPageIdx
     #                 if DEBUG: self.UI.removeObject(debugHighlightingRect)
     #                 return availableAspects
@@ -431,7 +459,7 @@ class ThaumInteractor:
     #                         minNum = idx
     #                 aspectCount = int(aspectCount) * 10 + int(minNum)
     #             minDiffAspect.count = aspectCount
-    #             print(minDiffAspect)
+    #             logging.debug(f"Min diff with: {minDiffAspect}")
     #
     #             availableAspects.append(minDiffAspect)
     #         if x == THAUM_ASPECTS_INVENTORY_SLOTS_X - 1:
@@ -439,8 +467,9 @@ class ThaumInteractor:
     #             eventsDelay()
     #         else:
     #             x += 1
+    #     logging.info("Detected aspects: {self.availableAspects}")
     def getAvailableAspects(self):
-        print("Detecting available aspects...")
+        logging.info("Detecting available aspects...")
         debugHighlightingRect = None
         if DEBUG:
             debugHighlightingRect = UIPrimitives.Rect(self.rectAspectsListingLT.x, self.rectAspectsListingLT.y,
@@ -473,7 +502,7 @@ class ThaumInteractor:
             if previousImageInSlot:
                 diffWithEmpty = getImagesDiffPercent(previousImageInSlot, imageInSlot)
                 if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:
-                    print("Found end of inventory. Detection ends. Total pages:", self.currentAspectsPageIdx)
+                    logging.info("Found end of inventory. Detection ends. Total pages:", self.currentAspectsPageIdx)
                     self.maxPagesCount = self.currentAspectsPageIdx
                     if DEBUG: self.UI.removeObject(debugHighlightingRect)
                     break
@@ -484,15 +513,17 @@ class ThaumInteractor:
         availableAspects = []
         return availableAspects
 
-    def printAvailableAspects(self):
+    def logAvailableAspects(self):
+        string = ""
         for i in range(len(self.availableAspects)):
-            print(self.availableAspects[i], end=" ")
+            string += str(self.availableAspects[i]) + " "
             if i % THAUM_ASPECTS_INVENTORY_SLOTS_Y == THAUM_ASPECTS_INVENTORY_SLOTS_Y - 1:
-                print()
-        print()
+                logging.info(string)
+                string = ""
+        logging.info(string)
 
     # def getExistingAspectsOnField(self):
-    # self.printAvailableAspects()
+    # self.logAvailableAspects()
     # debugHighlightingRect = None
     # if DEBUG:
     #     debugHighlightingRect = UIPrimitives.Rect(
@@ -509,7 +540,7 @@ class ThaumInteractor:
     # noneHexagons = []
     # for x in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
     #     for y in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + abs(x) // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 - (abs(x) + 1) // 2 + 1):
-    #         print(x, y)
+    #         logging.debug(x, y)
     #         # find pos of hexagons
     #         slotLTx = self.rectHexagonsCC.x + x * self.hexagonSlotSizeX - self.hexagonSlotSizeX / 2
     #         slotLTy = self.rectHexagonsCC.y + y * self.hexagonSlotSizeY - self.hexagonSlotSizeX / 2
@@ -532,15 +563,15 @@ class ThaumInteractor:
     #             debugHighlightingRect.setVisibility(True)
     #         minDiffAspect = self.findClosestAspectImage(imageInSlot, mask=self.hexagonBorderMaskImage, specialReturns=[(self.freeHexagonImages, -1), (self.noneHexagonImage, -2)])
     #         if minDiffAspect == -1:    # free slot
-    #             print("FREE")
+    #             logging.debug("FREE")
     #             freeHexagons.append((x, y))
     #         elif minDiffAspect == -2:  # none slot
-    #             print("NONE (NO CELL)")
+    #             logging.debug("NONE (NO CELL)")
     #             noneHexagons.append((x, y))
     #         else:                      # aspect in slot
-    #             print(minDiffAspect.name)
+    #             logging.debug(minDiffAspect.name)
     #             existingAspects.append((minDiffAspect, (x, y)))
-    # print("END!!!")
-    # print(existingAspects, noneHexagons)
+    # logging.debug("END!!!")
+    # logging.debug(existingAspects, noneHexagons)
     # exit()
     # return existingAspects, freeHexagons
