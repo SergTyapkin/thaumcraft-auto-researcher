@@ -13,8 +13,8 @@
 [Последняя версия `v0.2.0-alpha`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v0.2.0-alpha)
 <details>
 <summary>Changelog:</summary>
-- Ускорено решение цепочек аспектов в ~8 раз
-- Добавлено логирование в .log-файлы внутри .exe
+<option>- Ускорено решение цепочек аспектов в ~8 раз</option>
+<option>- Добавлено логирование в .log-файлы внутри исполняемого .exe</option>
 </details>
 
 
