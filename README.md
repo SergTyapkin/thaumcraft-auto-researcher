@@ -9,8 +9,8 @@
 
 ---
 
-## [Доступные релизы](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
-[Последняя версия `v1.0.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.0.0)
+## [Releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
+[latest version `v1.0.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.0.0)
 <details>
 <summary>Changelog:</summary>
 
