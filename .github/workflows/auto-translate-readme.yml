@@ -4,6 +4,11 @@ on:
   push:  # Run when committing to a branch
     branches:
     - master # Set the name of your branch if required
+    paths: # Start translating only if readme file changed in current push
+    - 'README.MD'
+    - 'README.md'
+    - 'readme.md'
+    - 'Readme.md'
 
 jobs:
   translate:  # Task name
