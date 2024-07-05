@@ -1,7 +1,9 @@
 import logging
 import sys
+import traceback
 from enum import Enum
 from typing import Union, Callable, Any
+from venv import logger
 
 import keyboard
 from PyQt5 import QtGui
@@ -86,6 +88,8 @@ class _Window(QMainWindow):
     currentMovingObject: UIPrimitive | None = None
     currentPressedObject: UIPrimitive | None = None
     timedEvents: set[TimedEvent] = set()
+    otherProcessThread: QThread = None
+    app: QApplication = None
 
 
     def __init__(self, opacity=1.0, w=None, h=None):
@@ -132,9 +136,7 @@ class _Window(QMainWindow):
                 self.timedEvents.remove(event)
             self.update()
         except KeyboardInterrupt:
-            logging.info("##############")
-            logging.info("Shutdown all...")
-            exit()
+            self.exit()
 
     def paintEvent(self, event):
         try:
@@ -144,9 +146,7 @@ class _Window(QMainWindow):
             for obj in objects:
                 obj.render(painter)
         except KeyboardInterrupt:
-            logging.info("##############")
-            logging.info("Shutdown all...")
-            exit()
+            self.exit()
 
     def _updateObjectsHoverState(self, event: QMouseEvent, isMouseRelease: bool = False):
         for obj in self.objects:
@@ -265,14 +265,25 @@ class _Window(QMainWindow):
         self.clearMouseCallbacks()
         self.clear()
 
+    def exit(self):
+        logging.info("##############")
+        logging.info("Shutdown all...")
+        self.otherProcessThread.exit()
+        self.app.quit()
+        # self.destroy()
+
 
 class _Worker(QObject):
     def __init__(self, foo):
         super().__init__()
         self.foo = foo
 
-    def work(self):
-        self.foo()
+    def work(self, app_to_shutdown):
+        try:
+            self.foo()
+        except Exception as e:
+            logging.critical(f"Critical error in main cycle:\n{traceback.format_exc()}")
+            app_to_shutdown.quit()
 
 
 class OverlayUI(_Window):
@@ -287,10 +298,11 @@ class OverlayUI(_Window):
         otherProcessWorker = _Worker(otherProcessFoo)
         otherProcessWorker.moveToThread(self.otherProcessThread)
 
-        self.otherProcessThread.started.connect(otherProcessWorker.work)
+        self.otherProcessThread.started.connect(lambda: otherProcessWorker.work(self.app))
         self.otherProcessThread.start()
 
         self.show()
 
-        sys.exit(self.app.exec_())
-
+        exit_code = self.app.exec_()
+        logger.info(f"Graceful exited with code {exit_code}")
+        sys.exit(exit_code)
