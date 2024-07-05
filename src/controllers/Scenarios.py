@@ -22,7 +22,7 @@ from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONCon
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
     UI.clearAll()
-    UI.setKeyCallback(KeyboardKeys.enter, configureThaumWindow, UI)
+    UI.setKeyCallback(KeyboardKeys.enter, configureThaumWindowCoords, UI)
 
     UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
@@ -84,9 +84,7 @@ def configureThaumWindowCoords(UI: OverlayUI):
     UI.addObject(Point(rectRB.x, rectRB.y, movable=True))
     logging.info("Configuring Thaum window rect dialogue successfully showed")
 
-    UI.setKeyCallback(KeyboardKeys.enter, confirmThaumWindowSlots,
-                      rectThaumWindow.LT.x, rectThaumWindow.LT.y,
-                      rectThaumWindow.RB.x, rectThaumWindow.RB.y)
+    UI.setKeyCallback(KeyboardKeys.enter, confirmThaumWindowSlots,UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y, rectThaumWindow.RB.x, rectThaumWindow.RB.y)
     UI.setKeyCallback(KeyboardKeys.backspace, enroll, UI)
 
 def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
@@ -290,10 +288,10 @@ def chooseThaumVersion(UI: OverlayUI):
         def selectVersion(versionObject, version):
             if selectedVersionObject[0] is not None:
                 selectedVersionObject[0].setColor(QColor('white'))
+            logging.debug(f"Version {version} selected in UI. Previous selected version is {selectedVersion[0]}")
             selectedVersion[0] = version
             selectedVersionObject[0] = versionObject
             selectedVersionObject[0].setColor(QColor('purple'))
-            logging.debug(f"Version {version} selected in UI. Previous selected version is {selectedVersion[0]}")
 
         versionObject = UI.addObject(Text(
             pointTextAnchor.x, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,
@@ -338,7 +336,7 @@ def chooseThaumVersion(UI: OverlayUI):
         ))
         addonObject.onClickCallbackArgs = [addonObject, addonName]
         addonsObjects.append(addonObject)
-        if addonName in oldAddons:
+        if addonName in (oldAddons or []):
             toggleAddonSelecting(addonObject, addonName)
 
     def onSumbit():

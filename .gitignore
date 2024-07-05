@@ -1,6 +1,6 @@
 .idea
 venv
-recordings
+
 user_configs
 output
-*.log
+logs

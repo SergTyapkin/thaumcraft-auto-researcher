@@ -48,7 +48,6 @@ class _Object:
         self.id = next(_objectIdValue)
         self._currentColor = self.color
         self._init()
-
     def setColor(self, color: QColor):
         self.color = color
         self._currentColor = color
@@ -331,11 +330,10 @@ class Text(_Object):
                 self.x = LinkableValue(self.x)
             if not isinstance(self.y, LinkableValue):
                 self.y = LinkableValue(self.y)
-            pointColor = QColor(self.backgroundColor)
+            pointColor = self.backgroundColor
             pointColor.setAlpha(255)
             self.LT = Point(self.x, self.y, movable=True, color=pointColor)
             self.UI.addObject(self.LT)
-
         super().__init__()
         self._currentColor = self.backgroundColor
 
@@ -351,7 +349,6 @@ class Text(_Object):
             )
         else:
             painter.drawText(int(self.x), int(self.y), int(self.w), int(self.h), self.align.value, self.text)
-
         if self.movable:
             self.LT.render(painter)
 
@@ -362,6 +359,10 @@ class Text(_Object):
             self.x <= x <= self.x + self.w and
             self.y <= y <= self.y + self.h
         )
+
+    def setColor(self, color: QColor):
+        super().setColor(color)
+        self._currentColor = self.backgroundColor
 
     def updateHoverState(self, x: float, y: float, isMouseRelease: bool = False):
         self._updateHoverState(x, y, isMouseRelease, "backgroundColor" if self.withBackground else "color")

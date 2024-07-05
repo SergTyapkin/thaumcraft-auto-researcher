@@ -25,13 +25,15 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-def saveJSONConfig(fullpath: str, jsonToSave: dict):
-    configPath = os.path.join(*(re.split('[\/]', fullpath)[:-1]))
-    if not os.path.exists(configPath):
-        logging.info(f"Configs directory {configPath} not exists. Creating...")
-        os.makedirs(configPath)
-        logging.info(f"Configs directory successfully created")
+def createDirByFilePath(fullpath: str):
+    dirPath = os.path.join(*(re.split('[\/]', fullpath)[:-1]))
+    if not os.path.exists(dirPath):
+        logging.info(f"Directory {dirPath} not exists. Creating...")
+        os.makedirs(dirPath)
+        logging.info(f"Directory {dirPath} successfully created")
 
+def saveJSONConfig(fullpath: str, jsonToSave: dict):
+    createDirByFilePath(fullpath)
     with open(fullpath, 'w') as file:
         json.dump(jsonToSave, file, indent=4, ensure_ascii=False, default=linkableValueDumpsToJSON)
 
