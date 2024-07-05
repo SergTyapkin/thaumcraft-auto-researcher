@@ -1,4 +1,5 @@
 import heapq
+import timeit
 
 from src.utils.utils import loadRecipesForSelectedVersion
 
@@ -30,7 +31,7 @@ MAX_PATH_LEN = 15
 '''
 
 class AspectGraph:
-    graph: dict[str, [str, str]]
+    graph: dict[str, set[str]]
 
     def __init__(self, aspectRecipes: dict[str, [str, str]]):
         self.graph = {}
@@ -44,11 +45,11 @@ class AspectGraph:
 
     def add_connection(self, aspect1, aspect2):
         if aspect1 not in self.graph:
-            self.graph[aspect1] = []
+            self.graph[aspect1] = set()
         if aspect2 not in self.graph:
-            self.graph[aspect2] = []
-        self.graph[aspect1].append(aspect2)
-        self.graph[aspect2].append(aspect1)
+            self.graph[aspect2] = set()
+        self.graph[aspect1].add(aspect2)
+        self.graph[aspect2].add(aspect1)
 
     def find_path(self, from_aspect, to_aspect, steps):
         class PathElement:
@@ -62,7 +63,9 @@ class AspectGraph:
             def __lt__(self, other):
                 return self.length < other.length
 
-        def search(queue, to, visited):
+        def searchBFS(startPathElement):
+            visited = {}
+            queue = [startPathElement]
             while queue:
                 element = heapq.heappop(queue)
                 last_node = element.path[-1]
@@ -73,7 +76,7 @@ class AspectGraph:
                     continue
                 if (last_node in visited) and (element.length in visited[last_node]):
                     continue
-                if (last_node == to) and (element.length == steps):
+                if (last_node == to_aspect) and (element.length == steps):
                     return element.path
                 for neighbor in self.graph.get(last_node, []):
                     heapq.heappush(queue, PathElement(element.path + [neighbor], element.length + 1))
@@ -82,9 +85,22 @@ class AspectGraph:
                 visited[last_node].append(element.length)
             return None
 
-        queue = [PathElement([from_aspect], 0)]
-        visited = {}
-        return search(queue, to_aspect, visited)
+        def searchDFS(currentPathElement):
+            if currentPathElement.length > steps:
+                return None
+            last_node = currentPathElement.path[-1]
+            if (last_node == to_aspect) and (currentPathElement.length == steps):
+                return currentPathElement.path
+            for neighbor in self.graph.get(last_node, []):
+                result = searchDFS(PathElement(currentPathElement.path + [neighbor], currentPathElement.length + 1))
+                if result is not None:
+                    return result
+
+        def testBFS():
+            searchBFS(PathElement([from_aspect], 0))
+        def testDFS():
+            searchDFS(PathElement([from_aspect], 0))
+        return searchBFS(PathElement([from_aspect], 0))
 
     def __repr__(self):
         return f"AspectsGraph(graph={self.graph})"
@@ -155,7 +171,7 @@ class Aspect:
             # Приведенный ниже блок кода извлекает соседей текущего узла и обновляет их расстояния.
             for neighborDirection in cell_neighbours:
                 neighborCoord = (currentNode.coord[0] + neighborDirection[0], currentNode.coord[1] + neighborDirection[1])
-                if neighborCoord in holesSet:
+                if (neighborCoord in holesSet) and (neighborCoord != targetAspect.coord):
                     continue
                 neighborNode = cells.get(neighborCoord, None)
                 if neighborNode is None:
@@ -253,7 +269,8 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                 print("Path with len:", target_path_len, "generated:", aspectsPath)
                 # Если цепочка найдена, пытаемся пройти найти маршрут заданной длины
                 print("#---3. Trying to find coordinates path with len", target_path_len, "from", start_aspect, "to", end_aspect)
-                min_len_between_aspects, coordsPath = start_aspect.get_min_distance_path_to(end_aspect, hexagonFieldRadius, holes_set, initial_aspects, target_path_len)
+                all_holes_set = holes_set | set(map(lambda asp: asp.coord, aspects_on_field))
+                min_len_between_aspects, coordsPath = start_aspect.get_min_distance_path_to(end_aspect, hexagonFieldRadius, all_holes_set, initial_aspects, target_path_len)
                 if min_len_between_aspects > MAX_PATH_LEN:
                     print("Coordinates path with len", target_path_len, "not found")
                     target_path_len += 1
@@ -263,7 +280,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                 print("#---4. Fill gotten aspects and prepare to next step")
                 # Объединяем linked_to, и записываем в оба исходых аспекта один и тот же этот список)
                 all_added_aspects = set()
-                for i in range(target_path_len):
+                for i in range(1, target_path_len):
                     result[coordsPath[i]] = aspectsPath[i]
                     addedAspect = Aspect(aspectsPath[i], coordsPath[i], start_initial_aspect.linked_to_initials)
                     aspects_on_field.add(addedAspect)
