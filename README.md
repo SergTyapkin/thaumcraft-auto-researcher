@@ -13,8 +13,10 @@
 [Последняя версия `v1.0.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.0.0)
 <details>
 <summary>Changelog:</summary>
-<option>- Ускорено решение цепочек аспектов в ~8 раз</option>
+<option>- Улучшено качество решения цепочек аспектов</option>
+<option>- Ускорено решение цепочек аспектов в ~2 раза</option>
 <option>- Добавлено логирование в .log-файлы внутри исполняемого .exe</option>
+<option>- Добавлена кнопка закрытия</option>
 </details>
 
 
