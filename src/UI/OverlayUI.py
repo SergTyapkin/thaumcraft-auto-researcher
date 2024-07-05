@@ -1,11 +1,14 @@
+import logging
 import sys
+import traceback
 from enum import Enum
 from typing import Union, Callable, Any
+from venv import logger
 
 import keyboard
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QThread, QObject, QEvent
-from PyQt5.QtGui import QPainter, QMouseEvent
+from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QFont
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
 from src.utils.LinkableValue import editLinkableValue
@@ -85,6 +88,8 @@ class _Window(QMainWindow):
     currentMovingObject: UIPrimitive | None = None
     currentPressedObject: UIPrimitive | None = None
     timedEvents: set[TimedEvent] = set()
+    otherProcessThread: QThread = None
+    app: QApplication = None
 
 
     def __init__(self, opacity=1.0, w=None, h=None):
@@ -109,7 +114,7 @@ class _Window(QMainWindow):
                 return
 
             for key in self.keysCallbacks.keys():
-                # print(event.name, event.scan_code)
+                # logging.debug(f"{event.name}, {event.scan_code}")
                 if event.scan_code == key:
                     self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
         keyboard._listener.add_handler(onKeyboardEvent)
@@ -131,8 +136,7 @@ class _Window(QMainWindow):
                 self.timedEvents.remove(event)
             self.update()
         except KeyboardInterrupt:
-            print("##############\nShutdown all...")
-            exit()
+            self.exit()
 
     def paintEvent(self, event):
         try:
@@ -142,8 +146,7 @@ class _Window(QMainWindow):
             for obj in objects:
                 obj.render(painter)
         except KeyboardInterrupt:
-            print("##############\nShutdown all...")
-            exit()
+            self.exit()
 
     def _updateObjectsHoverState(self, event: QMouseEvent, isMouseRelease: bool = False):
         for obj in self.objects:
@@ -262,31 +265,66 @@ class _Window(QMainWindow):
         self.clearMouseCallbacks()
         self.clear()
 
+    def exit(self):
+        logging.info("##############")
+        logging.info("Shutdown all...")
+        self.otherProcessThread.exit()
+        self.app.quit()
+        # self.destroy()
+
 
 class _Worker(QObject):
     def __init__(self, foo):
         super().__init__()
         self.foo = foo
 
-    def work(self):
-        self.foo()
+    def work(self, app_to_shutdown):
+        try:
+            self.foo()
+        except Exception as e:
+            logging.critical(f"Critical error in main cycle:\n{traceback.format_exc()}")
+            app_to_shutdown.quit()
 
 
 class OverlayUI(_Window):
     def __init__(self, opacity=1.0):
-        print("UI INIT!")
+        logging.info("UI initializing started...")
         self.app = QApplication(sys.argv)
         _Window.__init__(self, opacity=opacity)
+        logging.info("UI successfully initialized")
 
     def start(self, otherProcessFoo):
         self.otherProcessThread = QThread()
         otherProcessWorker = _Worker(otherProcessFoo)
         otherProcessWorker.moveToThread(self.otherProcessThread)
 
-        self.otherProcessThread.started.connect(otherProcessWorker.work)
+        self.otherProcessThread.started.connect(lambda: otherProcessWorker.work(self.app))
         self.otherProcessThread.start()
 
         self.show()
 
-        sys.exit(self.app.exec_())
+        exit_code = self.app.exec_()
+        logger.info(f"Graceful exited with code {exit_code}")
+        sys.exit(exit_code)
 
+    def createExitButton(self, size: int = 50, x: int = None, y: int = None) -> UIPrimitive:
+        font = QFont('Arial', int(size/3), weight=QFont.Bold, italic=False)
+        padding = (0, int(size/15), int(size/4), int(size/3))
+        if x is None:
+            x = self.w - padding[1] - padding[3] - font.pointSize()/1.05 * 2
+        if y is None:
+            y = 0
+
+        button_object = Text(
+            x, y,
+            font=font,
+            text="x ",
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('red'),
+            padding=padding,
+            hoverable=True,
+            onClickCallback=self.exit,
+        )
+        self.addObject(button_object)
+        return button_object

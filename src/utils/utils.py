@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import os
 import re
@@ -24,7 +25,15 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
+def createDirByFilePath(fullpath: str):
+    dirPath = os.path.join(*(re.split('[\/]', fullpath)[:-1]))
+    if not os.path.exists(dirPath):
+        logging.info(f"Directory {dirPath} not exists. Creating...")
+        os.makedirs(dirPath)
+        logging.info(f"Directory {dirPath} successfully created")
+
 def saveJSONConfig(fullpath: str, jsonToSave: dict):
+    createDirByFilePath(fullpath)
     with open(fullpath, 'w') as file:
         json.dump(jsonToSave, file, indent=4, ensure_ascii=False, default=linkableValueDumpsToJSON)
 
@@ -33,10 +42,6 @@ def saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListi
                             pointAspectsScrollLeft, pointAspectsScrollRight,
                             pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventoryLT,
                             rectInventoryRB, rectHexagonsCC, hexagonSlotSizeY):
-    configPath = os.path.join(*(re.split('[\/]', THAUM_CONTROLS_CONFIG_PATH)[:-1]))
-    if not os.path.exists(configPath):
-        os.makedirs(configPath)
-
     saveJSONConfig(THAUM_CONTROLS_CONFIG_PATH, {
         "pointWritingMaterials": {"x": pointWritingMaterials.x, "y": pointWritingMaterials.y},
         "pointPapers": {"x": pointPapers.x, "y": pointPapers.y},
@@ -52,17 +57,20 @@ def saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListi
         "rectHexagonsCC": {"x": rectHexagonsCC.x, "y": rectHexagonsCC.y},
         "hexagonSlotSizeY": hexagonSlotSizeY,
     })
+    logging.info(f"Thaum controls config successfully saved")
 
 
 def readJSONConfig(fullpath: str):
     if not os.path.isfile(fullpath):
+        logging.warning(f"Config {fullpath} not exists")
         return None
     try:
         with open(fullpath, 'r') as file:
             config = json.load(file)
     except Exception as e:
-        print(Warning(f"Something went wrong while opening config {fullpath}:", e))
+        logging.critical(f"Something went wrong while opening config {fullpath}: {e}")
         return None
+    logging.debug(f"Config {fullpath} successfully loaded")
     return config
 
 
@@ -121,13 +129,18 @@ def saveThaumVersionConfig(version: str, addons: list[str]):
         'version': version,
         'addons': addons
     })
-def loadThaumVersionConfig():
+def loadThaumVersionConfig() -> tuple[str|None, list[str]|None]:
     conf = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
+    if conf is None:
+        return None, None
     return conf['version'], conf['addons']
 
-def loadRecipesForSelectedVersion():
+def loadRecipesForSelectedVersion() -> dict[str, list[str, str]] | None:
     selectedVersion, selectedAddons = loadThaumVersionConfig()
     allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
+    if None in (selectedVersion, selectedAddons, allRecipes):
+        logging.error(f'Cannot load recipes for selected version. One of selectedVersion, selectedAddons, allRecipes is None: ({selectedVersion}, {selectedAddons}, {allRecipes})')
+        return None
     versionRecipes = allRecipes.get(selectedVersion)
     allAddonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
     addonsRecipes = {}
