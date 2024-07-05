@@ -10,7 +10,12 @@
 ---
 
 ## [Доступные релизы](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
-[Последняя версия `v0.1.0-alpha`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v0.1.0-alpha)
+[Последняя версия `v0.1.1-alpha`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v0.1.1-alpha)
+<details>
+<summary>Changelog:</summary>
+- Ускорено решение цепочек аспектов
+</details>
+
 
 По любым вопросам/предложеиям, пишите: [t.me/tyapkin_s](https://t.me/tyapkin_s)
 

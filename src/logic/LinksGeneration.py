@@ -93,12 +93,12 @@ class AspectGraph:
 class Aspect:
     name: str
     coord: (int, int)
-    linked_to: set
+    linked_to_initials: set
 
-    def __init__(self, name, coord):
+    def __init__(self, name, coord, linked_to_initials):
         self.name = name
         self.coord = coord
-        self.linked_to = set()
+        self.linked_to_initials = linked_to_initials
 
     def __repr__(self):
         return f"{self.name}{self.coord}"
@@ -190,10 +190,10 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
 
     # Первоначальная обработка входных данных
     for coord, aspectName in existing_aspects.items():
-        aspectObject = Aspect(aspectName, coord)
+        aspectObject = Aspect(aspectName, coord, set())
         initial_aspects.add(aspectObject)
         aspects_on_field.add(aspectObject)
-        aspectObject.linked_to.add(aspectObject)
+        aspectObject.linked_to_initials.add(aspectObject)
         result[coord] = aspectName
         maxX = max(maxX, abs(coord[0]))
         maxY = max(maxY, abs(coord[1]))
@@ -209,7 +209,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
         for start_initial_aspect in initial_aspects:
             # Получаем, к каким изначальынм аспектам он не привязан
             # Говорим, что хотим привязать его к первому из них
-            not_linked_to_aspects = initial_aspects.difference(start_initial_aspect.linked_to)
+            not_linked_to_aspects = initial_aspects.difference(start_initial_aspect.linked_to_initials)
             print(start_initial_aspect, "not linked to", not_linked_to_aspects)
             if len(not_linked_to_aspects) == 0:
                 continue
@@ -221,12 +221,12 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             print("#---1. Found initial aspects to link:", start_initial_aspect, "to", end_initial_aspect)
             # Ищем ближайшие ПО РАССТОЯНИЮ аспекты, связанные с теми, от котороо и к которому хотим привязать
             for start_aspect_candidate in aspects_on_field:
-                if start_initial_aspect not in start_aspect_candidate.linked_to:
+                if start_initial_aspect not in start_aspect_candidate.linked_to_initials:
                     continue
                 for end_aspect_candidate in aspects_on_field:
                     if start_aspect_candidate.coord == end_aspect_candidate.coord:
                         continue
-                    if end_initial_aspect not in end_aspect_candidate.linked_to:
+                    if end_initial_aspect not in end_aspect_candidate.linked_to_initials:
                         continue
 
                     path_len, _ = start_aspect_candidate.get_min_distance_path_to(end_aspect_candidate, hexagonFieldRadius, holes_set, initial_aspects)
@@ -265,17 +265,23 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                 all_added_aspects = set()
                 for i in range(target_path_len):
                     result[coordsPath[i]] = aspectsPath[i]
-                    addedAspect = Aspect(aspectsPath[i], coordsPath[i])
+                    addedAspect = Aspect(aspectsPath[i], coordsPath[i], start_initial_aspect.linked_to_initials)
                     aspects_on_field.add(addedAspect)
                     all_added_aspects.add(addedAspect)
-                start_initial_aspect.linked_to.update(all_added_aspects)
-                start_initial_aspect.linked_to.update(end_initial_aspect.linked_to)
-                end_initial_aspect.linked_to.update(start_initial_aspect.linked_to)
-                print(start_aspect, "is now linked to initials", start_aspect.linked_to.intersection(initial_aspects))
-                print(end_aspect, "is now linked to initials", end_aspect.linked_to.intersection(initial_aspects))
+                start_initial_aspect.linked_to_initials.update(end_initial_aspect.linked_to_initials)
 
-                for aspect in start_initial_aspect.linked_to.copy():
-                    aspect.linked_to.update(start_aspect.linked_to)
+                # Recursive update all aspects that linked to this
+                visited_initials = set()
+                def update_all_linked_aspects(from_initial):
+                    if from_initial in visited_initials:
+                        return
+                    from_initial.linked_to_initials.update(start_initial_aspect.linked_to_initials)
+                    visited_initials.add(from_initial)
+                    for initial_aspect in from_initial.linked_to_initials:
+                        update_all_linked_aspects(initial_aspect)
+                update_all_linked_aspects(end_initial_aspect)
+                print("Aspects", visited_initials, "is now linked to themselves")
+
                 print("Aspect path putted on field. Total aspects:", aspects_on_field)
                 print("Iteration finished.")
                 break
