@@ -22,6 +22,7 @@ from src.utils.utils import saveThaumControlsConfig, readJSONConfig, saveJSONCon
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
     UI.clearAll()
+    UI.createExitButton()
     UI.setKeyCallback(KeyboardKeys.enter, configureThaumWindowCoords, UI)
 
     UI.addObject(Text(
@@ -29,6 +30,7 @@ def enroll(UI: OverlayUI):
         """Привет. Сначала нужно будет дать знать программе, где на экране находится игра.
 Для этого в этом окошке будет показан текст с подсказками.
 Вот такие точки можно перемещать:
+Закрыть программу всегда можно кликом по крестику в правом верхнем углу.
 
 Чтобы двинуться дальше, перемести эту точку на жёлтую точку посередине экрана.
 (Кстати, это окошко тоже можно переместить, передвинув черную точку в левом верхнем углу).""",
@@ -58,6 +60,7 @@ def enroll(UI: OverlayUI):
 
 def configureThaumWindowCoords(UI: OverlayUI):
     UI.clearAll()
+    UI.createExitButton()
 
     UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
@@ -93,6 +96,7 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
     logging.info(f"Thaum window configured at: ({int(LTx)}, {int(LTy)}) x ({int(RBx)}, {int(RBy)}), width={thaumWindowWidth}, height={thaumWindowHeight}")
 
     UI.clearAll()
+    UI.createExitButton()
 
     UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
@@ -237,6 +241,7 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
 
 def chooseThaumVersion(UI: OverlayUI):
     UI.clearAll()
+    UI.createExitButton()
     infoText = UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
         f"""Выберите версию Thaumcraft и установленные моды-аддоны.
@@ -359,6 +364,7 @@ def chooseThaumVersion(UI: OverlayUI):
 
 def waitForCreatingTI(UI: OverlayUI):
     UI.clearAll()
+    UI.createExitButton()
 
 #     UI.addObject(Text(
 #         pointTextAnchor.x, pointTextAnchor.y,
@@ -375,6 +381,7 @@ def waitForCreatingTI(UI: OverlayUI):
 
     def startCreatingTI():
         UI.clearAll()
+        UI.createExitButton()
         TI = createTI(UI)
         if TI is None:
             logging.critical(f"ThaumcraftInteractor was not created!")
@@ -388,6 +395,7 @@ def waitForCreatingTI(UI: OverlayUI):
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     logging.info(f"Run researching scenario started")
     UI.clearAll()
+    UI.createExitButton()
     TI.insertPaper()
     # renderDelay()
 
@@ -617,6 +625,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def callbackToFinish():
         logging.info("End of configuring existing aspects and holes in field")
         UI.clearAll()
+        UI.createExitButton()
         UI.addObject(UIPrimitives.Text(
             MARGIN, MARGIN,
             f"""Подожди, решение выкладывается на поле... 

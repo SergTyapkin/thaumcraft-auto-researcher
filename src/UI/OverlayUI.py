@@ -8,7 +8,7 @@ from venv import logger
 import keyboard
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QThread, QObject, QEvent
-from PyQt5.QtGui import QPainter, QMouseEvent
+from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QFont
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
 from src.utils.LinkableValue import editLinkableValue
@@ -306,3 +306,25 @@ class OverlayUI(_Window):
         exit_code = self.app.exec_()
         logger.info(f"Graceful exited with code {exit_code}")
         sys.exit(exit_code)
+
+    def createExitButton(self, size: int = 50, x: int = None, y: int = None) -> UIPrimitive:
+        font = QFont('Arial', int(size/3), weight=QFont.Bold, italic=False)
+        padding = (0, int(size/15), int(size/4), int(size/3))
+        if x is None:
+            x = self.w - padding[1] - padding[3] - font.pointSize()/1.05 * 2
+        if y is None:
+            y = 0
+
+        button_object = Text(
+            x, y,
+            font=font,
+            text="x ",
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('red'),
+            padding=padding,
+            hoverable=True,
+            onClickCallback=self.exit,
+        )
+        self.addObject(button_object)
+        return button_object

@@ -241,7 +241,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             target_path_len = min_len_between_aspects
             logging.debug(f"#---2. Trying to found aspects path from {start_aspect.name} to {end_aspect.name}")
             while target_path_len < MAX_PATH_LEN:
-                aspects_path = aspect_graph.find_path(start_aspect.name, end_aspect.name, target_path_len) # TODO: find length of path
+                aspects_path = aspect_graph.find_path(start_aspect.name, end_aspect.name, target_path_len)
                 if not aspects_path:
                     logging.debug(f"Path with len {target_path_len} not found")
                     target_path_len += 1

@@ -12,7 +12,7 @@ from src.utils.utils import distance
 DEFAULT_POINT_SIZE = 21
 DEFAULT_COLOR = QColor('red')
 DEFAULT_LINE_WIDTH = 3
-DEFAULT_FONT = QFont('Arial', 14, 500, False)
+DEFAULT_FONT = QFont('Arial', 14, weight=QFont.Bold, italic=False)
 DEFAULT_PADDING = 20
 
 
