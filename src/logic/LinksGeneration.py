@@ -1,6 +1,3 @@
-import heapq
-import timeit
-
 from src.utils.utils import loadRecipesForSelectedVersion
 
 MAX_PATH_LEN = 15
@@ -63,28 +60,6 @@ class AspectGraph:
             def __lt__(self, other):
                 return self.length < other.length
 
-        def searchBFS(startPathElement):
-            visited = {}
-            queue = [startPathElement]
-            while queue:
-                element = heapq.heappop(queue)
-                last_node = element.path[-1]
-
-                # print(element, element.path, last_node, to, steps)
-                # print(self.graph.get(last_node, []))
-                if element.length > steps:
-                    continue
-                if (last_node in visited) and (element.length in visited[last_node]):
-                    continue
-                if (last_node == to_aspect) and (element.length == steps):
-                    return element.path
-                for neighbor in self.graph.get(last_node, []):
-                    heapq.heappush(queue, PathElement(element.path + [neighbor], element.length + 1))
-                if last_node not in visited:
-                    visited[last_node] = []
-                visited[last_node].append(element.length)
-            return None
-
         def searchDFS(currentPathElement):
             if currentPathElement.length > steps:
                 return None
@@ -96,11 +71,7 @@ class AspectGraph:
                 if result is not None:
                     return result
 
-        def testBFS():
-            searchBFS(PathElement([from_aspect], 0))
-        def testDFS():
-            searchDFS(PathElement([from_aspect], 0))
-        return searchBFS(PathElement([from_aspect], 0))
+        return searchDFS(PathElement([from_aspect], 0))
 
     def __repr__(self):
         return f"AspectsGraph(graph={self.graph})"
