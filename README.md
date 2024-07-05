@@ -1,3 +1,17 @@
+![GithubCI](https://github.com/SergTyapkin/thaumcraft-auto-researcher/actions/workflows/auto-translate-readme.yml/badge.svg)
+
+[![](https://img.shields.io/badge/Русский-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README.md)
+[![](https://img.shields.io/badge/English-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/english.md)
+[![](https://img.shields.io/badge/中文(简体)-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/chinese%20(simplified).md)
+[![](https://img.shields.io/badge/中文(传统)-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/chinese%20(traditional).md)
+[![](https://img.shields.io/badge/Arabic-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/arabic.md)
+[![](https://img.shields.io/badge/Spanish-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/spanish.md)
+[![](https://img.shields.io/badge/Italian-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/italian.md)
+[![](https://img.shields.io/badge/Dutch-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/dutch.md)
+[![](https://img.shields.io/badge/Hindi-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/hindi.md)
+[![](https://img.shields.io/badge/Korean-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/korean.md)
+
+
 # Автоматический исследователь для Thaumcraft 4
 > _**Thaumcraft**_ - мод для игры _Minecraft_, часто устанавливающийся в магические сборки модов на популярных серверах
 > 
@@ -27,15 +41,15 @@
 ### Первоначальная настройка
 1. Демонстрация и проверка того, что точки с перекрестьями можно двигать. 
 Просто передвиньте красную точку на желтую.
-![image](README_images/enroll.png)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/enroll.png?raw=true)
 2. Необходимо указать программе, где находится интерфейс стола исследований. 
 Для этого углы желтого прямоугольника необходимо передвинуть так, чтобы они шли по внешнему периметру стола, как показано на скриншоте ниже
-![image](README_images/find_table.png)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/find_table.png?raw=true)
 3. Необходимо более детально дать знать программе, где внутри стола зачарований находятся кнопки взаимодействия.
 Для этого передвиньте все точки, как показано на скриншоте ниже
-![image](README_images/setup_controls.png)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/setup_controls.png?raw=true)
 4. Выберите версию вашего Thaumcraft и все установленные аддоны
-![image](README_images/setup_version_and_addons.png) 
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/setup_version_and_addons.png?raw=true) 
 
 После выполнения всех этих действий, все выборы пользователя сохраняюся,
 при следующем запуске программы это делать не обязательно, будет показан сразу следующий шаг.
@@ -44,19 +58,19 @@
 ### Решение цепочек аспектов
 1. Записки исследований из левого верхнего слота инвентаря будут автоматически положены в стол исследований.
 Кликните на существующий аспект на поле и выберите его из списка аспектов
-![image](README_images/setup_table_aspects.png)
-![image](README_images/setup_table_aspects_1.png)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/setup_table_aspects.png?raw=true)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/setup_table_aspects_1.png?raw=true)
 2. Для всех остальных аспектов сделайте то же самое, а так же отметьте все ячейки, в которые
 аспекты нельзя класть (пустые). Должно получиться аналогично скриншоту ниже:
-![image](README_images/setup_table_aspects_2.png)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/setup_table_aspects_2.png?raw=true)
 3. Если цепочка аспектов слишком большая или в ней используются аспекты, которых у вас нет, нажмите `R`, чтобы перегенерировать её
-![image](README_images/setup_table_aspects_3.png)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/setup_table_aspects_3.png?raw=true)
 4. Прежде чем начать, убедитесь, что в чернильнице достаточно чернил. Если они закончатся, алгоритм выкладывания аспектов будет прерван.
 Затем нажмите `Enter`, и начнется процесс выкладывания аспектов на стол по полученным цепочкам.
 5. После окончания выкладывания аспектов, записка исследований будет положена в инвентарь,
 а вместо неё в стол положена следующая из инвентаря.
 Процесс можно начинать заново. Таким образом можно решать большое количество записок, лежащих в инвентаре друг за другом
-![image](README_images/solving_done.png)
+![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/solving_done.png?raw=true)
 
 
 ## В следующих версиях
