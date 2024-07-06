@@ -22,6 +22,7 @@
 Все что она делает - это смотрит на **пиксели на экране**, и имитирует **действия мышью и клавиатурой**, как если бы это делал человек.
 
 ---
+
 ## [Releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
 [latest version `v1.0.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.0.0)
 <details>
