@@ -12,7 +12,7 @@ on:
 
 jobs:
   translate:  # Task name
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code  # Step: code check
         uses: actions/checkout@v2  # Using an action to test the code
