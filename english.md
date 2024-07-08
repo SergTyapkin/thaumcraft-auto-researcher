@@ -12,14 +12,14 @@
 [![](https://img.shields.io/badge/korean(한국어)-_?style=for-the-badge&logo=readme&color=white)](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/README_TRANSLATIONS/korean.md)
 
 
-# Автоматический исследователь для Thaumcraft 4
-> _**Thaumcraft**_ - мод для игры _Minecraft_, часто устанавливающийся в магические сборки модов на популярных серверах
+#Automatic Explorer for Thaumcraft 4
+> _**Thaumcraft**_ is a mod for the game _Minecraft_, often installed in magic mod builds on popular servers
 
-Программа **автоматически решает и раскладывает** записки исследований в столе исследований.
-Весь интерфейс взаимодействия полупрозрачный и показывается поверх всех окон.
+The programme **automatically solves and unfolds** research notes in the research table.
+The entire interaction interface is semi-transparent and is shown on top of all windows.
 
-Программа **никак** не взаимодействует с кодом игры и не определяется античитами. 
-Все что она делает - это смотрит на **пиксели на экране**, и имитирует **действия мышью и клавиатурой**, как если бы это делал человек.
+The programme **never** interacts with the game code and is not detected by anti-readers. 
+All it does is look at the **pixels on the screen**, and mimics **mouse and keyboard** actions as if it were done by a human.
 
 ---
 
@@ -28,7 +28,7 @@
 <details>
 <summary>Changelog:</summary>
 
-- Улучшено качество решения цепочек а spectacles
+- The quality of solving chains has been improved
 - Resolution of aspect chains has been accelerated by ~2 times
 - Added logging to .log files inside the executable .exe
 - Added close button
