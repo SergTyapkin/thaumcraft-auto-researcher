@@ -9,8 +9,7 @@
     "luxuria": ["corpus", "fames"],
     "superbia": ["volatus", "vacuos"],
     "desidia": ["vinculum", "spiritus"],
-    "invidia": ["sensus", "fames"],
-    "terminus": ["lucrum", "alienis"]
+    "invidia": ["sensus", "fames"]
   },
   "GregTech": {
     "electrum": ["potentia", "machina"],
@@ -18,5 +17,8 @@
     "nebrisum": ["perfodio", "lucrum"],
     "radio": ["luxuria", "potentia"],
     "strontio": ["perditio", "cognitio"]
+  },
+  "Avaritia": {
+    "terminus": ["lucrum", "alienis"]
   }
 }
