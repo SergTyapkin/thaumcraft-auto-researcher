@@ -5,7 +5,6 @@ from typing import Any, Union
 import keyboard
 import mouse
 import pyautogui  # for screenshot
-import imgcompare  # for aspects images compare
 from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
@@ -371,7 +370,7 @@ class ThaumInteractor:
             self.putAspect(*coords)
             eventsDelay()
 
-    def imageResize(self, image: Image.Image):
+    def imageResize(self, image: Image.Image) -> Image.Image:
         return image.resize((ASPECTS_IMAGES_SIZE, ASPECTS_IMAGES_SIZE), Image.Resampling.LANCZOS)
 
     def findClosestAspectImage(self, image: Image.Image, mask: Image.Image = None,
