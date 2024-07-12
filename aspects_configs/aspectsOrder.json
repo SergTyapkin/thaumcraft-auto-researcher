@@ -1,12 +1,15 @@
 {
   "aspects": [
     "aer",
+    "aequalitas",
     "alienis",
     "aqua",
     "arbor",
+    "astrum",
     "auram",
 
     "bestia",
+    "caelum",
     "cognitio",
     "corpus",
     "desidia",
@@ -16,6 +19,7 @@
     "fabrico",
     "fames",
     "gelum",
+    "gloria",
     "granum",
     "gula",
 
@@ -51,6 +55,7 @@
 
     "potentia",
     "praecantatio",
+    "primordium",
     "radio",
     "sano",
     "saxum",
@@ -59,6 +64,7 @@
     "spiritus",
     "strontio",
     "superbia",
+    "tabernus",
     "telum",
     "tempestas",
 
@@ -70,6 +76,7 @@
 
     "vacuos",
     "venenum",
+    "vesania",
     "victus",
     "vinculum",
     "vitium",

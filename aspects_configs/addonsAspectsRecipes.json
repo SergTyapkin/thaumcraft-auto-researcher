@@ -20,5 +20,16 @@
   },
   "Avaritia": {
     "terminus": ["lucrum", "alienis"]
+  },
+  "Thaumic Boots": {
+    "caelum": ["vitreus", "metallum"],
+    "tabernus": ["tutamen", "iter"]
+  },
+  "GTNH (2.1.3.0+)": {
+    "aequalitas": ["cognitio", "ordo"],
+    "vesania": ["cognitio", "vitium"],
+    "primordium": ["vacuos", "motus"],
+    "astrum": ["lux", "primordium"],
+    "gloria": ["humanus", "iter"]
   }
 }

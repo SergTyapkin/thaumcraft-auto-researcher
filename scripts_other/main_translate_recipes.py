@@ -1,7 +1,7 @@
 from src.utils.constants import THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
 from src.utils.utils import readJSONConfig, saveJSONConfig
 
-THAUM_TRANSLATION_CONFIG_PATH = './translationDictionary.json'
+THAUM_TRANSLATION_CONFIG_PATH = './scripts_other/translationDictionary.json'
 
 if __name__ == '__main__':
     translationsConfig = readJSONConfig(THAUM_TRANSLATION_CONFIG_PATH)
@@ -21,5 +21,5 @@ if __name__ == '__main__':
                 newRecipes[aspect] = recipe
         newAspectRecipes[version] = newRecipes
     print(newAspectRecipes)
-    saveJSONConfig('new_recipes.json', newAspectRecipes)
+    saveJSONConfig('./scripts_other/new_recipes.json', newAspectRecipes)
     print("New recipes written to", "new_recipes.json")
