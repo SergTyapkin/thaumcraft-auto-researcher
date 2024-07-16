@@ -3,8 +3,10 @@ import random
 
 from PIL import Image
 
-from utils.constants import getAspectImagePath, THAUM_ASPECTS_ORDER_CONFIG_PATH
-from utils.utils import readJSONConfig
+from utils.constants import getAspectImagePath, THAUM_ASPECT_RECIPES_CONFIG_PATH, \
+    THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
+from utils.utils import readJSONConfig, createDirByFilePath
+
 
 class P:
     def __init__(self, x: float, y: float):
@@ -28,8 +30,9 @@ class Aspect:
         return f"{self.name}[id={self.idx}]"
 
 
+HEXAGON_FIELD_RADIUS = 4  # 2...4
+GENERATED_IMAGES_COUNT = 334
 QUALITY_MODIFIER = 2 # by default, at value 1, result image is 256x256. You can increase it
-HEXAGON_FIELD_RADIUS = 4  # 1...4
 EMPTY_HEXAGON_PATH = './scripts_other/fake_researches_generator/empty_hexagon.png'
 BACKGROUND_TABLE_IMAGE_PATH = './scripts_other/fake_researches_generator/table_background.png'
 BACKGROUND_TABLE_PAPER_IMAGE_PATH = './scripts_other/fake_researches_generator/table_background_paper.png'
@@ -40,6 +43,8 @@ CENTER_CELL_COORDS = P(72, 72) # in px. selected according to image's original s
 HEXAGON_SLOT_SIZE_Y = 15.5 # in px. selected according to image's original size
 HEXAGON_SLOT_SIZE_X = HEXAGON_SLOT_SIZE_Y * math.cos(math.pi / 6)
 ASPECTS_IMAGES_SIZE = HEXAGON_SLOT_SIZE_Y
+GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/aspects-addons-rad-{HEXAGON_FIELD_RADIUS}-id-{idx}.png'
+LOADED_ASPECTS_ADDONS = {"Thaumic Boots", "GTNH (2.1.3.0+)", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees"} # any from aspects config + "original"
 
 
 
@@ -125,22 +130,32 @@ def getResizedInCenterTransparentImage(image: Image.Image, sizeModifier: float):
 
 
 if __name__ == '__main__':
+    allAspects = set()
+
     # load aspects
-    allAspectsNames = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)['aspects']
-    allAspects = []
-    for i in range(len(allAspectsNames)):
-        allAspects.append(Aspect(allAspectsNames[i], i))
+    if "original" in LOADED_ASPECTS_ADDONS:
+        allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
+        for (version, recipes) in allRecipes.items():
+            for aspectName in recipes.keys():
+                allAspects.add(Aspect(aspectName, len(allAspects)))
+
+    # load addons aspects
+    allAddonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
+    for (addon, recipes) in allAddonsRecipes.items():
+        if addon not in LOADED_ASPECTS_ADDONS:
+            continue
+        for aspectName in recipes.keys():
+            allAspects.add(Aspect(aspectName, len(allAspects)))
+    allAspects = list(allAspects)
 
     # load aspects images
     loadAspectsImages(allAspects)
-    saveImage(allAspects.pop().image) #
     for aspect in allAspects:
         aspect.image = getResizedInCenterTransparentImage(aspect.image, 1)
         aspect.image = getJackaledImage(aspect.image, 1.7)
 
     # load background image
     backgroundImage = loadBackgroundImage()
-    saveImage(backgroundImage) #`
 
     # load empty hexagon image
     emptyHexagonImage = loadImage(EMPTY_HEXAGON_PATH)
@@ -151,7 +166,7 @@ if __name__ == '__main__':
     # load aspect highlighting image
     aspectHighlightingImage = loadImage(LIGHTING_IMAGE_PATH)
     aspectHighlightingImage = getJackaledImage(aspectHighlightingImage, 2)
-    modifyImageChannels(aspectHighlightingImage, [3], 0.9)
+    modifyImageChannels(aspectHighlightingImage, [3], 0.85)
 
     # load scripts images. Split by sprites
     scriptsSpriteImage = loadImage(SCRIPTS_IMAGE_PATH, noResize=True)
@@ -170,48 +185,57 @@ if __name__ == '__main__':
         scriptAspect.image = scriptImage
         scriptsImageAspects.append(scriptAspect)
 
-    # generate empty cells
-    cells: dict[P, Aspect|None] = {}
-    for x in range(-HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS + 1):
-        for y in range(-HEXAGON_FIELD_RADIUS + (abs(x) + 1) // 2, HEXAGON_FIELD_RADIUS - (abs(x)) // 2 + 1):
-            cells[P(x, y)] = None
+    def generateImage():
+        # generate all cells
+        cells: dict[P, Aspect|None] = {}
+        for x in range(-HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS + 1):
+            for y in range(-HEXAGON_FIELD_RADIUS + (abs(x) + 1) // 2, HEXAGON_FIELD_RADIUS - (abs(x)) // 2 + 1):
+                cells[P(x, y)] = None
 
-    # generate random none cells
-    noneCellsCount = random.randint(HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS*3)
-    aspectWithEmptyImage = Aspect("_NONE_", -1)
-    aspectWithEmptyImage.image = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
-    for i in range(noneCellsCount):
-        point = random.choice(list(cells.keys()))
-        if random.random() < 0.5:
-            cells[point] = random.choice(scriptsImageAspects)
-        else:
-            cells[point] = aspectWithEmptyImage
+        # generate random none cells
+        noneCellsCount = random.randint(HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS*3)
+        aspectWithEmptyImage = Aspect("_EMPTY_", -1)
+        aspectWithEmptyImage.image = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+        for i in range(noneCellsCount):
+            point = random.choice(list(cells.keys()))
+            if random.random() < 0.5:
+                cells[point] = random.choice(scriptsImageAspects)
+            else:
+                cells[point] = aspectWithEmptyImage
 
-    # write aspects to random cells
-    aspectsOnFieldCount = random.randint(HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS*3)
-    for i in range(aspectsOnFieldCount):
-        # select available points to set aspect on them
-        availablePoints = []
-        for (point, aspect) in cells.items():
-            if aspect is None:
-                availablePoints.append(point)
-        # set aspect on one of them
-        point = random.choice(availablePoints)
-        aspect = random.choice(allAspects)
-        aspect.withLighting = (random.random() < 0.3)
-        cells[point] = aspect
-        allAspects.remove(aspect)
+        # write aspects to random cells
+        aspectsOnFieldCount = random.randint(HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS*3)
+        aspectsLeft = allAspects.copy()
+        for i in range(aspectsOnFieldCount):
+            # select available points to set aspect on them
+            availablePoints = []
+            for (point, aspect) in cells.items():
+                if aspect is None:
+                    availablePoints.append(point)
+            # set aspect on one of them
+            point = random.choice(availablePoints)
+            aspect = random.choice(aspectsLeft)
+            aspect.withLighting = (random.random() < 0.3)
+            cells[point] = aspect
+            aspectsLeft.remove(aspect)
 
-    # draw aspects on field by gotten cells
-    for point in cells.keys():
-        aspect = cells[point]
-        cellBoxCoords = getCellBoxCoords(point.x, point.y)
-        if aspect is not None:
-            if aspect.withLighting:
-                pasteImageWithOpacity(backgroundImage, aspectHighlightingImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
-            pasteImageWithOpacity(backgroundImage, aspect.image, box=(cellBoxCoords[0], cellBoxCoords[1]))
-            print(aspect, "TO:", cellBoxCoords)
-        else:
-            pasteImageWithOpacity(backgroundImage, emptyHexagonImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
-    saveImage(backgroundImage) #
+        # draw aspects on field by gotten cells
+        resultImage = backgroundImage.copy()
+        for point in cells.keys():
+            aspect = cells[point]
+            cellBoxCoords = getCellBoxCoords(point.x, point.y)
+            if aspect is not None:
+                if aspect.withLighting:
+                    pasteImageWithOpacity(resultImage, aspectHighlightingImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
+                pasteImageWithOpacity(resultImage, aspect.image, box=(cellBoxCoords[0], cellBoxCoords[1]))
+                # print(aspect, "TO:", cellBoxCoords)
+            else:
+                pasteImageWithOpacity(resultImage, emptyHexagonImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
+        return resultImage
 
+    # generate images and save
+    createDirByFilePath(GET_OUTPUT_IMAGE_NAME(0))
+    for i in range(GENERATED_IMAGES_COUNT):
+        pathToSave = GET_OUTPUT_IMAGE_NAME(i)
+        generateImage().save(pathToSave)
+        print("Output image saved to", pathToSave)

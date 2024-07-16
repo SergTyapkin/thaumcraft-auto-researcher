@@ -26,7 +26,10 @@ class Singleton(type):
         return cls._instances[cls]
 
 def createDirByFilePath(fullpath: str):
-    dirPath = os.path.join(*(re.split('[\/]', fullpath)[:-1]))
+    splittedPath = re.split('[\/]', fullpath)
+    if len(splittedPath) <= 1:
+        return
+    dirPath = os.path.join(*splittedPath[:-1])
     if not os.path.exists(dirPath):
         logging.info(f"Directory {dirPath} not exists. Creating...")
         os.makedirs(dirPath)
