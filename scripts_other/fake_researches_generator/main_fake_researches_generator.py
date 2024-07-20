@@ -1,3 +1,5 @@
+import datetime
+import json
 import math
 import random
 
@@ -31,7 +33,7 @@ class Aspect:
 
 
 HEXAGON_FIELD_RADIUS = 4  # 2...4
-GENERATED_IMAGES_COUNT = 334
+GENERATED_IMAGES_COUNT = 100
 QUALITY_MODIFIER = 2 # by default, at value 1, result image is 256x256. You can increase it
 EMPTY_HEXAGON_PATH = './scripts_other/fake_researches_generator/empty_hexagon.png'
 BACKGROUND_TABLE_IMAGE_PATH = './scripts_other/fake_researches_generator/table_background.png'
@@ -43,8 +45,9 @@ CENTER_CELL_COORDS = P(72, 72) # in px. selected according to image's original s
 HEXAGON_SLOT_SIZE_Y = 15.5 # in px. selected according to image's original size
 HEXAGON_SLOT_SIZE_X = HEXAGON_SLOT_SIZE_Y * math.cos(math.pi / 6)
 ASPECTS_IMAGES_SIZE = HEXAGON_SLOT_SIZE_Y
-GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/aspects-addons-rad-{HEXAGON_FIELD_RADIUS}-id-{idx}.png'
-LOADED_ASPECTS_ADDONS = {"Thaumic Boots", "GTNH (2.1.3.0+)", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees"} # any from aspects config + "original"
+GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/all aspects 4/aspects-all-rad-{HEXAGON_FIELD_RADIUS}-id-{idx}.png'
+COCO_JSON_PATH = './scripts_other/fake_researches_generator/output/coco_json_all_aspects_4.json'
+LOADED_ASPECTS_ADDONS = {"original", "Thaumic Boots", "GTNH (2.1.3.0+)", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees"} # any addons from aspects config + "original"
 
 
 
@@ -128,16 +131,42 @@ def getResizedInCenterTransparentImage(image: Image.Image, sizeModifier: float):
     resultImage = getResizedImage(backgroundImage, resizeTo=(int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER), int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER)))
     return resultImage
 
-
 if __name__ == '__main__':
-    allAspects = set()
+    allAspects = []
 
-    # load aspects
+    cocoJsonCategories = []
+    cocoJsonImages = []
+    cocoJsonAnnotations = []
+
+    # add free hexagon category
+    cocoJsonCategories.append({
+        "id": 0,
+        "name": "free_hex",
+        "supercategory": "none",
+    })
+
+    def addAspectToAllAspects(aspectName):
+        # check if aspect already in list
+        foundElem = None
+        for aspect in allAspects:
+            if aspect.name == aspectName:
+                foundElem = aspect
+        if foundElem is not None:
+            return
+        # aspect not in list
+        aspectId = len(allAspects) + 1
+        allAspects.append(Aspect(aspectName, aspectId))
+        cocoJsonCategories.append({
+            "id": aspectId,
+            "name": aspectName,
+            "supercategory": "none",
+        })
+    # load aspects and fill them in coco categories
     if "original" in LOADED_ASPECTS_ADDONS:
         allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
         for (version, recipes) in allRecipes.items():
             for aspectName in recipes.keys():
-                allAspects.add(Aspect(aspectName, len(allAspects)))
+                addAspectToAllAspects(aspectName)
 
     # load addons aspects
     allAddonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
@@ -145,8 +174,7 @@ if __name__ == '__main__':
         if addon not in LOADED_ASPECTS_ADDONS:
             continue
         for aspectName in recipes.keys():
-            allAspects.add(Aspect(aspectName, len(allAspects)))
-    allAspects = list(allAspects)
+            addAspectToAllAspects(aspectName)
 
     # load aspects images
     loadAspectsImages(allAspects)
@@ -185,7 +213,8 @@ if __name__ == '__main__':
         scriptAspect.image = scriptImage
         scriptsImageAspects.append(scriptAspect)
 
-    def generateImage():
+
+    def generateImage(currentImageAnnotationId):
         # generate all cells
         cells: dict[P, Aspect|None] = {}
         for x in range(-HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS + 1):
@@ -219,7 +248,7 @@ if __name__ == '__main__':
             cells[point] = aspect
             aspectsLeft.remove(aspect)
 
-        # draw aspects on field by gotten cells
+        # draw aspects on field by gotten cells and fill coco json
         resultImage = backgroundImage.copy()
         for point in cells.keys():
             aspect = cells[point]
@@ -229,13 +258,69 @@ if __name__ == '__main__':
                     pasteImageWithOpacity(resultImage, aspectHighlightingImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
                 pasteImageWithOpacity(resultImage, aspect.image, box=(cellBoxCoords[0], cellBoxCoords[1]))
                 # print(aspect, "TO:", cellBoxCoords)
+                # write to coco
+                if aspect.idx > 0: # if it is aspect, not empty cell
+                    cocoJsonAnnotations.append({
+                        "id": len(cocoJsonAnnotations),
+                        "image_id": currentImageAnnotationId,
+                        "category_id": aspect.idx,
+                        "bbox": list(cellBoxCoords),
+                        "area": cellBoxCoords[2] * cellBoxCoords[3],
+                        "segmentation": [],
+                        "iscrowd": 0
+                    })
             else:
                 pasteImageWithOpacity(resultImage, emptyHexagonImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
+                # write to coco
+                cocoJsonAnnotations.append({
+                    "id": len(cocoJsonAnnotations),
+                    "image_id": currentImageAnnotationId,
+                    "category_id": 0,
+                    "bbox": list(cellBoxCoords),
+                    "area": cellBoxCoords[2] * cellBoxCoords[3],
+                    "segmentation": [],
+                    "iscrowd": 0
+                })
         return resultImage
 
     # generate images and save
     createDirByFilePath(GET_OUTPUT_IMAGE_NAME(0))
     for i in range(GENERATED_IMAGES_COUNT):
         pathToSave = GET_OUTPUT_IMAGE_NAME(i)
-        generateImage().save(pathToSave)
+        fileName = pathToSave.split('/')[-1]
+        image = generateImage(i)
+        cocoJsonImages.append({
+            "id": i,
+            "license": 1,
+            "file_name": fileName,
+            "height": image.height,
+            "width": image.width,
+            "date_captured": str(datetime.datetime.now()),
+        })
+        image.save(pathToSave)
         print("Output image saved to", pathToSave)
+
+    # save coco json
+    createDirByFilePath(COCO_JSON_PATH)
+    with open(COCO_JSON_PATH, "w") as cocoFile:
+        cocoFile.write(json.dumps({
+            "info": {
+                "year": "2024",
+                "version": "1",
+                "description": "Thaumcraft images for TaumcraftAutoResearcher project",
+                "contributor": "Tyapkin Sergey",
+                "url": "",
+                "date_created": str(datetime.datetime.now())
+            },
+            "licenses": [
+                {
+                    "id": 1,
+                    "url": "https://mit-license.org/",
+                    "name": "MIT"
+                }
+            ],
+            "categories": cocoJsonCategories,
+            "images": cocoJsonImages,
+            "annotations": cocoJsonAnnotations,
+        }, indent="  "))
+        print("COCO json file saved to ", COCO_JSON_PATH)

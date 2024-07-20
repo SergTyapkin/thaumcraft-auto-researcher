@@ -148,7 +148,7 @@ def loadRecipesForSelectedVersion() -> dict[str, list[str, str]] | None:
     allAddonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
     addonsRecipes = {}
     for addonName in selectedAddons:
-        addonsRecipes |= allAddonsRecipes.get(addonName)
+        addonsRecipes |= allAddonsRecipes.get(addonName, set())
     allRecipes = versionRecipes | addonsRecipes
     return allRecipes
 
