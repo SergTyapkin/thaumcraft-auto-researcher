@@ -16,7 +16,7 @@ from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPE
     EMPTY_ASPECT_SLOT_IMAGE_PATH, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
     getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
-    HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN
+    HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN, UNKNOWN_ASPECT_IMAGE_PATH
 from src.utils.constants import getAspectImagePath
 from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
     loadRecipesForSelectedVersion
@@ -190,9 +190,20 @@ class ThaumInteractor:
     def loadAspectsImages(self):
         logging.info(f"Loading thaum aspects images...")
         for aspect in self.allAspects:
-            aspect.image = self.loadImage(getAspectImagePath(aspect.name), self.emptyAspectInventorySlotImage)
-            aspect.pixMapImage = QPixmap(getAspectImagePath(aspect.name))
-            aspect.mask = Image.open(getAspectImagePath(aspect.name, colored=False)).convert("L")
+            imagePath = getAspectImagePath(aspect.name)
+            try:
+                aspect.image = self.loadImage(imagePath, self.emptyAspectInventorySlotImage)
+                aspect.pixMapImage = QPixmap(imagePath)
+            except Exception as e:
+                logging.critical(f"Couldn't load image from path {imagePath}. Error: {e}")
+                aspect.image = self.loadImage(UNKNOWN_ASPECT_IMAGE_PATH, self.emptyAspectInventorySlotImage)
+                aspect.pixMapImage = QPixmap(UNKNOWN_ASPECT_IMAGE_PATH)
+            imagePath = getAspectImagePath(aspect.name, colored=False)
+            try:
+                aspect.mask = Image.open(imagePath).convert("L")
+            except Exception as e:
+                logging.critical(f"Couldn't load image from path {imagePath} Error: {e}")
+                aspect.mask = Image.open(UNKNOWN_ASPECT_IMAGE_PATH).convert("L")
 
     def scrollLeft(self):
         if self.currentAspectsPageIdx <= 0:
