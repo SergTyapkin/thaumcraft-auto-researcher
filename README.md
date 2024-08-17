@@ -24,7 +24,7 @@
 ---
 
 ## [Download .exe releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
-[latest version `v1.0.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.0.0)
+[latest version `v1.0.1`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.0.1)
 <details>
 <summary>Changelog:</summary>
 
