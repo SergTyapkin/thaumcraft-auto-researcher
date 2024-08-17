@@ -37,9 +37,13 @@ def createTI(UI):
     aspectsOrderConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
     aspectsOrderConfig = aspectsOrderConfig['aspects']
 
-    for aspect in aspectsOrderConfig:
+    i = 0
+    while i < len(aspectsOrderConfig):
+        aspect = aspectsOrderConfig[i]
         if aspect not in recipesConfig:
             aspectsOrderConfig.remove(aspect)
+        else:
+            i += 1
 
     return ThaumInteractor(UI, pointsConfig, recipesConfig, aspectsOrderConfig)
 

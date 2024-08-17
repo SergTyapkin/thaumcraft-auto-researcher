@@ -622,7 +622,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         backgroundColor=QColor('black'),
         padding=MARGIN,
         UI=UI,
-        movable=True
+        movable=True,
     ))
 
     def setCellDialogueVisibility(state: bool):

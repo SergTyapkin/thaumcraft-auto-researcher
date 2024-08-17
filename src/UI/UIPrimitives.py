@@ -319,10 +319,9 @@ class Text(_Object):
             self.h += padding[0] + padding[2]
 
         self.UI = UI
-        self.movable = False
         self.hoverable = hoverable
         self.hoverColor = hoverColor
-        # self.movable = movable
+        self.movable = movable
         if movable:
             if self.UI is None:
                 raise TypeError("<class Text>: If argument movable=True, argument UI must be provided!")
@@ -330,7 +329,7 @@ class Text(_Object):
                 self.x = LinkableValue(self.x)
             if not isinstance(self.y, LinkableValue):
                 self.y = LinkableValue(self.y)
-            pointColor = self.backgroundColor
+            pointColor = QColor(self.backgroundColor)
             pointColor.setAlpha(255)
             self.LT = Point(self.x, self.y, movable=True, color=pointColor)
             self.UI.addObject(self.LT)
