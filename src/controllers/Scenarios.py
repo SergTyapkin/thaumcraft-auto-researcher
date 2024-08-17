@@ -285,6 +285,8 @@ def chooseThaumVersion(UI: OverlayUI):
             addonObject.y = pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4
 
     infoText.LT.onMoveCallback = updateVersionsPosition
+    curX = pointTextAnchor.x
+    curY = pointTextAnchor.y + MARGIN + infoText.h
     for i in range(len(versions)):
         version = versions[i]
         def onClickVersion(versionObject, version):
@@ -299,7 +301,7 @@ def chooseThaumVersion(UI: OverlayUI):
             selectedVersionObject[0].setColor(QColor('purple'))
 
         versionObject = UI.addObject(Text(
-            pointTextAnchor.x, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,
+            curX, curY,
             version,
             color=QColor('white'),
             withBackground=True,
@@ -313,8 +315,12 @@ def chooseThaumVersion(UI: OverlayUI):
         versionsObjects.append(versionObject)
         if oldVersion == version:
             selectVersion(versionObject, version)
+        curY += MARGIN * 4
 
     addonsNames = list(addonsSelectingState.keys())
+    curX = pointTextAnchor.x + 250
+    curY = pointTextAnchor.y + MARGIN + infoText.h
+    startCurY = curY
     for i in range(len(addonsNames)):
         addonName = addonsNames[i]
         def onClickAddon(addonObject, addonName):
@@ -329,7 +335,7 @@ def chooseThaumVersion(UI: OverlayUI):
                 addonObject.setColor(QColor('white'))
                 logging.debug(f"Deselected addon {addonName}")
         addonObject = UI.addObject(Text(
-            pointTextAnchor.x + 250, pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4,
+            curX, curY,
             addonName,
             color=QColor('white'),
             withBackground=True,
@@ -343,6 +349,10 @@ def chooseThaumVersion(UI: OverlayUI):
         addonsObjects.append(addonObject)
         if addonName in (oldAddons or []):
             toggleAddonSelecting(addonObject, addonName)
+        curY += MARGIN * 4
+        if curY > UI.height() - addonObject.h:
+            curX += 500
+            curY = startCurY
 
     def onSumbit():
         if selectedVersion[0] is None:

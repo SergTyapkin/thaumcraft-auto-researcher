@@ -26,7 +26,7 @@ def getAspectImagePath(aspectName, colored=True):
     return to_resource_path(f"images/{'color' if colored else 'mono'}/{aspectName}.png")
 def getImagePathByNumber(number):
     return to_resource_path(f"images/numbers/{number}.png")
-
+UNKNOWN_ASPECT_IMAGE_PATH = "images/unknownAspect.png"
 
 EMPTY_ASPECT_SLOT_IMAGE_PATH = to_resource_path('images/emptyAspectPlace.png')
 HEXAGON_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonMask.png')

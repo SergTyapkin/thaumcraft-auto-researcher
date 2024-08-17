@@ -25,11 +25,29 @@
     "caelum": ["vitreus", "metallum"],
     "tabernus": ["tutamen", "iter"]
   },
-  "GregTech NewHorizons (2.1.3.0+)": {
+  "GregTech NewHorizons": {
     "aequalitas": ["cognitio", "ordo"],
     "vesania": ["cognitio", "vitium"],
     "primordium": ["vacuos", "motus"],
     "astrum": ["lux", "primordium"],
     "gloria": ["humanus", "iter"]
+  },
+  "Botanical addons": {
+    "tincturem": ["lux", "ordo"]
+  },
+  "The Elysium": {
+    "sanctus": ["spiritus", "auram"]
+  },
+  "Thaumic Revelations": {
+    "exubitor": ["alienis", "mortuus"]
+  },
+  "Essential Thaumaturgy": {
+    "mru": ["praecantatio", "potentia"],
+    "radiation": ["mru", "motus"],
+    "matrix": ["mru", "humanus"]
+  },
+  "AbyssalCraft Integration": {
+    "coralos": ["venenum", "aqua"],
+    "dreadia": ["venenum", "ignis"]
   }
 }
