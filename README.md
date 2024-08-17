@@ -94,3 +94,15 @@ pip install -r requirements.txt
 ```shell
 python ./src/main.py
 ```
+
+---
+## Сборка приложения в .exe файл
+1. Установка зависимостей:
+```shell
+pip install -r requirements.txt
+```
+
+2. Запуск команды сборки из корня проекта:
+```shell
+auto-py-to-exe -c .\pyinstaller_configs\autoPyToExe.json
+```
