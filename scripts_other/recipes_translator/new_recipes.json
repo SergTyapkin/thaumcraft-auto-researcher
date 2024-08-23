@@ -1,0 +1,1014 @@
+{
+    "4.1.0g": {
+        "aer": [],
+        "terra": [],
+        "ignis": [],
+        "aqua": [],
+        "ordo": [],
+        "perditio": [],
+        "vacuos": [
+            "aer",
+            "perditio"
+        ],
+        "lux": [
+            "aer",
+            "ignis"
+        ],
+        "potentia": [
+            "ordo",
+            "ignis"
+        ],
+        "motus": [
+            "aer",
+            "aqua"
+        ],
+        "saxum": [
+            "terra",
+            "terra"
+        ],
+        "victus": [
+            "aqua",
+            "terra"
+        ],
+        "tempestas": [
+            "aer",
+            "gelum"
+        ],
+        "gelum": [
+            "aqua",
+            "ordo"
+        ],
+        "vitreus": [
+            "saxum",
+            "aqua"
+        ],
+        "mortuus": [
+            "victus",
+            "perditio"
+        ],
+        "volatus": [
+            "aer",
+            "motus"
+        ],
+        "tenebrae": [
+            "vacuos",
+            "lux"
+        ],
+        "spiritus": [
+            "victus",
+            "mortuus"
+        ],
+        "sano": [
+            "victus",
+            "victus"
+        ],
+        "iter": [
+            "motus",
+            "terra"
+        ],
+        "venenum": [
+            "aqua",
+            "mortuus"
+        ],
+        "alienis": [
+            "vacuos",
+            "tenebrae"
+        ],
+        "praecantatio": [
+            "vacuos",
+            "potentia"
+        ],
+        "auram": [
+            "praecantatio",
+            "aer"
+        ],
+        "vitium": [
+            "praecantatio",
+            "perditio"
+        ],
+        "granum": [
+            "victus",
+            "ordo"
+        ],
+        "limus": [
+            "victus",
+            "aqua"
+        ],
+        "herba": [
+            "granum",
+            "terra"
+        ],
+        "arbor": [
+            "aer",
+            "herba"
+        ],
+        "bestia": [
+            "motus",
+            "victus"
+        ],
+        "corpus": [
+            "mortuus",
+            "bestia"
+        ],
+        "exanimis": [
+            "motus",
+            "mortuus"
+        ],
+        "cognitio": [
+            "terra",
+            "spiritus"
+        ],
+        "sensus": [
+            "aer",
+            "spiritus"
+        ],
+        "humanus": [
+            "bestia",
+            "cognitio"
+        ],
+        "messis": [
+            "herba",
+            "humanus"
+        ],
+        "meto": [
+            "messis",
+            "instrumentum"
+        ],
+        "metallum": [
+            "saxum",
+            "ordo"
+        ],
+        "perfodio": [
+            "humanus",
+            "saxum"
+        ],
+        "instrumentum": [
+            "humanus",
+            "ordo"
+        ],
+        "telum": [
+            "instrumentum",
+            "perditio"
+        ],
+        "tutamen": [
+            "instrumentum",
+            "terra"
+        ],
+        "fames": [
+            "victus",
+            "vacuos"
+        ],
+        "lucrum": [
+            "humanus",
+            "fames"
+        ],
+        "fabrico": [
+            "humanus",
+            "instrumentum"
+        ],
+        "pannus": [
+            "instrumentum",
+            "bestia"
+        ],
+        "machina": [
+            "motus",
+            "instrumentum"
+        ],
+        "vinculum": [
+            "motus",
+            "perditio"
+        ],
+        "permutatio": [
+            "motus",
+            "aqua"
+        ]
+    },
+    "4.1.1.9": {
+        "aer": [],
+        "terra": [],
+        "ignis": [],
+        "aqua": [],
+        "ordo": [],
+        "perditio": [],
+        "vacuos": [
+            "aer",
+            "perditio"
+        ],
+        "lux": [
+            "aer",
+            "ignis"
+        ],
+        "tempestas": [
+            "aer",
+            "aqua"
+        ],
+        "motus": [
+            "aer",
+            "ordo"
+        ],
+        "gelum": [
+            "aqua",
+            "ordo"
+        ],
+        "vitreus": [
+            "terra",
+            "aqua"
+        ],
+        "victus": [
+            "aqua",
+            "terra"
+        ],
+        "venenum": [
+            "aqua",
+            "mortuus"
+        ],
+        "potentia": [
+            "ordo",
+            "ignis"
+        ],
+        "permutatio": [
+            "motus",
+            "aqua"
+        ],
+        "metallum": [
+            "terra",
+            "vitreus"
+        ],
+        "mortuus": [
+            "victus",
+            "perditio"
+        ],
+        "volatus": [
+            "aer",
+            "motus"
+        ],
+        "tenebrae": [
+            "vacuos",
+            "lux"
+        ],
+        "spiritus": [
+            "victus",
+            "mortuus"
+        ],
+        "sano": [
+            "victus",
+            "victus"
+        ],
+        "iter": [
+            "motus",
+            "terra"
+        ],
+        "alienis": [
+            "vacuos",
+            "tenebrae"
+        ],
+        "praecantatio": [
+            "vacuos",
+            "potentia"
+        ],
+        "auram": [
+            "praecantatio",
+            "aer"
+        ],
+        "vitium": [
+            "praecantatio",
+            "perditio"
+        ],
+        "limus": [
+            "victus",
+            "aqua"
+        ],
+        "herba": [
+            "victus",
+            "terra"
+        ],
+        "arbor": [
+            "aer",
+            "herba"
+        ],
+        "bestia": [
+            "motus",
+            "victus"
+        ],
+        "corpus": [
+            "mortuus",
+            "bestia"
+        ],
+        "exanimis": [
+            "motus",
+            "mortuus"
+        ],
+        "cognitio": [
+            "terra",
+            "spiritus"
+        ],
+        "sensus": [
+            "aer",
+            "spiritus"
+        ],
+        "humanus": [
+            "bestia",
+            "cognitio"
+        ],
+        "messis": [
+            "herba",
+            "humanus"
+        ],
+        "perfodio": [
+            "humanus",
+            "terra"
+        ],
+        "instrumentum": [
+            "humanus",
+            "ordo"
+        ],
+        "meto": [
+            "messis",
+            "instrumentum"
+        ],
+        "telum": [
+            "instrumentum",
+            "perditio"
+        ],
+        "tutamen": [
+            "instrumentum",
+            "terra"
+        ],
+        "fames": [
+            "victus",
+            "vacuos"
+        ],
+        "lucrum": [
+            "humanus",
+            "fames"
+        ],
+        "fabrico": [
+            "humanus",
+            "instrumentum"
+        ],
+        "pannus": [
+            "instrumentum",
+            "bestia"
+        ],
+        "machina": [
+            "motus",
+            "instrumentum"
+        ],
+        "vinculum": [
+            "motus",
+            "perditio"
+        ]
+    },
+    "4.1.1.12": {
+        "aer": [],
+        "terra": [],
+        "ignis": [],
+        "aqua": [],
+        "ordo": [],
+        "perditio": [],
+        "vacuos": [
+            "aer",
+            "perditio"
+        ],
+        "lux": [
+            "aer",
+            "ignis"
+        ],
+        "tempestas": [
+            "aer",
+            "aqua"
+        ],
+        "motus": [
+            "aer",
+            "ordo"
+        ],
+        "gelum": [
+            "aqua",
+            "perditio"
+        ],
+        "vitreus": [
+            "terra",
+            "ordo"
+        ],
+        "victus": [
+            "aqua",
+            "terra"
+        ],
+        "venenum": [
+            "aqua",
+            "perditio"
+        ],
+        "potentia": [
+            "ordo",
+            "ignis"
+        ],
+        "permutatio": [
+            "ordo",
+            "perditio"
+        ],
+        "metallum": [
+            "terra",
+            "vitreus"
+        ],
+        "mortuus": [
+            "victus",
+            "perditio"
+        ],
+        "volatus": [
+            "aer",
+            "motus"
+        ],
+        "tenebrae": [
+            "vacuos",
+            "lux"
+        ],
+        "spiritus": [
+            "victus",
+            "mortuus"
+        ],
+        "sano": [
+            "ordo",
+            "victus"
+        ],
+        "iter": [
+            "motus",
+            "terra"
+        ],
+        "alienis": [
+            "vacuos",
+            "tenebrae"
+        ],
+        "praecantatio": [
+            "vacuos",
+            "potentia"
+        ],
+        "auram": [
+            "praecantatio",
+            "aer"
+        ],
+        "vitium": [
+            "praecantatio",
+            "perditio"
+        ],
+        "limus": [
+            "victus",
+            "aqua"
+        ],
+        "herba": [
+            "victus",
+            "terra"
+        ],
+        "arbor": [
+            "aer",
+            "victus"
+        ],
+        "bestia": [
+            "motus",
+            "victus"
+        ],
+        "corpus": [
+            "mortuus",
+            "bestia"
+        ],
+        "exanimis": [
+            "motus",
+            "mortuus"
+        ],
+        "cognitio": [
+            "terra",
+            "spiritus"
+        ],
+        "sensus": [
+            "aer",
+            "spiritus"
+        ],
+        "humanus": [
+            "bestia",
+            "cognitio"
+        ],
+        "messis": [
+            "herba",
+            "humanus"
+        ],
+        "perfodio": [
+            "humanus",
+            "terra"
+        ],
+        "instrumentum": [
+            "humanus",
+            "ordo"
+        ],
+        "meto": [
+            "lucrum",
+            "instrumentum"
+        ],
+        "telum": [
+            "instrumentum",
+            "perditio"
+        ],
+        "tutamen": [
+            "instrumentum",
+            "terra"
+        ],
+        "fames": [
+            "victus",
+            "vacuos"
+        ],
+        "lucrum": [
+            "humanus",
+            "fames"
+        ],
+        "fabrico": [
+            "humanus",
+            "instrumentum"
+        ],
+        "pannus": [
+            "instrumentum",
+            "bestia"
+        ],
+        "machina": [
+            "motus",
+            "instrumentum"
+        ],
+        "vinculum": [
+            "motus",
+            "perditio"
+        ]
+    },
+    "4.1.1.14": {
+        "aer": [],
+        "terra": [],
+        "ignis": [],
+        "aqua": [],
+        "ordo": [],
+        "perditio": [],
+        "vacuos": [
+            "aer",
+            "perditio"
+        ],
+        "lux": [
+            "aer",
+            "ignis"
+        ],
+        "tempestas": [
+            "aer",
+            "aqua"
+        ],
+        "motus": [
+            "aer",
+            "ordo"
+        ],
+        "gelum": [
+            "ignis",
+            "perditio"
+        ],
+        "vitreus": [
+            "terra",
+            "ordo"
+        ],
+        "victus": [
+            "aqua",
+            "terra"
+        ],
+        "venenum": [
+            "aqua",
+            "perditio"
+        ],
+        "potentia": [
+            "ordo",
+            "ignis"
+        ],
+        "permutatio": [
+            "perditio",
+            "ordo"
+        ],
+        "metallum": [
+            "terra",
+            "vitreus"
+        ],
+        "mortuus": [
+            "victus",
+            "perditio"
+        ],
+        "volatus": [
+            "aer",
+            "motus"
+        ],
+        "tenebrae": [
+            "vacuos",
+            "lux"
+        ],
+        "spiritus": [
+            "victus",
+            "mortuus"
+        ],
+        "sano": [
+            "ordo",
+            "victus"
+        ],
+        "iter": [
+            "motus",
+            "terra"
+        ],
+        "alienis": [
+            "vacuos",
+            "tenebrae"
+        ],
+        "praecantatio": [
+            "vacuos",
+            "potentia"
+        ],
+        "auram": [
+            "praecantatio",
+            "aer"
+        ],
+        "vitium": [
+            "praecantatio",
+            "perditio"
+        ],
+        "limus": [
+            "victus",
+            "aqua"
+        ],
+        "herba": [
+            "victus",
+            "terra"
+        ],
+        "arbor": [
+            "aer",
+            "herba"
+        ],
+        "bestia": [
+            "motus",
+            "victus"
+        ],
+        "corpus": [
+            "mortuus",
+            "bestia"
+        ],
+        "exanimis": [
+            "motus",
+            "mortuus"
+        ],
+        "cognitio": [
+            "terra",
+            "spiritus"
+        ],
+        "sensus": [
+            "aer",
+            "spiritus"
+        ],
+        "humanus": [
+            "bestia",
+            "cognitio"
+        ],
+        "messis": [
+            "herba",
+            "humanus"
+        ],
+        "perfodio": [
+            "humanus",
+            "terra"
+        ],
+        "instrumentum": [
+            "humanus",
+            "ordo"
+        ],
+        "meto": [
+            "messis",
+            "instrumentum"
+        ],
+        "telum": [
+            "instrumentum",
+            "perditio"
+        ],
+        "tutamen": [
+            "instrumentum",
+            "terra"
+        ],
+        "fames": [
+            "victus",
+            "vacuos"
+        ],
+        "lucrum": [
+            "humanus",
+            "fames"
+        ],
+        "fabrico": [
+            "humanus",
+            "instrumentum"
+        ],
+        "pannus": [
+            "instrumentum",
+            "bestia"
+        ],
+        "machina": [
+            "motus",
+            "instrumentum"
+        ],
+        "vinculum": [
+            "motus",
+            "perditio"
+        ]
+    },
+    "4.2.2.0": {
+        "aer": [],
+        "terra": [],
+        "ignis": [],
+        "aqua": [],
+        "ordo": [],
+        "perditio": [],
+        "alienis": [
+            "vacuos",
+            "tenebrae"
+        ],
+        "arbor": [
+            "aer",
+            "herba"
+        ],
+        "auram": [
+            "praecantatio",
+            "aer"
+        ],
+        "bestia": [
+            "motus",
+            "victus"
+        ],
+        "cognitio": [
+            "ignis",
+            "spiritus"
+        ],
+        "corpus": [
+            "mortuus",
+            "bestia"
+        ],
+        "exanimis": [
+            "motus",
+            "mortuus"
+        ],
+        "fabrico": [
+            "humanus",
+            "instrumentum"
+        ],
+        "fames": [
+            "victus",
+            "vacuos"
+        ],
+        "gelum": [
+            "ignis",
+            "perditio"
+        ],
+        "herba": [
+            "victus",
+            "terra"
+        ],
+        "humanus": [
+            "bestia",
+            "cognitio"
+        ],
+        "instrumentum": [
+            "humanus",
+            "ordo"
+        ],
+        "iter": [
+            "motus",
+            "terra"
+        ],
+        "limus": [
+            "victus",
+            "aqua"
+        ],
+        "lucrum": [
+            "humanus",
+            "fames"
+        ],
+        "lux": [
+            "aer",
+            "ignis"
+        ],
+        "machina": [
+            "motus",
+            "instrumentum"
+        ],
+        "messis": [
+            "herba",
+            "humanus"
+        ],
+        "metallum": [
+            "terra",
+            "vitreus"
+        ],
+        "meto": [
+            "messis",
+            "instrumentum"
+        ],
+        "mortuus": [
+            "victus",
+            "perditio"
+        ],
+        "motus": [
+            "aer",
+            "ordo"
+        ],
+        "pannus": [
+            "instrumentum",
+            "bestia"
+        ],
+        "perfodio": [
+            "humanus",
+            "terra"
+        ],
+        "permutatio": [
+            "perditio",
+            "ordo"
+        ],
+        "potentia": [
+            "ordo",
+            "ignis"
+        ],
+        "praecantatio": [
+            "vacuos",
+            "potentia"
+        ],
+        "sano": [
+            "ordo",
+            "victus"
+        ],
+        "sensus": [
+            "aer",
+            "spiritus"
+        ],
+        "spiritus": [
+            "victus",
+            "mortuus"
+        ],
+        "telum": [
+            "instrumentum",
+            "ignis"
+        ],
+        "tempestas": [
+            "aer",
+            "aqua"
+        ],
+        "tenebrae": [
+            "vacuos",
+            "lux"
+        ],
+        "tutamen": [
+            "instrumentum",
+            "terra"
+        ],
+        "vacuos": [
+            "aer",
+            "perditio"
+        ],
+        "venenum": [
+            "aqua",
+            "perditio"
+        ],
+        "victus": [
+            "aqua",
+            "terra"
+        ],
+        "vinculum": [
+            "motus",
+            "perditio"
+        ],
+        "vitium": [
+            "praecantatio",
+            "perditio"
+        ],
+        "vitreus": [
+            "terra",
+            "ordo"
+        ],
+        "volatus": [
+            "aer",
+            "motus"
+        ]
+    },
+    "5.1.3": {
+        "aer": [],
+        "terra": [],
+        "ignis": [],
+        "aqua": [],
+        "ordo": [],
+        "perditio": [],
+        "alienis": [
+            "vacuos",
+            "tenebrae"
+        ],
+        "auram": [
+            "potentia",
+            "aer"
+        ],
+        "telum": [
+            "spiritus",
+            "perditio"
+        ],
+        "bestia": [
+            "motus",
+            "victus"
+        ],
+        "cognitio": [
+            "ignis",
+            "spiritus"
+        ],
+        "desiderium": [
+            "spiritus",
+            "vacuos"
+        ],
+        "exanimis": [
+            "motus",
+            "mortuus"
+        ],
+        "fabrico": [
+            "permutatio",
+            "instrumentum"
+        ],
+        "gelum": [
+            "ignis",
+            "perditio"
+        ],
+        "herba": [
+            "victus",
+            "terra"
+        ],
+        "humanus": [
+            "spiritus",
+            "victus"
+        ],
+        "instrumentum": [
+            "metallum",
+            "potentia"
+        ],
+        "lux": [
+            "aer",
+            "ignis"
+        ],
+        "machina": [
+            "motus",
+            "instrumentum"
+        ],
+        "metallum": [
+            "terra",
+            "ordo"
+        ],
+        "mortuus": [
+            "aqua",
+            "perditio"
+        ],
+        "motus": [
+            "aer",
+            "ordo"
+        ],
+        "permutatio": [
+            "perditio",
+            "ordo"
+        ],
+        "potentia": [
+            "ordo",
+            "ignis"
+        ],
+        "praemundio": [
+            "spiritus",
+            "terra"
+        ],
+        "sensus": [
+            "aer",
+            "spiritus"
+        ],
+        "spiritus": [
+            "victus",
+            "mortuus"
+        ],
+        "tenebrae": [
+            "vacuos",
+            "lux"
+        ],
+        "vacuos": [
+            "aer",
+            "perditio"
+        ],
+        "victus": [
+            "aqua",
+            "terra"
+        ],
+        "vinculum": [
+            "motus",
+            "perditio"
+        ],
+        "vitium": [
+            "potentia",
+            "perditio"
+        ],
+        "vitreus": [
+            "terra",
+            "aer"
+        ],
+        "volatus": [
+            "aer",
+            "motus"
+        ]
+    }
+}
