@@ -2,6 +2,9 @@ import datetime
 import json
 import math
 import random
+import time
+from multiprocessing import Process
+
 import numpy as np
 
 from PIL import Image
@@ -35,12 +38,12 @@ class Aspect:
         return f"{self.name}[id={self.idx}]"
 
 
-HEXAGON_FIELD_RADIUS = 4  # 2...4
 GENERATED_IMAGES_COUNT = 100
+HEXAGON_FIELD_RADIUS = 2  # 2...4
 QUALITY_MODIFIER = 2 # by default, at value 1, result image is 160x160. You can increase it
 GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/all_aspects_rad_{HEXAGON_FIELD_RADIUS}_quality_{QUALITY_MODIFIER}/aspects-all-rad-{HEXAGON_FIELD_RADIUS}-quality-{QUALITY_MODIFIER}-id-{idx}.png'
-COCO_JSON_PATH = f'./scripts_other/fake_researches_generator/output/all_aspects_rad_{HEXAGON_FIELD_RADIUS}_quality_{QUALITY_MODIFIER}.coco.json'
-LOADED_ASPECTS_ADDONS = {"original"}#, "Thaumic Boots", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees", "GregTech NewHorizons", "Botanical addons", "The Elysium", "Thaumic Revelations", "Essential Thaumaturgy", "AbyssalCraft Integration"} # any addons from aspects config + "original"
+GET_COCO_JSON_PATH = lambda: f'./scripts_other/fake_researches_generator/output/all_aspects_rad_{HEXAGON_FIELD_RADIUS}_quality_{QUALITY_MODIFIER}.coco.json'
+LOADED_ASPECTS_ADDONS = {"original", "Thaumic Boots", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees", "GregTech NewHorizons", "Botanical addons", "The Elysium", "Thaumic Revelations", "Essential Thaumaturgy", "AbyssalCraft Integration"} # any addons from aspects config + "original"
 
 EMPTY_HEXAGON_PATH = './scripts_other/fake_researches_generator/empty_hexagon.png'
 BACKGROUND_TABLE_IMAGE_PATH = './scripts_other/fake_researches_generator/table_background.png'
@@ -183,7 +186,12 @@ def hueRotate(img, hout):
     return Image.fromarray(rgb, 'RGBA')
 
 
-if __name__ == '__main__':
+def main(hexagon_field_radius, quality_modifier, generated_images_count):
+    global HEXAGON_FIELD_RADIUS, GENERATED_IMAGES_COUNT, QUALITY_MODIFIER
+    HEXAGON_FIELD_RADIUS = hexagon_field_radius
+    GENERATED_IMAGES_COUNT = generated_images_count
+    QUALITY_MODIFIER = quality_modifier
+
     allAspects = []
 
     cocoJsonCategories = []
@@ -238,7 +246,7 @@ if __name__ == '__main__':
     loadAspectsImages(allAspects)
     for aspect in allAspects:
         aspect.image = getResizedInCenterTransparentImage(aspect.image, 1)#, addImages=[aspect.mask])
-        aspect.image = getJackaledImage(aspect.image, 1.3 + 0.2 * QUALITY_MODIFIER)
+        aspect.image = getJackaledImage(aspect.image, 1.7 - 0.1 * QUALITY_MODIFIER)
     print("Aspects images loaded")
 
     # load background image
@@ -373,8 +381,8 @@ if __name__ == '__main__':
         print("Output image saved to", pathToSave)
 
     # save coco json
-    createDirByFilePath(COCO_JSON_PATH)
-    with open(COCO_JSON_PATH, "w") as cocoFile:
+    createDirByFilePath(GET_COCO_JSON_PATH())
+    with open(GET_COCO_JSON_PATH(), "w") as cocoFile:
         cocoFile.write(json.dumps({
             "info": {
                 "year": "2024",
@@ -395,4 +403,30 @@ if __name__ == '__main__':
             "images": cocoJsonImages,
             "annotations": cocoJsonAnnotations,
         }, indent="  "))
-        print("COCO json file saved to ", COCO_JSON_PATH)
+        print("COCO json file saved to ", GET_COCO_JSON_PATH())
+
+if __name__ == '__main__':
+    start_time = time.time()
+
+    processes = set()
+    for quality_modifier in range(2, 7, 1):
+        for hexagon_field_radius in range(2, 5, 1):
+            print(f"Started new process with (quality={quality_modifier}, radius={hexagon_field_radius}, images_count={GENERATED_IMAGES_COUNT})")
+            process = Process(target=main, args=(hexagon_field_radius, quality_modifier, GENERATED_IMAGES_COUNT), daemon=True)
+            processes.add(process)
+            process.start()
+            print()
+            print("------------------------------------------------------------")
+            print(f"GENERATED ALL IMAGES WITH (quality={quality_modifier}, radius={hexagon_field_radius}, images_count={GENERATED_IMAGES_COUNT})")
+            print("------------------------------------------------------------")
+            print()
+    print(f"Started {len(processes)} processes")
+
+
+    for process in processes:
+        process.join()
+        print(f"Process joined")
+    print(f"All processes joined")
+
+
+    print("--- Time execution: %s seconds ---" % (time.time() - start_time))
