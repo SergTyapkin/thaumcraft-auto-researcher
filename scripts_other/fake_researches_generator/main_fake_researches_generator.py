@@ -22,6 +22,7 @@ class Aspect:
     idx: int = None
     name: str = None
     image: Image.Image = None
+    mask: Image.Image = None
     withLighting: bool = False
     hueRotated: float = 0.0
 
@@ -35,11 +36,11 @@ class Aspect:
 
 
 HEXAGON_FIELD_RADIUS = 4  # 2...4
-GENERATED_IMAGES_COUNT = 334
-QUALITY_MODIFIER = 2 # by default, at value 1, result image is 256x256. You can increase it
-GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/all aspects rad {HEXAGON_FIELD_RADIUS}/aspects-all-rad-{HEXAGON_FIELD_RADIUS}-id-{idx}.png'
-COCO_JSON_PATH = f'./scripts_other/fake_researches_generator/output/all_aspects_rad_{HEXAGON_FIELD_RADIUS}.coco.json'
-LOADED_ASPECTS_ADDONS = {"original", "Thaumic Boots", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees", "GregTech NewHorizons", "Botanical addons", "The Elysium", "Thaumic Revelations", "Essential Thaumaturgy", "AbyssalCraft Integration"} # any addons from aspects config + "original"
+GENERATED_IMAGES_COUNT = 100
+QUALITY_MODIFIER = 2 # by default, at value 1, result image is 160x160. You can increase it
+GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/all_aspects_rad_{HEXAGON_FIELD_RADIUS}_quality_{QUALITY_MODIFIER}/aspects-all-rad-{HEXAGON_FIELD_RADIUS}-quality-{QUALITY_MODIFIER}-id-{idx}.png'
+COCO_JSON_PATH = f'./scripts_other/fake_researches_generator/output/all_aspects_rad_{HEXAGON_FIELD_RADIUS}_quality_{QUALITY_MODIFIER}.coco.json'
+LOADED_ASPECTS_ADDONS = {"original"}#, "Thaumic Boots", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees", "GregTech NewHorizons", "Botanical addons", "The Elysium", "Thaumic Revelations", "Essential Thaumaturgy", "AbyssalCraft Integration"} # any addons from aspects config + "original"
 
 EMPTY_HEXAGON_PATH = './scripts_other/fake_researches_generator/empty_hexagon.png'
 BACKGROUND_TABLE_IMAGE_PATH = './scripts_other/fake_researches_generator/table_background.png'
@@ -47,7 +48,7 @@ BACKGROUND_TABLE_PAPER_IMAGE_PATH = './scripts_other/fake_researches_generator/t
 LIGHTING_IMAGE_PATH = './scripts_other/fake_researches_generator/lighting_large.png'
 SCRIPTS_IMAGE_PATH = './scripts_other/fake_researches_generator/scripts.png'
 
-GET_TMP_SAVED_IMAGES_PATH = lambda idx: f'./scripts_other/fake_researches_generator/tmp-{idx}.png'
+GET_TMP_SAVED_IMAGES_PATH = lambda idx: f'./scripts_other/fake_researches_generator/tmp-images/tmp-{idx}.png'
 CENTER_CELL_COORDS = P(72, 72) # in px. selected according to image's original size
 HEXAGON_SLOT_SIZE_Y = 15.5 # in px. selected according to image's original size
 HEXAGON_SLOT_SIZE_X = HEXAGON_SLOT_SIZE_Y * math.cos(math.pi / 6)
@@ -61,15 +62,15 @@ def getResizedImage(image: Image.Image, useOriginals: bool = False, resizeTo: tu
         return image.resize((int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER), int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER)), Image.Resampling.LANCZOS)
     return image.resize((int(image.width * QUALITY_MODIFIER), int(image.height * QUALITY_MODIFIER)), Image.Resampling.LANCZOS)
 
-def loadImage(path: str, backgroundImage: Image.Image = None, noResize: bool = False) -> Image.Image:
+def loadImage(path: str, backgroundImage: Image.Image = None, noResize: bool = False, colorMode: str = 'RGBA') -> Image.Image:
     image = Image.open(path)
     image = getResizedImage(image, useOriginals=noResize)
-    image = image.convert("RGBA")
+    image = image.convert(colorMode)
     if backgroundImage is not None:
-        backgroundImage = backgroundImage or Image.new("RGBA", image.size, "BLACK")  # Create a white rgba background
-        newImage = backgroundImage.convert("RGBA")
+        backgroundImage = backgroundImage or Image.new(colorMode, image.size, "BLACK")  # Create a white rgba background
+        newImage = backgroundImage.convert(colorMode)
         newImage.paste(image, mask=image)  # Paste the image on the background. Go to the links given below for details.
-        image = newImage.convert('RGB')
+        image = newImage.convert(colorMode)
     print(f"Loaded image {path}")
     return image
 
@@ -77,7 +78,7 @@ def loadAspectsImages(allAspects):
     print(f"Loading thaum aspects images...")
     for aspect in allAspects:
         aspect.image = loadImage(getAspectImagePath(aspect.name))
-        aspect.mask = Image.open(getAspectImagePath(aspect.name, colored=False)).convert("L")
+        aspect.mask = loadImage(getAspectImagePath(aspect.name, colored=False))
 
 _imageIdx = 0
 def saveImage(image: Image.Image):
@@ -98,17 +99,17 @@ def getCellBoxCoords(cellX, cellY):
     y *= QUALITY_MODIFIER
     return int(x), int(y), int(HEXAGON_SLOT_SIZE_Y * QUALITY_MODIFIER), int(HEXAGON_SLOT_SIZE_Y * QUALITY_MODIFIER)
 
-def modifyImageChannels(image: Image.Image, channelIndexes: tuple[int] | list[int], multiplier: float):
+def modifyImageChannels(image: Image.Image, channelIndexes: tuple[int] | list[int], multiplier: float = 1, addition: int = 0):
     for x in range(image.width):
         for y in range(image.height):
             pixel = list(image.getpixel((x, y)))
             for channelIdx in channelIndexes:
-                pixel[channelIdx] = min(int(pixel[channelIdx] * multiplier), 255)
+                pixel[channelIdx] = min(int(pixel[channelIdx] * multiplier + (0 if (channelIdx == 3 and pixel[channelIdx] == 0) else addition)), 255)
             image.putpixel((x, y), tuple(pixel))
 
-def pasteImageWithOpacity(backgroundImage: Image.Image, overlayImage: Image.Image, box: tuple[int, int] | tuple[int, int, int, int]):
+def pasteImageWithOpacity(backgroundImage: Image.Image, overlayImage: Image.Image, box: tuple[int, int] | tuple[int, int, int, int], mask: Image.Image = None):
     newImage = Image.new("RGBA", size=backgroundImage.size, color=(0, 0, 0, 0))
-    newImage.paste(overlayImage, box=box, mask=overlayImage)
+    newImage.paste(overlayImage, box=box, mask=mask)
     backgroundImage.alpha_composite(newImage)
 
 
@@ -126,13 +127,17 @@ def invertImageChannels(image: Image.Image, channelIndexes: tuple[int] | list[in
                 pixel[channelIdx] = 255 - pixel[channelIdx]
             image.putpixel((x, y), tuple(pixel))
 
-def getResizedInCenterTransparentImage(image: Image.Image, sizeModifier: float):
+def getResizedInCenterTransparentImage(image: Image.Image, sizeModifier: float, addImages: [Image.Image] = []):
     backgroundImage = Image.new("RGBA", image.size, (0, 0, 0, 0))
     newSize = (int(image.width / sizeModifier), int(image.height / sizeModifier))
     smallImage = getResizedImage(image, resizeTo=newSize)
-    pasteImageWithOpacity(backgroundImage, smallImage, box=((image.size[0]-newSize[0]) // 2, (image.size[1]-newSize[1]) // 2))
-    resultImage = getResizedImage(backgroundImage, resizeTo=(int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER), int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER)))
-    return resultImage
+    pasteBoxCoords = ((image.size[0]-newSize[0]) // 2, (image.size[1]-newSize[1]) // 2)
+    pasteImageWithOpacity(backgroundImage, smallImage, box=pasteBoxCoords)
+    for addImage in addImages:
+        addImageResized = getResizedImage(addImage, resizeTo=newSize)
+        pasteImageWithOpacity(backgroundImage, addImageResized, box=pasteBoxCoords)
+    backgroundImage = getResizedImage(backgroundImage, resizeTo=(int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER), int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER)))
+    return backgroundImage
 
 def rgbToHsv(rgb):
     rgb = rgb.astype('float')
@@ -171,7 +176,7 @@ def hsvToRgb(hsv):
     rgb[..., 2] = np.select(conditions, [v, p, t, v, v, q], default=p)
     return rgb.astype('uint8')
 
-def shiftHue(img, hout):
+def hueRotate(img, hout):
     hsv = rgbToHsv(np.array(img))
     hsv[..., 0] = hout
     rgb = hsvToRgb(hsv)
@@ -191,6 +196,12 @@ if __name__ == '__main__':
         "name": "free_hex",
         "supercategory": "none",
     })
+    # add script category
+    cocoJsonCategories.append({
+        "id": 1,
+        "name": "script",
+        "supercategory": "none",
+    })
 
     def addAspectToAllAspects(aspectName):
         # check if aspect already in list
@@ -199,7 +210,7 @@ if __name__ == '__main__':
                 return
 
         # aspect not in list
-        aspectId = len(allAspects) + 1
+        aspectId = len(allAspects) + 2
         allAspects.append(Aspect(aspectName, aspectId))
         cocoJsonCategories.append({
             "id": aspectId,
@@ -212,6 +223,7 @@ if __name__ == '__main__':
         for (version, recipes) in allRecipes.items():
             for aspectName in recipes.keys():
                 addAspectToAllAspects(aspectName)
+    print("Original aspects list loaded")
 
     # load addons aspects
     allAddonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
@@ -220,33 +232,38 @@ if __name__ == '__main__':
             continue
         for aspectName in recipes.keys():
             addAspectToAllAspects(aspectName)
+    print("Addons aspects list loaded")
 
     # load aspects images
     loadAspectsImages(allAspects)
     for aspect in allAspects:
-        aspect.image = getResizedInCenterTransparentImage(aspect.image, 1)
-        aspect.image = getJackaledImage(aspect.image, 1.7)
+        aspect.image = getResizedInCenterTransparentImage(aspect.image, 1)#, addImages=[aspect.mask])
+        aspect.image = getJackaledImage(aspect.image, 1.3 + 0.2 * QUALITY_MODIFIER)
+    print("Aspects images loaded")
 
     # load background image
     backgroundImage = loadBackgroundImage()
+    print("Background image loaded")
 
     # load empty hexagon image
     emptyHexagonImage = loadImage(EMPTY_HEXAGON_PATH)
-    emptyHexagonImage = getJackaledImage(emptyHexagonImage, 2)
-    # imageResize(emptyHexagonImage, resizeTo=imageSize)
-    modifyImageChannels(emptyHexagonImage, [3], 0.65)
+    emptyHexagonImage = getJackaledImage(emptyHexagonImage, 1 + 0.5 * QUALITY_MODIFIER)
+    modifyImageChannels(emptyHexagonImage, [3], 0.3)
+    print("Empty hexagon image loaded")
 
     # load aspect highlighting image
     aspectHighlightingImage = loadImage(LIGHTING_IMAGE_PATH)
     aspectHighlightingImage = getJackaledImage(aspectHighlightingImage, 2)
-    modifyImageChannels(aspectHighlightingImage, [3], 0.85)
+    modifyImageChannels(aspectHighlightingImage, [3], 0.5)
+    print("Aspects highlighting image loaded")
 
     # load scripts images. Split by sprites
     scriptsSpriteImage = loadImage(SCRIPTS_IMAGE_PATH, noResize=True)
     scriptsSpriteImage = getResizedImage(scriptsSpriteImage, resizeTo=(int(scriptsSpriteImage.width * QUALITY_MODIFIER), int(scriptsSpriteImage.height * QUALITY_MODIFIER)))
+    print("Inverting scripts...")
     invertImageChannels(scriptsSpriteImage, [0, 1, 2])
-    modifyImageChannels(scriptsSpriteImage, [3], 2)
-    modifyImageChannels(scriptsSpriteImage, [3], 0.7)
+    print("Opacity modifying scripts...")
+    modifyImageChannels(scriptsSpriteImage, [3], 0.4)
     scriptSizePx = scriptsSpriteImage.height
     scriptsImageAspects = []
     for fromX in range(0, scriptsSpriteImage.width, scriptSizePx):
@@ -254,9 +271,11 @@ if __name__ == '__main__':
         scriptImage = getResizedInCenterTransparentImage(scriptImageBig, sizeModifier=1.5)
         scriptImage = getJackaledImage(scriptImage, 1.7)
 
-        scriptAspect = Aspect("_SCRIPT_", -2)
+        scriptAspect = Aspect("_SCRIPT_", 1)
         scriptAspect.image = scriptImage
         scriptsImageAspects.append(scriptAspect)
+        print(f"Script image {len(scriptsImageAspects)} loaded")
+    print("Scripts images loaded")
 
 
     def generateImage(currentImageAnnotationId):
@@ -268,7 +287,7 @@ if __name__ == '__main__':
 
         # generate random none cells
         noneCellsCount = random.randint(HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS*3)
-        aspectWithEmptyImage = Aspect("_EMPTY_", -1)
+        aspectWithEmptyImage = Aspect("_EMPTY_", 0)
         aspectWithEmptyImage.image = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
         for i in range(noneCellsCount):
             point = random.choice(list(cells.keys()))
@@ -278,7 +297,7 @@ if __name__ == '__main__':
                 cells[point] = aspectWithEmptyImage
 
         # write aspects to random cells
-        aspectsOnFieldCount = random.randint(HEXAGON_FIELD_RADIUS, HEXAGON_FIELD_RADIUS*3)
+        aspectsOnFieldCount = random.randint(HEXAGON_FIELD_RADIUS*2, HEXAGON_FIELD_RADIUS*4)
         aspectsLeft = allAspects.copy()
         for i in range(aspectsOnFieldCount):
             # select available points to set aspect on them
@@ -305,11 +324,14 @@ if __name__ == '__main__':
                 aspectImage = aspect.image
                 if aspect.name == 'tincturem':
                     aspect.hueRotated += 0.08
-                    aspectImage = shiftHue(aspect.image, aspect.hueRotated)
+                    aspectImage = hueRotate(aspect.image, aspect.hueRotated)
+                if aspect.idx == 1: # script. Needs to apply random opacity [0.6 ... 1]
+                    aspectImage = aspectImage.copy()
+                    modifyImageChannels(aspectImage, [3], 0.6 + random.random() * 0.4)
                 # paste aspect image on field
                 pasteImageWithOpacity(resultImage, aspectImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
                 # write to coco json
-                if aspect.idx > 0: # if it is aspect, not empty cell
+                if aspect.idx >= 1: # it's aspect or script, not empty cell
                     cocoJsonAnnotations.append({
                         "id": len(cocoJsonAnnotations),
                         "image_id": currentImageAnnotationId,

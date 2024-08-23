@@ -4,5 +4,4 @@ Pillow==10.3.0
 PyAutoGUI==0.9.53
 PyQt5==5.15.10
 PyQt5_sip==12.13.0
-auto-py-to-exe==2.44.1
 numpy~=2.1.0
