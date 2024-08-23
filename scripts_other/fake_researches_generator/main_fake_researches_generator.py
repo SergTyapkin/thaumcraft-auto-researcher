@@ -2,6 +2,7 @@ import datetime
 import json
 import math
 import random
+import numpy as np
 
 from PIL import Image
 
@@ -22,6 +23,7 @@ class Aspect:
     name: str = None
     image: Image.Image = None
     withLighting: bool = False
+    hueRotated: float = 0.0
 
     def __init__(self, name: str, idx: int, withLighting: bool = False):
         self.name = name
@@ -33,22 +35,23 @@ class Aspect:
 
 
 HEXAGON_FIELD_RADIUS = 4  # 2...4
-GENERATED_IMAGES_COUNT = 100
+GENERATED_IMAGES_COUNT = 334
 QUALITY_MODIFIER = 2 # by default, at value 1, result image is 256x256. You can increase it
+GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/all aspects rad {HEXAGON_FIELD_RADIUS}/aspects-all-rad-{HEXAGON_FIELD_RADIUS}-id-{idx}.png'
+COCO_JSON_PATH = f'./scripts_other/fake_researches_generator/output/all_aspects_rad_{HEXAGON_FIELD_RADIUS}.coco.json'
+LOADED_ASPECTS_ADDONS = {"original", "Thaumic Boots", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees", "GregTech NewHorizons", "Botanical addons", "The Elysium", "Thaumic Revelations", "Essential Thaumaturgy", "AbyssalCraft Integration"} # any addons from aspects config + "original"
+
 EMPTY_HEXAGON_PATH = './scripts_other/fake_researches_generator/empty_hexagon.png'
 BACKGROUND_TABLE_IMAGE_PATH = './scripts_other/fake_researches_generator/table_background.png'
 BACKGROUND_TABLE_PAPER_IMAGE_PATH = './scripts_other/fake_researches_generator/table_background_paper.png'
 LIGHTING_IMAGE_PATH = './scripts_other/fake_researches_generator/lighting_large.png'
 SCRIPTS_IMAGE_PATH = './scripts_other/fake_researches_generator/scripts.png'
+
 GET_TMP_SAVED_IMAGES_PATH = lambda idx: f'./scripts_other/fake_researches_generator/tmp-{idx}.png'
 CENTER_CELL_COORDS = P(72, 72) # in px. selected according to image's original size
 HEXAGON_SLOT_SIZE_Y = 15.5 # in px. selected according to image's original size
 HEXAGON_SLOT_SIZE_X = HEXAGON_SLOT_SIZE_Y * math.cos(math.pi / 6)
 ASPECTS_IMAGES_SIZE = HEXAGON_SLOT_SIZE_Y
-GET_OUTPUT_IMAGE_NAME = lambda idx: f'./scripts_other/fake_researches_generator/output/all aspects 4/aspects-all-rad-{HEXAGON_FIELD_RADIUS}-id-{idx}.png'
-COCO_JSON_PATH = './scripts_other/fake_researches_generator/output/coco_json_all_aspects_4.json'
-LOADED_ASPECTS_ADDONS = {"original", "Thaumic Boots", "GTNH (2.1.3.0+)", "Avaritia", "GregTech", "Forbidden Magic", "Magic Bees"} # any addons from aspects config + "original"
-
 
 
 def getResizedImage(image: Image.Image, useOriginals: bool = False, resizeTo: tuple[float | int, float | int] | None = None) -> Image.Image:
@@ -131,6 +134,50 @@ def getResizedInCenterTransparentImage(image: Image.Image, sizeModifier: float):
     resultImage = getResizedImage(backgroundImage, resizeTo=(int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER), int(ASPECTS_IMAGES_SIZE * QUALITY_MODIFIER)))
     return resultImage
 
+def rgbToHsv(rgb):
+    rgb = rgb.astype('float')
+    hsv = np.zeros_like(rgb)
+    hsv[..., 3:] = rgb[..., 3:]
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    maxc = np.max(rgb[..., :3], axis=-1)
+    minc = np.min(rgb[..., :3], axis=-1)
+    hsv[..., 2] = maxc
+    mask = maxc != minc
+    hsv[mask, 1] = (maxc - minc)[mask] / maxc[mask]
+    rc = np.zeros_like(r)
+    gc = np.zeros_like(g)
+    bc = np.zeros_like(b)
+    rc[mask] = (maxc - r)[mask] / (maxc - minc)[mask]
+    gc[mask] = (maxc - g)[mask] / (maxc - minc)[mask]
+    bc[mask] = (maxc - b)[mask] / (maxc - minc)[mask]
+    hsv[..., 0] = np.select(
+        [r == maxc, g == maxc], [bc - gc, 2.0 + rc - bc], default=4.0 + gc - rc)
+    hsv[..., 0] = (hsv[..., 0] / 6.0) % 1.0
+    return hsv
+
+def hsvToRgb(hsv):
+    rgb = np.empty_like(hsv)
+    rgb[..., 3:] = hsv[..., 3:]
+    h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    i = (h * 6.0).astype('uint8')
+    f = (h * 6.0) - i
+    p = v * (1.0 - s)
+    q = v * (1.0 - s * f)
+    t = v * (1.0 - s * (1.0 - f))
+    i = i % 6
+    conditions = [s == 0.0, i == 1, i == 2, i == 3, i == 4, i == 5]
+    rgb[..., 0] = np.select(conditions, [v, q, p, p, t, v], default=v)
+    rgb[..., 1] = np.select(conditions, [v, v, v, q, p, p], default=t)
+    rgb[..., 2] = np.select(conditions, [v, p, t, v, v, q], default=p)
+    return rgb.astype('uint8')
+
+def shiftHue(img, hout):
+    hsv = rgbToHsv(np.array(img))
+    hsv[..., 0] = hout
+    rgb = hsvToRgb(hsv)
+    return Image.fromarray(rgb, 'RGBA')
+
+
 if __name__ == '__main__':
     allAspects = []
 
@@ -147,12 +194,10 @@ if __name__ == '__main__':
 
     def addAspectToAllAspects(aspectName):
         # check if aspect already in list
-        foundElem = None
         for aspect in allAspects:
             if aspect.name == aspectName:
-                foundElem = aspect
-        if foundElem is not None:
-            return
+                return
+
         # aspect not in list
         aspectId = len(allAspects) + 1
         allAspects.append(Aspect(aspectName, aspectId))
@@ -256,9 +301,14 @@ if __name__ == '__main__':
             if aspect is not None:
                 if aspect.withLighting:
                     pasteImageWithOpacity(resultImage, aspectHighlightingImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
-                pasteImageWithOpacity(resultImage, aspect.image, box=(cellBoxCoords[0], cellBoxCoords[1]))
-                # print(aspect, "TO:", cellBoxCoords)
-                # write to coco
+                # rotate hue for tincturem
+                aspectImage = aspect.image
+                if aspect.name == 'tincturem':
+                    aspect.hueRotated += 0.08
+                    aspectImage = shiftHue(aspect.image, aspect.hueRotated)
+                # paste aspect image on field
+                pasteImageWithOpacity(resultImage, aspectImage, box=(cellBoxCoords[0], cellBoxCoords[1]))
+                # write to coco json
                 if aspect.idx > 0: # if it is aspect, not empty cell
                     cocoJsonAnnotations.append({
                         "id": len(cocoJsonAnnotations),
