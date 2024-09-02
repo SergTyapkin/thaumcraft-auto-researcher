@@ -119,6 +119,7 @@ class ThaumInteractor:
 
     pointWritingMaterials: P
     pointPapers: P
+    pointSafePosition: P
     rectAspectsListingLT: P
     rectAspectsListingRB: P
     pointAspectsScrollLeft: P
@@ -147,6 +148,7 @@ class ThaumInteractor:
         c = controlsConfig
         self.pointWritingMaterials = P(c['pointWritingMaterials']['x'], c['pointWritingMaterials']['y'])
         self.pointPapers = P(c['pointPapers']['x'], c['pointPapers']['y'])
+        self.pointSafePosition = P((self.pointPapers.x + self.pointWritingMaterials.x) / 2, self.pointPapers.y)
         self.rectAspectsListingLT = P(c['rectAspectsListingLT']['x'], c['rectAspectsListingLT']['y'])
         self.rectAspectsListingRB = P(c['rectAspectsListingRB']['x'], c['rectAspectsListingRB']['y'])
         self.pointAspectsScrollLeft = P(c['pointAspectsScrollLeft']['x'], c['pointAspectsScrollLeft']['y'])
@@ -254,6 +256,9 @@ class ThaumInteractor:
             clickCircle.r = timeLeft / 1000 * 20
 
         self.UI.addObjectAndDeleteAfterTime(clickCircle, 1000, onTimeCallback)
+
+    def moveMouseInSafePos(self):
+        self.pointSafePosition.move()
 
     def takeOutPaper(self):
         logging.info(f"Take out paper from thaum inventory")

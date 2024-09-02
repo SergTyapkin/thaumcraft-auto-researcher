@@ -459,9 +459,11 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     cellColorNone.setAlpha(150)
     cellColorAspect.setAlpha(200)
 
+    # it all Lists to make them mutable
     existingAspects = [{}]
     freeHexagons = [set()]
     noneHexagons = [set()]
+    isUnstoppableModeOn = [False]
 
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
@@ -497,7 +499,6 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             # is free:
             if (cell.x, cell.y) in freeHexagons[0]:
                 if cell.aspect is not None:
-                    logging.error(f"Found empty hexagon on cell with aspect! Aspect: {cell.aspect}")
                     continue
                 cell.isNone = False
                 cell.object.setColor(cellColorFree)
@@ -538,11 +539,12 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         MARGIN, MARGIN,
         f"""Нейросеть определила аспекты на поле.
 Чтобы перегенерировать полученную цепочку решения, нажми [R]
-Если аспекты определены неверно, пиши https://t.me/tyapkin_s
-Перегенерировать можно, вернувшись назад, а затем снова на этот этап.
+Если аспекты определены неверно, можно кликнуть на ячейку 
+и выбрать, что в ней должно быть на самом деле. 
 
-Чтобы приостановить программу, нажми [ctrl + shift + пробел]
+Чтобы приостановить программу, нажми [Ctrl + Shift + Пробел]
 Если все определено правильно, жми [Enter]
+Чтобы включить безостановочный режим, жми вместо этого [Ctrl + Enter]
 Чтобы вернуться назад, нажми [Backspace]""",
         color=QColor('white'),
         withBackground=True,
@@ -559,7 +561,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             f"""Подожди, решение выкладывается на поле... 
 Не двигай мышью и не нажимай никакие кнопки.
 
-Для экстренного закрытия программы нажми [ctrl + shift + alt]""",
+Для экстренного закрытия программы нажми [Ctrl + Shift + Alt]""",
             color=QColor('white'),
             withBackground=True,
             backgroundColor=QColor('black'),
@@ -590,20 +592,26 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def goToNextSlot():
         logging.info("Going to next slot")
         TI.insertPaper()
+        TI.moveMouseInSafePos()
         existingAspects[0].clear()
         freeHexagons[0].clear()
         noneHexagons[0].clear()
         currentLinkMap[0].clear()
+        if not isUnstoppableModeOn[0]:
+            updateCellsImage()
+        renderDelay()
         updateDetectingField()
         updateSolving()
         switchToActiveState()
         logging.info("Everything prepared to next detecting")
+        if isUnstoppableModeOn[0]:
+            startPuttingLinkMap()
 
     onPausedText = UI.addObject(UIPrimitives.Text(
         MARGIN, MARGIN,
         f"""Программа проистановлена.
 
-Чтобы продолжить работу, нажми [ctrl + shift + пробел]""",
+Чтобы продолжить работу, нажми [Ctrl + Shift + Пробел]""",
         color=QColor('white'),
         withBackground=True,
         backgroundColor=QColor('black'),
@@ -611,7 +619,10 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     ))
 
     def switchToActiveState():
+        def setUnstoppableModeOn():
+            isUnstoppableModeOn[0] = True
         UI.clearKeyCallbacks()
+        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.enter], setUnstoppableModeOn)
         UI.setKeyCallback([KeyboardKeys.enter], startPuttingLinkMap)
         UI.setKeyCallback([KeyboardKeys.r], updateSolving)
         UI.setKeyCallback([KeyboardKeys.backspace], beReadyForStartSolving, UI)
