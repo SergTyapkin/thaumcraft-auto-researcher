@@ -199,8 +199,11 @@ class _Window(QMainWindow):
         ):
             objToClick = None
             for obj in self.objects:
-                if obj.isHover(event.x(), event.y()) \
-                        and (getattr(obj, 'onClickCallback') is not None):
+                if (
+                    (obj.isHover(event.x(), event.y())) and
+                    (getattr(obj, 'onClickCallback') is not None) and
+                    obj.clickable
+                ):
                         # and (self.currentPressedObject is obj):
                     objToClick = obj
             if objToClick is not None:
@@ -232,6 +235,9 @@ class _Window(QMainWindow):
 
     def setAllObjectsVisibility(self, state: bool):
         for object in self.objects:
+            object.visible = state
+    def setObjectsVisibility(self, objects: list[UIPrimitive], state: bool):
+        for object in objects:
             object.visible = state
 
     def removeObject(self, obj: UIPrimitive):

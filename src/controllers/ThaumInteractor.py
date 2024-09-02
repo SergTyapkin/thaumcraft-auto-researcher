@@ -503,11 +503,16 @@ class ThaumInteractor:
         maxX = 0
         maxY = 0
         for prediction in predictions:
-            isAspect = True
             if prediction.predictionName == ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME:
                 isAspect = False
             elif prediction.predictionName == ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME:
                 continue
+            else:
+                isAspect = True
+                try:  # check if we know detected aspect
+                    self.getAspectByName(prediction.predictionName)
+                except ValueError:
+                    continue
             xCenter = prediction.x + hexagonsRectLT.x
             yCenter = prediction.y + hexagonsRectLT.y
             xCell = int(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1 + (xCenter - xLeft) // self.hexagonSlotSizeX)

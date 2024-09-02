@@ -433,7 +433,7 @@ def waitForCreatingTI(UI: OverlayUI):
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     logging.info(f"Run researching scenario started")
     UI.clearAll()
-    UI.createExitButton()
+    exitButtonObject = UI.createExitButton()
 
     class Cell:
         x: int = None
@@ -450,6 +450,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             return f"Cell([{self.x}, {self.y}], aspect={self.aspect}, isNone={self.isNone})"
 
     cells: list[Cell] = []
+    selectedCell: list[Cell | None, QColor | None] = [None, None]  # list to make it mutable
     currentLinkMap: list[dict[(int, int), str]] = [{}]  # list to make it mutable
 
     cellColorFree = QColor('white')
@@ -465,9 +466,14 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     noneHexagons = [set()]
     isUnstoppableModeOn = [False]
 
+    activeStateDialogueObjects = []
+    pausedStateDialogueObjects = []
+    cellSettingsStateDialogueObjects = []
+    cellsObjects = []
+
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
-        hideAllUI()
+        UI.setAllObjectsVisibility(False)
         (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
         switchToActiveState()
         logging.debug(f'Aspects on field detected')
@@ -507,6 +513,65 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
                 cell.object.setColor(cellColorNone)
         logging.debug(f'New images placed to all cells')
 
+    def onClickCellIsNone():
+        logging.debug(f'Click on "Cell is none". Selected cell: {selectedCell[0]}')
+        if selectedCell[0] is None:
+            return
+        coords = (selectedCell[0].x, selectedCell[0].y)
+        if existingAspects[0].get(coords) is not None: del existingAspects[0][coords]
+        freeHexagons[0].discard(coords)
+        noneHexagons[0].add(coords)
+        selectedCell[0] = None
+        updateSolving()
+        switchToActiveState()
+
+    def onClickCellIsAspect(aspect: Aspect):
+        logging.debug(f'Click on "Cell is aspect {aspect}". Selected cell: {selectedCell[0]}')
+        if selectedCell[0] is None:
+            return
+        coords = (selectedCell[0].x, selectedCell[0].y)
+        existingAspects[0][coords] = aspect.name
+        freeHexagons[0].discard(coords)
+        noneHexagons[0].discard(coords)
+        selectedCell[0] = None
+        updateSolving()
+        switchToActiveState()
+
+    def onClickCellIsFree():
+        logging.debug(f'Click on "Cell is free". Selected cell: {selectedCell[0]}')
+        if selectedCell[0] is None:
+            return
+        coords = (selectedCell[0].x, selectedCell[0].y)
+        if existingAspects[0].get(coords) is not None: del existingAspects[0][coords]
+        freeHexagons[0].add(coords)
+        noneHexagons[0].discard(coords)
+        selectedCell[0] = None
+        updateSolving()
+        switchToActiveState()
+
+    def startCellDialogue(cell: Cell):
+        switchToCellSettingsState()
+        if selectedCell[0]:
+            newColor = QColor(selectedCell[0].object.color)
+            newColor.setAlpha(selectedCell[1])
+            selectedCell[0].object.setColor(newColor)
+        selectedCell[0] = cell
+        newColor = QColor(cell.object.color)
+        selectedCell[1] = newColor.alpha()
+        newColor.setAlpha(130)
+        cell.object.setColor(newColor)
+        logging.debug(f'Showed cell state selecting dialogue')
+
+    def exitCellDialogue():
+        switchToActiveState()
+        if not selectedCell[0]:
+            return
+        newColor = QColor(selectedCell[0].object.color)
+        newColor.setAlpha(selectedCell[1])
+        selectedCell[0].object.setColor(newColor)
+        selectedCell[0] = None
+        logging.debug(f'Exit cell state selecting dialogue. Showed only cells field')
+
 
     # draw clickable cells
     for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
@@ -519,6 +584,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
                 hexagonCenterY,
                 r=TI.hexagonSlotSizeY / 2,
                 color=cellColorFree,
+                onClickCallback=startCellDialogue,
+                onClickCallbackArgs=[cell],
+                hoverable=True,
             )
             cell.object = cellObject
             imageSide = TI.hexagonSlotSizeY / math.sqrt(2)
@@ -531,11 +599,74 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             )
             cell.imageObject = cellAspectImageObject
             cells.append(cell)
+            cellsObjects.append(cellAspectImageObject)
+            cellsObjects.append(cellObject)
             UI.addObject(cellObject)
             UI.addObject(cellAspectImageObject)
 
-    # draw dialogue
-    UI.addObject(UIPrimitives.Text(
+    # draw cell dialogue
+    textYCoord = MARGIN
+    textCellIsNone = UI.addObject(UIPrimitives.Text(
+        MARGIN, textYCoord,
+        'Ячейка недоступна (N)',
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        backgroundOpacity=0.8,
+        padding=MARGIN,
+        UI=UI,
+        onClickCallback=onClickCellIsNone,
+        hoverable=True,
+    ))
+    cellSettingsStateDialogueObjects.append(textCellIsNone)
+    textYCoord += textCellIsNone.h + MARGIN
+    textCellIsFree = UI.addObject(UIPrimitives.Text(
+        MARGIN, textYCoord,
+        'Ячейка свободна (F)',
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        backgroundOpacity=0.8,
+        padding=MARGIN,
+        UI=UI,
+        onClickCallback=onClickCellIsFree,
+        hoverable=True,
+    ))
+    cellSettingsStateDialogueObjects.append(textCellIsFree)
+    textYCoord += textCellIsFree.h + MARGIN * 2
+    startTextYCoord = textYCoord
+    textXCoord = MARGIN
+    for i in range(len(TI.allAspects)):
+        aspect = TI.allAspects[i]
+        textAspect = UI.addObject(UIPrimitives.Text(
+            textXCoord, textYCoord,
+            aspect.name,
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('black'),
+            backgroundOpacity=0.8,
+            padding=(MARGIN, MARGIN, MARGIN, MARGIN * 4),
+            UI=UI,
+            onClickCallback=onClickCellIsAspect,
+            onClickCallbackArgs=[aspect],
+            hoverable=True,
+        ))
+        aspectImage = UI.addObject(UIPrimitives.Image(
+            textXCoord + MARGIN * 2, textYCoord,
+            MARGIN * 2, MARGIN * 2,
+            None,
+            ))
+        aspectImage.setImage(aspect.pixMapImage)
+        cellSettingsStateDialogueObjects.append(textAspect)
+        cellSettingsStateDialogueObjects.append(aspectImage)
+        textYCoord += textAspect.h
+        if textYCoord > UI.height() - textAspect.h:
+            textYCoord = startTextYCoord
+            textXCoord += 250
+    UI.setObjectsVisibility(cellSettingsStateDialogueObjects, False)
+
+    # draw base dialogue
+    activeStateTextObject = UI.addObject(UIPrimitives.Text(
         MARGIN, MARGIN,
         f"""Нейросеть определила аспекты на поле.
 Чтобы перегенерировать полученную цепочку решения, нажми [R]
@@ -553,6 +684,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         UI=UI,
         movable=True,
     ))
+    activeStateDialogueObjects.append(activeStateTextObject)
 
     def startPuttingLinkMap():
         UI.setAllObjectsVisibility(False)
@@ -597,8 +729,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         freeHexagons[0].clear()
         noneHexagons[0].clear()
         currentLinkMap[0].clear()
-        if not isUnstoppableModeOn[0]:
-            updateCellsImage()
+        updateCellsImage()
         renderDelay()
         updateDetectingField()
         updateSolving()
@@ -617,8 +748,10 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         backgroundColor=QColor('black'),
         padding=MARGIN,
     ))
+    pausedStateDialogueObjects.append(onPausedText)
 
     def switchToActiveState():
+        logging.info("Switching to active state")
         def setUnstoppableModeOn():
             isUnstoppableModeOn[0] = True
         UI.clearKeyCallbacks()
@@ -627,17 +760,28 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         UI.setKeyCallback([KeyboardKeys.r], updateSolving)
         UI.setKeyCallback([KeyboardKeys.backspace], beReadyForStartSolving, UI)
         UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToPausedState)
-        UI.setAllObjectsVisibility(True)
-        onPausedText.setVisibility(False)
+        UI.setAllObjectsVisibility(False)
+        UI.setObjectsVisibility(activeStateDialogueObjects, True)
+        UI.setObjectsVisibility(cellsObjects, True)
+        exitButtonObject.setVisibility(True)
 
     def switchToPausedState():
+        logging.info("Switching to paused state")
         UI.clearKeyCallbacks()
         UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToActiveState)
         UI.setAllObjectsVisibility(False)
-        onPausedText.setVisibility(True)
+        UI.setObjectsVisibility(pausedStateDialogueObjects, True)
 
-    def hideAllUI():
+    def switchToCellSettingsState():
+        logging.info("Switching to cell settings state")
+        UI.clearKeyCallbacks()
+        UI.setKeyCallback([KeyboardKeys.n], onClickCellIsNone)
+        UI.setKeyCallback([KeyboardKeys.f], onClickCellIsFree)
+        UI.setKeyCallback([KeyboardKeys.esc], exitCellDialogue)
         UI.setAllObjectsVisibility(False)
+        UI.setObjectsVisibility(cellSettingsStateDialogueObjects, True)
+        UI.setObjectsVisibility(cellsObjects, True)
+        exitButtonObject.setVisibility(True)
 
     updateDetectingField()
     updateSolving()

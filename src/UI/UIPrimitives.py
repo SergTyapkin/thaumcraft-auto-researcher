@@ -41,6 +41,7 @@ class _Object:
     hoverable = False
     onClickCallback = None
     onClickCallbackArgs = []
+    clickable = False
     _pen: QPen = None
     _brush: QBrush = None
 
@@ -98,7 +99,7 @@ class _Object:
 
 class Circle(_Object):
     def __init__(self, x: float, y: float, r: float, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []): #, fill=None, fillOpacity=1):
+                 movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = [], clickable: bool = None): #, fill=None, fillOpacity=1):
         self.x = x
         self.y = y
         self.r = r
@@ -110,6 +111,7 @@ class Circle(_Object):
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
+        self.clickable = clickable if clickable is not None else (onClickCallback is not None)
         # self.fill = fill
         # if fill is not None: self.fill.setAlpha(opacityToAlpha(fillOpacity))
 
@@ -126,7 +128,7 @@ class Circle(_Object):
 
 class Point(_Object):
     def __init__(self, x: float, y: float, size=DEFAULT_POINT_SIZE, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 movable=False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 movable=False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = [], clickable: bool = None):
         self.x = x
         self.y = y
         self.size = size
@@ -138,6 +140,7 @@ class Point(_Object):
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
+        self.clickable = clickable if clickable is not None else (onClickCallback is not None)
 
         super().__init__()
 
@@ -160,7 +163,7 @@ class Point(_Object):
 
 class Line(_Object):
     def __init__(self, x1: float, y1: float, x2: float, y2: float, color=DEFAULT_COLOR, width=DEFAULT_LINE_WIDTH,
-                 dashed=False, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 dashed=False, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = [], clickable: bool = None):
         self.S = Point(x1, y1, color)
         self.E = Point(x2, y2, color)
         self.color = color
@@ -171,6 +174,7 @@ class Line(_Object):
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
+        self.clickable = clickable if clickable is not None else (onClickCallback is not None)
 
         super().__init__()
         if dashed:
@@ -201,7 +205,7 @@ class Line(_Object):
 
 class Rect(_Object):
     def __init__(self, x1: float, y1: float, x2: float, y2: float, color=DEFAULT_COLOR, lineWidth=DEFAULT_LINE_WIDTH,
-                 dashed=False, fill=None, fillOpacity=1, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 dashed=False, fill=None, fillOpacity=1, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = [], clickable: bool = None):
         self.LT = Point(x1, y1, color)
         self.RT = Point(x2, y1, color)
         self.RB = Point(x2, y2, color)
@@ -222,6 +226,7 @@ class Rect(_Object):
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
+        self.clickable = clickable if clickable is not None else (onClickCallback is not None)
 
         super().__init__()
 
@@ -291,7 +296,7 @@ class Align(Enum):
 class Text(_Object):
     def __init__(self, x: float, y: float, text: str, font=DEFAULT_FONT, color=DEFAULT_COLOR, align: Align = Align.left,
                  withBackground=False, backgroundColor=QColor('black'), backgroundOpacity=0.5, padding: int|tuple[int, int, int, int] = DEFAULT_PADDING,
-                 movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, UI=None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+                 movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, UI=None, onClickCallback: Callable = None, onClickCallbackArgs: list = [], clickable: bool = None):
         lines = text.split('\n')
         self.w = max(map(len, lines)) * font.pointSize() / 1.05
         self.h = font.pointSize() * 2 * len(lines)
@@ -309,6 +314,7 @@ class Text(_Object):
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
+        self.clickable = clickable if clickable is not None else (onClickCallback is not None)
         if self.withBackground:
             self.backgroundColor = backgroundColor
             self.backgroundColor.setAlpha(opacityToAlpha(backgroundOpacity))
@@ -370,7 +376,7 @@ class Text(_Object):
 
 
 class Image(_Object):
-    def __init__(self, x: float, y: float, w: float, h: float, path: str | None, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = []):
+    def __init__(self, x: float, y: float, w: float, h: float, path: str | None, movable: bool = False, hoverable: bool = False, hoverColor: QColor = None, onMoveCallback: Callable = None, onClickCallback: Callable = None, onClickCallbackArgs: list = [], clickable: bool = None):
         self.rect = Rect(x - w / 2, y - h / 2, x + w / 2, y + h / 2)
         self.w = w
         self.h = h
@@ -384,6 +390,7 @@ class Image(_Object):
         self.onMoveCallback = onMoveCallback
         self.onClickCallback = onClickCallback
         self.onClickCallbackArgs = onClickCallbackArgs
+        self.clickable = clickable if clickable is not None else (onClickCallback is not None)
 
         # self.image = self.image.scaledToWidth(int(w))
         # self.image = self.image.scaledToHeight(int(h))
