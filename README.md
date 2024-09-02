@@ -21,7 +21,9 @@
 Программа **никак** не взаимодействует с кодом игры и не определяется античитами. 
 Все что она делает - это смотрит на **пиксели на экране**, и с помощью нейросети имитирует **действия мышью и клавиатурой**, как если бы это делал человек.
 
-![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/tizer_gif.gif?raw=true)
+https://github.com/user-attachments/assets/a2eaa3b7-c7fe-4fbc-9905-1b19a32d498f
+
+
 ---
 
 ## [Download .exe releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
