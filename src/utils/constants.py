@@ -1,13 +1,14 @@
+import logging
 import os
 import sys
 
-THAUM_VERSION = '4.1.1.14'
-
+#------------------------
 # UI and visual part
 MARGIN = 20
 FPS = 60
 
 
+#------------------------
 # Files paths
 def to_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -46,6 +47,8 @@ FREE_HEXAGON_SLOT_IMAGES_PATHS = [
 ASPECTS_IMAGES_SIZE = 32  # px
 ASPECT_COUNT_NUMBER_SIZE = (6, 10)  # px
 
+
+#------------------------
 # In-game inventory
 # !!! Don't touch if you not sure !!!
 INVENTORY_SLOTS_X = 9
@@ -61,9 +64,20 @@ DELAY_BETWEEN_EVENTS = 0.2  # seconds
 # DELAY_BETWEEN_RENDER = 0.5  # seconds
 DELAY_BETWEEN_RENDER = 0.5  # seconds
 
-EMPTY_TOLERANCE_PERCENT = 0.02
 
+#------------------------
+# Other constants
+EMPTY_TOLERANCE_PERCENT = 0.02
+IMAGE_TMP_PATH = "./.tmp/tmp.png"
 LOG_FILE_PATH = to_resource_path("logs/logs.log")
 MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 # 1 Mb
-# DEBUG = True
-DEBUG = False
+ROBOFLOW_API_KEY = "QOvx9sZXQBIxEMVv0p9g"
+ROBOFLOW_PROJECT_NAME = "auto-thaumcraft-2"
+ROBOFLOW_MODEL_VERSION = 1
+ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
+ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
+
+#------------------------
+LOG_LEVEL = logging.DEBUG
+DEBUG = True
+# DEBUG = False

@@ -79,7 +79,7 @@ class TimedEvent:
 
 class _Window(QMainWindow):
     objects: list[UIPrimitive] = []
-    keysCallbacks: dict[KeyboardKeys, (Callable, list[Any])] = {}
+    keysCallbacks: dict[tuple[int], (Callable, list[Any])] = {}
     mousePressCallbacks: list[(Callable, list[Any])] = []
     mouseReleaseCallbacks: list[(Callable, list[Any])] = []
     mouseMoveCallbacks: list[(Callable, list[Any])] = []
@@ -90,6 +90,7 @@ class _Window(QMainWindow):
     timedEvents: set[TimedEvent] = set()
     otherProcessThread: QThread = None
     app: QApplication = None
+    holdingKeys: set[int] = set()
 
 
     def __init__(self, opacity=1.0, w=None, h=None):
@@ -110,13 +111,18 @@ class _Window(QMainWindow):
         self.setWindowOpacity(opacity)
 
         def onKeyboardEvent(event: keyboard.KeyboardEvent):
+            pressedKeyCode = event.scan_code
+            if event.event_type == keyboard.KEY_UP:
+                self.holdingKeys.discard(pressedKeyCode)
+                return
             if event.event_type != keyboard.KEY_DOWN:
                 return
+            self.holdingKeys.add(pressedKeyCode)
 
-            for key in self.keysCallbacks.keys():
+            for keysCombination in self.keysCallbacks.keys():
                 # logging.debug(f"{event.name}, {event.scan_code}")
-                if event.scan_code == key:
-                    self.keysCallbacks[key][0](*self.keysCallbacks[key][1])
+                if set(keysCombination).issubset(self.holdingKeys):
+                    self.keysCallbacks[keysCombination][0](*self.keysCallbacks[keysCombination][1])
         keyboard._listener.add_handler(onKeyboardEvent)
 
         self.startTimer(FRAME_TIME)
@@ -224,6 +230,10 @@ class _Window(QMainWindow):
         self.objects.append(obj)
         return obj
 
+    def setAllObjectsVisibility(self, state: bool):
+        for object in self.objects:
+            object.visible = state
+
     def removeObject(self, obj: UIPrimitive):
         try:
             self.objects.remove(obj)
@@ -241,8 +251,8 @@ class _Window(QMainWindow):
                 res.append(obj)
         return res
 
-    def setKeyCallback(self, key: KeyboardKeys, callback: Callable, *args: list[Any]):
-        self.keysCallbacks[key.value] = (callback, args)
+    def setKeyCallback(self, keys: list[KeyboardKeys], callback: Callable, *args: list[Any]):
+        self.keysCallbacks[tuple(map(lambda key: key.value, keys))] = (callback, args)
 
     def setMouseCallback(self, eventType: QEvent.Type, callback: Callable, *args: list[Any]):
         if eventType == QEvent.MouseButtonPress:

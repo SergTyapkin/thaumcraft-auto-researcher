@@ -23,7 +23,7 @@ pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 def enroll(UI: OverlayUI):
     UI.clearAll()
     UI.createExitButton()
-    UI.setKeyCallback(KeyboardKeys.enter, configureThaumWindowCoords, UI)
+    UI.setKeyCallback([KeyboardKeys.enter], configureThaumWindowCoords, UI)
 
     UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
@@ -87,8 +87,8 @@ def configureThaumWindowCoords(UI: OverlayUI):
     UI.addObject(Point(rectRB.x, rectRB.y, movable=True))
     logging.info("Configuring Thaum window rect dialogue successfully showed")
 
-    UI.setKeyCallback(KeyboardKeys.enter, confirmThaumWindowSlots,UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y, rectThaumWindow.RB.x, rectThaumWindow.RB.y)
-    UI.setKeyCallback(KeyboardKeys.backspace, enroll, UI)
+    UI.setKeyCallback([KeyboardKeys.enter], confirmThaumWindowSlots,UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y, rectThaumWindow.RB.x, rectThaumWindow.RB.y)
+    UI.setKeyCallback([KeyboardKeys.backspace], enroll, UI)
 
 def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
     thaumWindowWidth = RBx - LTx
@@ -236,8 +236,8 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
                                 rectInventory.RB, rectHexagonsCC, (rectHexagonsCC.y - rectHexagonsTy) / (THAUM_HEXAGONS_SLOTS_COUNT // 2))
         waitForCreatingTI(UI)
 
-    UI.setKeyCallback(KeyboardKeys.enter, saveControls)
-    UI.setKeyCallback(KeyboardKeys.backspace, configureThaumWindowCoords, UI)
+    UI.setKeyCallback([KeyboardKeys.enter], saveControls)
+    UI.setKeyCallback([KeyboardKeys.backspace], configureThaumWindowCoords, UI)
 
 def chooseThaumVersion(UI: OverlayUI):
     UI.clearAll()
@@ -369,8 +369,8 @@ def chooseThaumVersion(UI: OverlayUI):
 
     logging.info(f"Selecting version and addons dialogue showed. Versions: {versions}, Addons: {addonsNames}")
 
-    UI.setKeyCallback(KeyboardKeys.enter, onSumbit)
-    UI.setKeyCallback(KeyboardKeys.backspace, configureThaumWindowCoords, UI)
+    UI.setKeyCallback([KeyboardKeys.enter], onSumbit)
+    UI.setKeyCallback([KeyboardKeys.backspace], configureThaumWindowCoords, UI)
 
 def waitForCreatingTI(UI: OverlayUI):
     UI.clearAll()
@@ -402,11 +402,12 @@ def waitForCreatingTI(UI: OverlayUI):
     startCreatingTI()
 
 
-def runResearching(UI: OverlayUI, TI: ThaumInteractor):
+def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bool = False):
     logging.info(f"Run researching scenario started")
     UI.clearAll()
     UI.createExitButton()
-    TI.insertPaper()
+    if withInsertingNewPaper:
+        TI.insertPaper()
     # renderDelay()
 
     class Cell:
@@ -424,7 +425,6 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             return f"Cell([{self.x}, {self.y}], aspect={self.aspect}, isNone={self.isNone})"
 
     cells: list[Cell] = []
-    selectedCell: list[Cell | None, QColor | None] = [None, None]  # list to make it mutable
     currentLinkMap: list[dict[(int, int), str]] = [{}]  # list to make it mutable
 
     cellColorFree = QColor('white')
@@ -434,90 +434,49 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     cellColorNone.setAlpha(150)
     cellColorAspect.setAlpha(200)
 
-    def getExistingAspectsNoneHexagons():
-        existingAspects = {}
-        noneHexagons = set()
+    existingAspects = [{}]
+    freeHexagons = [set()]
+    noneHexagons = [set()]
+
+    def updateDetectingField():
+        logging.debug(f'Run detecting aspects on field')
+        (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
+        logging.debug(f'Aspects on field detected')
+
+    def updateSolving():
+        logging.debug(f'Starts updating solve...')
+
+        # Start solving
+        currentLinkMap[0] = generateLinkMap(existingAspects[0], noneHexagons[0])
+        logging.debug(f'New solving generated {currentLinkMap[0]}')
+
+        # Fill cells by gotten solve
+        aspectsCoords = currentLinkMap[0].keys()
         for cell in cells:
-            if cell.isNone:
-                noneHexagons.add((cell.x, cell.y))
-            elif cell.aspect is not None:
-                existingAspects[(cell.x, cell.y)] = cell.aspect.name
-        return existingAspects, noneHexagons
-
-    def onClickCellIsNone():
-        logging.debug(f'Click on "Cell is none". Selected cell: {selectedCell[0]}')
-        if selectedCell[0] is None:
-            return
-        selectedCell[0].object.setColor(cellColorNone)
-        selectedCell[0].imageObject.clearImage()
-        selectedCell[0].isNone = True
-        selectedCell[0].aspect = None
-        setCellDialogueVisibility(False)
-        selectedCell[0] = None
-        updateSolve()
-
-    def onClickCellIsAspect(aspect: Aspect):
-        logging.debug(f'Click on "Cell is aspect {aspect}". Selected cell: {selectedCell[0]}')
-        if selectedCell[0] is None:
-            return
-        selectedCell[0].object.setColor(cellColorAspect)
-        selectedCell[0].imageObject.setImage(aspect.pixMapImage)
-        selectedCell[0].isNone = False
-        selectedCell[0].aspect = aspect
-        setCellDialogueVisibility(False)
-        selectedCell[0] = None
-        updateSolve()
-
-    def onClickCellIsFree():
-        logging.debug(f'Click on "Cell is free". Selected cell: {selectedCell[0]}')
-        if selectedCell[0] is None:
-            return
-        selectedCell[0].object.setColor(cellColorFree)
-        selectedCell[0].imageObject.clearImage()
-        selectedCell[0].isNone = False
-        selectedCell[0].aspect = None
-        setCellDialogueVisibility(False)
-        selectedCell[0] = None
-        updateSolve()
-
-    def updateSolve():
-        logging.debug(f'Update temporary showed solving')
-        for cell in cells:
+            cell.isNone = True
+            cell.aspect = None
             cell.imageObject.clearImage()
-        logging.debug(f'Images in all cells cleared')
-        (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
-        currentLinkMap[0] = generateLinkMap(existingAspects, noneHexagons)
-        logging.debug(f'New solving generated')
-        for coords, aspectName in currentLinkMap[0].items():
-            for cell in cells:
+            # is aspect:
+            for coords in aspectsCoords:
                 if (cell.x == coords[0]) and (cell.y == coords[1]):
-                    aspectObj = TI.getAspectByName(aspectName)
+                    aspectObj = TI.getAspectByName(currentLinkMap[0][coords])
+                    cell.aspect = aspectObj
+                    cell.isNone = False
+                    cell.object.setColor(cellColorAspect)
                     cell.imageObject.setImage(aspectObj.pixMapImage)
                     break
+            # is free:
+            if (cell.x, cell.y) in freeHexagons[0]:
+                if cell.aspect is not None:
+                    logging.error(f"Found empty hexagon on cell with aspect! Aspect: {cell.aspect}")
+                    continue
+                cell.isNone = False
+                cell.object.setColor(cellColorFree)
+            # is none:
+            if cell.isNone:
+                cell.object.setColor(cellColorNone)
         logging.debug(f'New images placed to all cells')
 
-    def startCellDialogue(cell: Cell):
-        setCellDialogueVisibility(True)
-        if selectedCell[0]:
-            newColor = QColor(selectedCell[0].object.color)
-            newColor.setAlpha(selectedCell[1])
-            selectedCell[0].object.setColor(newColor)
-        selectedCell[0] = cell
-        newColor = QColor(cell.object.color)
-        selectedCell[1] = newColor.alpha()
-        newColor.setAlpha(130)
-        cell.object.setColor(newColor)
-        logging.debug(f'Showed cell state selecting dialogue')
-
-    def exitCellDialogue():
-        setCellDialogueVisibility(False)
-        if not selectedCell[0]:
-            return
-        newColor = QColor(selectedCell[0].object.color)
-        newColor.setAlpha(selectedCell[1])
-        selectedCell[0].object.setColor(newColor)
-        selectedCell[0] = None
-        logging.debug(f'Exit cell state selecting dialogue. Showed only cells field')
 
     # draw clickable cells
     for ix in range(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1, THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1):
@@ -530,9 +489,6 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
                 hexagonCenterY,
                 r=TI.hexagonSlotSizeY / 2,
                 color=cellColorFree,
-                onClickCallback=startCellDialogue,
-                onClickCallbackArgs=[cell],
-                hoverable=True,
             )
             cell.object = cellObject
             imageSide = TI.hexagonSlotSizeY / math.sqrt(2)
@@ -548,74 +504,15 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             UI.addObject(cellObject)
             UI.addObject(cellAspectImageObject)
 
-    # draw cell dialogue
-    cellDialogueObjects = []
-    textYCoord = MARGIN
-    textCellIsNone = UI.addObject(UIPrimitives.Text(
-        MARGIN, textYCoord,
-        'Ячейка недоступна (N)',
-        color=QColor('white'),
-        withBackground=True,
-        backgroundColor=QColor('black'),
-        backgroundOpacity=0.8,
-        padding=MARGIN,
-        UI=UI,
-        onClickCallback=onClickCellIsNone,
-        hoverable=True,
-    ))
-    cellDialogueObjects.append(textCellIsNone)
-    textYCoord += textCellIsNone.h + MARGIN
-    textCellIsFree = UI.addObject(UIPrimitives.Text(
-        MARGIN, textYCoord,
-        'Ячейка свободна (F)',
-        color=QColor('white'),
-        withBackground=True,
-        backgroundColor=QColor('black'),
-        backgroundOpacity=0.8,
-        padding=MARGIN,
-        UI=UI,
-        onClickCallback=onClickCellIsFree,
-        hoverable=True,
-    ))
-    cellDialogueObjects.append(textCellIsFree)
-    textYCoord += textCellIsFree.h + MARGIN * 2
-    startTextYCoord = textYCoord
-    textXCoord = MARGIN
-    for i in range(len(TI.allAspects)):
-        aspect = TI.allAspects[i]
-        textAspect = UI.addObject(UIPrimitives.Text(
-            textXCoord, textYCoord,
-            aspect.name,
-            color=QColor('white'),
-            withBackground=True,
-            backgroundColor=QColor('black'),
-            backgroundOpacity=0.8,
-            padding=(MARGIN, MARGIN, MARGIN, MARGIN * 4),
-            UI=UI,
-            onClickCallback=onClickCellIsAspect,
-            onClickCallbackArgs=[aspect],
-            hoverable=True,
-        ))
-        aspectImage = UI.addObject(UIPrimitives.Image(
-            textXCoord + MARGIN * 2, textYCoord,
-            MARGIN * 2, MARGIN * 2,
-            None,
-            ))
-        aspectImage.setImage(aspect.pixMapImage)
-        cellDialogueObjects.append(textAspect)
-        cellDialogueObjects.append(aspectImage)
-        textYCoord += textAspect.h
-        if textYCoord > UI.height() - textAspect.h:
-            textYCoord = startTextYCoord
-            textXCoord += 250
-
-    textControls = UI.addObject(UIPrimitives.Text(
+    # draw dialogue
+    UI.addObject(UIPrimitives.Text(
         MARGIN, MARGIN,
-        f"""Кликни на ячейки, которых нет, и в которых есть аспекты.
-Для каждой ячейки выбери в меню, какой аспект в ней лежит.
-Чтобы перегенерировать решение, нажми [R]
+        f"""Сейчас нейросеть определяет аспекты, выложенные на поле. 
+Необходимо подключение к интернету. Проверь его, и, если оно есть, просто подожди немного.
+Чтобы перегенерировать полученное решение, нажми [R]
 
-Когда будет готово, жми [Enter]
+Чтобы приостановить работу нажми [ctrl + shift + пробел]
+Если все определено правильно, жми [Enter]
 Чтобы вернуться назад, нажми [Backspace]""",
         color=QColor('white'),
         withBackground=True,
@@ -625,21 +522,16 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         movable=True,
     ))
 
-    def setCellDialogueVisibility(state: bool):
-        for obj in cellDialogueObjects:
-            obj.visible = state
-        textControls.visible = not state
-
-    setCellDialogueVisibility(False)
-
-    def callbackToFinish():
+    def startPuttingLinkMap():
         logging.info("End of configuring existing aspects and holes in field")
         UI.clearAll()
         UI.createExitButton()
         UI.addObject(UIPrimitives.Text(
             MARGIN, MARGIN,
             f"""Подожди, решение выкладывается на поле... 
-Не двигай мышью и не нажимай никакие кнопки""",
+Не двигай мышью и не нажимай никакие кнопки.
+
+Для экстренного закрытия программы нажми [ctrl + shift + alt]""",
             color=QColor('white'),
             withBackground=True,
             backgroundColor=QColor('black'),
@@ -647,9 +539,8 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         ))
         UI.clearKeyCallbacks()
         finalLinkMap = currentLinkMap[0].copy()
-        (existingAspects, noneHexagons) = getExistingAspectsNoneHexagons()
         # Удаляем исходные аспекты из карты заполнения
-        for aspectCoords in existingAspects.keys():
+        for aspectCoords in existingAspects[0].keys():
             del finalLinkMap[aspectCoords]
         logging.info("Putting aspects is started...")
         TI.fillByLinkMap(finalLinkMap)
@@ -657,14 +548,36 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         TI.takeOutPaper()
         eventsDelay()
         TI.increaseWorkingSlot()
-        runResearching(UI, TI)
+        runResearching(UI, TI, True)
 
+    onPausedText = UI.addObject(UIPrimitives.Text(
+        MARGIN, MARGIN,
+        f"""Программа проистановлена.
+
+Чтобы продолжить работу нажми [ctrl + shift + пробел]""",
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=MARGIN,
+    ))
+
+    def switchToActiveState():
+        UI.clearKeyCallbacks()
+        UI.setKeyCallback([KeyboardKeys.enter], startPuttingLinkMap)
+        UI.setKeyCallback([KeyboardKeys.r], updateSolving)
+        UI.setKeyCallback([KeyboardKeys.u], updateDetectingField)
+        UI.setKeyCallback([KeyboardKeys.backspace], chooseThaumVersion, UI)
+        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.alt], chooseThaumVersion, UI)
+        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToPausedState)
+        UI.setAllObjectsVisibility(True)
+        onPausedText.setVisibility(False)
+
+    def switchToPausedState():
+        UI.clearKeyCallbacks()
+        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToActiveState)
+        UI.setAllObjectsVisibility(False)
+        onPausedText.setVisibility(True)
+
+    switchToActiveState()
     logging.debug("Hexagon field with configuring initial aspects showed")
-
-    UI.setKeyCallback(KeyboardKeys.enter, callbackToFinish)
-    UI.setKeyCallback(KeyboardKeys.n, onClickCellIsNone)
-    UI.setKeyCallback(KeyboardKeys.f, onClickCellIsFree)
-    UI.setKeyCallback(KeyboardKeys.r, updateSolve)
-    UI.setKeyCallback(KeyboardKeys.esc, exitCellDialogue)
-    UI.setKeyCallback(KeyboardKeys.backspace, chooseThaumVersion, UI)
 
