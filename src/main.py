@@ -24,8 +24,9 @@ UI = OverlayUI(opacity=1)
 def main():
     TI = createTI(UI)
     if TI is None:
+        logging.critical("Unknown error when creating ThaumcraftInteractor. It cannot be created")
         return
-    Scenarios.runResearching(UI, TI)
+    Scenarios.beReadyForStartSolving(UI)
 
 
 if __name__ == '__main__':

@@ -79,5 +79,5 @@ ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 
 #------------------------
 LOG_LEVEL = logging.DEBUG
-DEBUG = True
-# DEBUG = False
+# DEBUG = True
+DEBUG = False

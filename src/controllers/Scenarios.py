@@ -1,5 +1,7 @@
 import logging
 import math
+import threading
+import time
 from math import pi, tan
 from math import sin
 from math import cos
@@ -372,6 +374,32 @@ def chooseThaumVersion(UI: OverlayUI):
     UI.setKeyCallback([KeyboardKeys.enter], onSumbit)
     UI.setKeyCallback([KeyboardKeys.backspace], configureThaumWindowCoords, UI)
 
+def beReadyForStartSolving(UI: OverlayUI):
+    logging.info(f"Be ready for solving scenario started")
+    UI.clearAll()
+    UI.createExitButton()
+
+    UI.addObject(UIPrimitives.Text(
+        MARGIN, MARGIN,
+        f"""Сейчас нейросеть будет определять аспекты, находящиеся на поле. 
+Необходимо подключение к интернету.
+Выложи записку исследования в ячейку стола, а инвентарь заполни записками исследований,
+начиная с самого верхнего левого слота. Они будут исследоваться по очереди
+
+Как будет готово, жми [Enter]
+Чтобы вернуться назад, нажми [Backspace]""",
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=MARGIN,
+        UI=UI,
+        movable=True,
+    ))
+
+    UI.setKeyCallback([KeyboardKeys.enter], waitForCreatingTI, UI)
+    UI.setKeyCallback([KeyboardKeys.backspace], chooseThaumVersion, UI)
+
+
 def waitForCreatingTI(UI: OverlayUI):
     UI.clearAll()
     UI.createExitButton()
@@ -402,13 +430,10 @@ def waitForCreatingTI(UI: OverlayUI):
     startCreatingTI()
 
 
-def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bool = False):
+def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     logging.info(f"Run researching scenario started")
     UI.clearAll()
     UI.createExitButton()
-    if withInsertingNewPaper:
-        TI.insertPaper()
-    # renderDelay()
 
     class Cell:
         x: int = None
@@ -440,16 +465,20 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bo
 
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
+        hideAllUI()
         (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
+        switchToActiveState()
         logging.debug(f'Aspects on field detected')
 
     def updateSolving():
         logging.debug(f'Starts updating solve...')
-
         # Start solving
         currentLinkMap[0] = generateLinkMap(existingAspects[0], noneHexagons[0])
         logging.debug(f'New solving generated {currentLinkMap[0]}')
+        # Rerender cells images
+        updateCellsImage()
 
+    def updateCellsImage():
         # Fill cells by gotten solve
         aspectsCoords = currentLinkMap[0].keys()
         for cell in cells:
@@ -507,11 +536,12 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bo
     # draw dialogue
     UI.addObject(UIPrimitives.Text(
         MARGIN, MARGIN,
-        f"""Сейчас нейросеть определяет аспекты, выложенные на поле. 
-Необходимо подключение к интернету. Проверь его, и, если оно есть, просто подожди немного.
-Чтобы перегенерировать полученное решение, нажми [R]
+        f"""Нейросеть определила аспекты на поле.
+Чтобы перегенерировать полученную цепочку решения, нажми [R]
+Если аспекты определены неверно, пиши https://t.me/tyapkin_s
+Перегенерировать можно, вернувшись назад, а затем снова на этот этап.
 
-Чтобы приостановить работу нажми [ctrl + shift + пробел]
+Чтобы приостановить программу, нажми [ctrl + shift + пробел]
 Если все определено правильно, жми [Enter]
 Чтобы вернуться назад, нажми [Backspace]""",
         color=QColor('white'),
@@ -523,10 +553,8 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bo
     ))
 
     def startPuttingLinkMap():
-        logging.info("End of configuring existing aspects and holes in field")
-        UI.clearAll()
-        UI.createExitButton()
-        UI.addObject(UIPrimitives.Text(
+        UI.setAllObjectsVisibility(False)
+        onProcessText = UI.addObject(UIPrimitives.Text(
             MARGIN, MARGIN,
             f"""Подожди, решение выкладывается на поле... 
 Не двигай мышью и не нажимай никакие кнопки.
@@ -538,23 +566,44 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bo
             padding=MARGIN,
         ))
         UI.clearKeyCallbacks()
+        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.alt], UI.exit)
+
         finalLinkMap = currentLinkMap[0].copy()
         # Удаляем исходные аспекты из карты заполнения
         for aspectCoords in existingAspects[0].keys():
             del finalLinkMap[aspectCoords]
-        logging.info("Putting aspects is started...")
-        TI.fillByLinkMap(finalLinkMap)
-        logging.info("Putting aspects is done")
-        TI.takeOutPaper()
-        eventsDelay()
-        TI.increaseWorkingSlot()
-        runResearching(UI, TI, True)
+
+        def startPuttingAspects():
+            logging.info("Putting aspects started...")
+            TI.fillByLinkMap(finalLinkMap)
+            logging.info("Putting aspects done")
+            TI.takeOutPaper()
+            eventsDelay()
+            TI.increaseWorkingSlot()
+            goToNextSlot()
+            UI.removeObject(onProcessText)
+
+        puttingAspectsThread = threading.Thread(target=startPuttingAspects)  # run in thread to not blocking keys callbacks
+        puttingAspectsThread.start()
+
+
+    def goToNextSlot():
+        logging.info("Going to next slot")
+        TI.insertPaper()
+        existingAspects[0].clear()
+        freeHexagons[0].clear()
+        noneHexagons[0].clear()
+        currentLinkMap[0].clear()
+        updateDetectingField()
+        updateSolving()
+        switchToActiveState()
+        logging.info("Everything prepared to next detecting")
 
     onPausedText = UI.addObject(UIPrimitives.Text(
         MARGIN, MARGIN,
         f"""Программа проистановлена.
 
-Чтобы продолжить работу нажми [ctrl + shift + пробел]""",
+Чтобы продолжить работу, нажми [ctrl + shift + пробел]""",
         color=QColor('white'),
         withBackground=True,
         backgroundColor=QColor('black'),
@@ -565,9 +614,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bo
         UI.clearKeyCallbacks()
         UI.setKeyCallback([KeyboardKeys.enter], startPuttingLinkMap)
         UI.setKeyCallback([KeyboardKeys.r], updateSolving)
-        UI.setKeyCallback([KeyboardKeys.u], updateDetectingField)
-        UI.setKeyCallback([KeyboardKeys.backspace], chooseThaumVersion, UI)
-        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.alt], chooseThaumVersion, UI)
+        UI.setKeyCallback([KeyboardKeys.backspace], beReadyForStartSolving, UI)
         UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToPausedState)
         UI.setAllObjectsVisibility(True)
         onPausedText.setVisibility(False)
@@ -578,6 +625,11 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor, withInsertingNewPaper: bo
         UI.setAllObjectsVisibility(False)
         onPausedText.setVisibility(True)
 
+    def hideAllUI():
+        UI.setAllObjectsVisibility(False)
+
+    updateDetectingField()
+    updateSolving()
     switchToActiveState()
     logging.debug("Hexagon field with configuring initial aspects showed")
 
