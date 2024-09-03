@@ -14,18 +14,6 @@
 
 # Автоматический исследователь для Thaumcraft 4
 > _**Thaumcraft**_ - мод для игры _Minecraft_, часто устанавливающийся в магические сборки модов на популярных серверах
-
-Программа с помощью нейросети **автоматически решает и раскладывает** записки исследований в столе исследований.
-Весь интерфейс взаимодействия полупрозрачный и показывается поверх всех окон.
-
-Программа **никак** не взаимодействует с кодом игры и не определяется античитами. 
-Все что она делает - это смотрит на **пиксели на экране**, и с помощью нейросети имитирует **действия мышью и клавиатурой**, как если бы это делал человек.
-
-https://github.com/user-attachments/assets/a2eaa3b7-c7fe-4fbc-9905-1b19a32d498f
-
-
----
-
 ## [Download .exe releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
 [latest version `v1.1.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.1.0)
 <details>
@@ -37,12 +25,40 @@ https://github.com/user-attachments/assets/a2eaa3b7-c7fe-4fbc-9905-1b19a32d498f
 - Добавлен безостановочный режим исследования
 </details>
 
+---
+Программа с помощью нейросети **автоматически решает и раскладывает** записки исследований в столе исследований.
+Весь интерфейс взаимодействия полупрозрачный и показывается поверх всех окон.
 
-По любым вопросам, ошибкам и предложениям пишите: [t.me/tyapkin_s](https://t.me/tyapkin_s)
+Программа **никак** не взаимодействует с кодом игры и не определяется античитами. 
+Все что она делает - это смотрит на **пиксели на экране**, и с помощью нейросети имитирует **действия мышью и клавиатурой**, как если бы это делал человек.
 
-## Порядок работы
+По любым вопросам, ошибкам и предложениям пишите: [t.me/Tyapkin_S](https://t.me/tyapkin_s)
+
+<details>
+<summary>Список поддерживаемых аддонов (развернуть...)</summary>
+
+- Magic Bees
+- Forbidden Magic
+- Avaritia
+- GregTech
+- GregTech NewHorizons
+- Thaumic Boots
+- Botanical addons
+- The Elysium
+- Thaumic Revelations
+- Essential Thaumaturgy
+- AbyssalCraft Integration
+</details>
+
+https://github.com/user-attachments/assets/a2eaa3b7-c7fe-4fbc-9905-1b19a32d498f
+
+---
+
+
+# Как этим пользоваться?
 ### Предварительная настройка 
 > _Выполняется один раз после первого запуска программы_
+0. Скачиваем программу из [releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
 1. Демонстрация и проверка того, что точки с перекрестьями можно двигать. 
 Просто передвиньте красную точку на желтую.
 ![image](https://github.com/SergTyapkin/thaumcraft-auto-researcher/blob/master/README_images/enroll.png?raw=true)
@@ -91,7 +107,7 @@ https://github.com/user-attachments/assets/a2eaa3b7-c7fe-4fbc-9905-1b19a32d498f
 ----------
 
 
-## В следующих версиях
+## В следующих версиях...
 - Автоопределение имеющихся аспектов в столе и их количества, выстраивание цепочек на основе этой информации.
 - Адаптивная скорость работы в зависимости от FPS в игре
 - Проверка корректности выложенных цепочек
@@ -101,7 +117,7 @@ https://github.com/user-attachments/assets/a2eaa3b7-c7fe-4fbc-9905-1b19a32d498f
 
 ----------
 
-## Запуск из исходников:
+# Запуск из исходников:
 1. Установка зависимостей:
 ```shell
 pip install -r requirements.txt
