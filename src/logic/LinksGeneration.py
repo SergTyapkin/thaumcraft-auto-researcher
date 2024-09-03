@@ -110,7 +110,6 @@ class Aspect:
                 return self.dist < other.dist
         cells: dict[(int, int), PathElement] = {}
         unvisited_nodes: set[PathElement] = set()
-
         # Создаем все клетки
         for x in range(-hexagon_field_radius, hexagon_field_radius + 1):
             for y in range(-hexagon_field_radius + (abs(x) + 1) // 2, hexagon_field_radius - (abs(x)) // 2 + 1):
@@ -174,8 +173,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
     result = {}
     initial_aspects: set[Aspect] = set()
     aspects_on_field: set[Aspect] = set()
-    maxX = 0
-    maxY = 0
+    maxDistFromCenter = 0
 
     # Первоначальная обработка входных данных
     for coord, aspectName in existing_aspects.items():
@@ -184,10 +182,10 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
         aspects_on_field.add(aspectObject)
         aspectObject.linked_to_initials.add(aspectObject)
         result[coord] = aspectName
-        maxX = max(maxX, abs(coord[0]))
-        maxY = max(maxY, abs(coord[1]))
+        distFromCenter = abs(coord[0]) + abs(coord[1]) - abs(coord[0]) // 2
+        maxDistFromCenter = max(maxDistFromCenter, distFromCenter)
 
-    hexagon_field_radius = max(maxX, maxY)
+    hexagon_field_radius = maxDistFromCenter
     logging.debug(f"Hexagon field radius: {hexagon_field_radius}")
 
     # Продолжаем, пока все изначальные аспекты не будут связаны

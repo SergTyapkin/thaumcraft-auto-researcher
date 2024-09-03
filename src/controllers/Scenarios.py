@@ -667,7 +667,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
     # draw base dialogue
     activeStateTextObject = UI.addObject(UIPrimitives.Text(
-        MARGIN, MARGIN,
+        pointTextAnchor.x, pointTextAnchor.y,
         f"""Нейросеть определила аспекты на поле.
 Чтобы перегенерировать полученную цепочку решения, нажми [R]
 Если аспекты определены неверно, можно кликнуть на ячейку 
@@ -747,7 +747,8 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         withBackground=True,
         backgroundColor=QColor('black'),
         padding=MARGIN,
-        movable=True
+        movable=True,
+        UI=UI,
     ))
     pausedStateDialogueObjects.append(onPausedText)
 

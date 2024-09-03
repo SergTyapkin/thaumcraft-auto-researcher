@@ -500,8 +500,7 @@ class ThaumInteractor:
         xLeft = self.rectHexagonsCC.x - (THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeX
         yTop = self.rectHexagonsCC.y - (THAUM_HEXAGONS_SLOTS_COUNT / 2) * self.hexagonSlotSizeY
         allCells = set()
-        maxX = 0
-        maxY = 0
+        maxDistFromCenter = 0
         for prediction in predictions:
             if prediction.predictionName == ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME:
                 isAspect = False
@@ -517,8 +516,8 @@ class ThaumInteractor:
             yCenter = prediction.y + hexagonsRectLT.y
             xCell = int(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1 + (xCenter - xLeft) // self.hexagonSlotSizeX)
             yCell = int(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1 + (yCenter - yTop + ((self.hexagonSlotSizeY / 2) if xCell % 2 != 0 else 0)) // self.hexagonSlotSizeY)
-            maxX = max(maxX, abs(xCell))
-            maxY = max(maxY, abs(yCell))
+            distFromCenter = abs(xCell) + abs(yCell) - abs(xCell) // 2
+            maxDistFromCenter = max(maxDistFromCenter, distFromCenter)
             allCells.add(Cell(
                 xCell, yCell,
                 prediction.predictionName if isAspect else None,
@@ -527,7 +526,7 @@ class ThaumInteractor:
             ))
 
         # Split cells by holes set and aspects dict
-        hexagonFieldRadius = max(maxX, maxY)
+        hexagonFieldRadius = min(maxDistFromCenter, THAUM_HEXAGONS_SLOTS_COUNT // 2)
         logging.debug(f"Hexagon field radius detected: {hexagonFieldRadius}")
 
         existingAspects = {}
@@ -537,6 +536,8 @@ class ThaumInteractor:
             for y in range(-hexagonFieldRadius + (abs(x) + 1) // 2, hexagonFieldRadius - (abs(x)) // 2 + 1):
                 noneHexagons.add((x, y))
         for cell in allCells:
+            if (cell.x, cell.y) not in noneHexagons: # coordinates out of range
+                continue
             if cell.isAspect:
                 existingAspects[(cell.x, cell.y)] = cell.aspectName
             elif cell.isFreeHex:
