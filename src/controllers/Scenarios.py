@@ -134,7 +134,7 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
     pointPapers = UI.addObject(Point(LTx + Ws * 4.5, topSlotsY, movable=True, color=QColor('yellow')))  # scrolls
 
     rectAspectsLT = LinkableCoord(LTx + Ws * 0.25, LTy + Hs * 2.25)
-    rectAspectsRB = LinkableCoord(LTx + Ws * 5.25, LTy + Hs * 7.25)
+    rectAspectsRB = LinkableCoord(LTx + Ws * 5.2, LTy + Hs * 7.25)
     UI.addObject(Line(rectAspectsLT.x, rectAspectsLT.y, rectAspectsRB.x, rectAspectsRB.y, dashed=True, color=QColor('brown')))
     UI.addObject(Line(rectAspectsRB.x, rectAspectsLT.y, rectAspectsLT.x, rectAspectsRB.y, dashed=True, color=QColor('brown')))
     rectAspectsListing = UI.addObject(
@@ -186,7 +186,7 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
     UI.addObject(Point(rectRB.x, rectRB.y, movable=True))  # inventory rectangle
 
     rectHexagonsCC = LinkableCoord(LTx + Ws * 10, LTy + Hs * 5)
-    rectHexagonsTy = LinkableValue(LTy + Hs * 0.25)
+    rectHexagonsTy = LinkableValue(LTy + Hs * 1.05)
     verticalHexagonsLines = []
     deg30HexagonsLines = []
     deg60HexagonsLines = []
@@ -747,6 +747,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         withBackground=True,
         backgroundColor=QColor('black'),
         padding=MARGIN,
+        movable=True
     ))
     pausedStateDialogueObjects.append(onPausedText)
 
