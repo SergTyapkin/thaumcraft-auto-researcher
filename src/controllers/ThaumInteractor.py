@@ -1,5 +1,6 @@
 import logging
 import math
+import time
 from typing import Any, Union
 
 import keyboard
@@ -18,7 +19,7 @@ from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPE
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
     getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
     HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN, UNKNOWN_ASPECT_IMAGE_PATH, ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME, \
-    ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME
+    ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER
 from src.utils.constants import getAspectImagePath
 from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
     loadRecipesForSelectedVersion
@@ -110,11 +111,11 @@ class ThaumInteractor:
     UI = None
 
     workingInventorySlot = -1  # can be 0..26 (inventory 9x3)
-    currentAspectsPageIdx = 0
+    currentAspectsPageIdx = None
     allAspects: list[Aspect] = []
     availableAspects: list[Aspect] = []
     recipes: dict[str, [str, str]]
-    maxPagesCount: int = 1
+    maxPagesCount: int = None
     numbersImages: list[Image.Image] = []
 
     pointWritingMaterials: P
@@ -173,7 +174,7 @@ class ThaumInteractor:
         for i in range(0, 10):
             self.numbersImages.append(self.loadImage(getImagePathByNumber(i), noResize=True))
 
-        self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
+        # self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
 
         self.allAspects = []
@@ -181,7 +182,6 @@ class ThaumInteractor:
             self.allAspects.append(Aspect(orderedAvailableAspects[i], i))
         self.loadAspectsImages()
         logging.info(f"ThaumcraftInteractor successfully initialized")
-        # self.availableAspects = self.getAvailableAspects()
 
     def loadImage(self, path: str, backgroundImage: Image.Image = None, noResize: bool = False) -> Image.Image:
         image = Image.open(path)
@@ -232,7 +232,10 @@ class ThaumInteractor:
     def scrollToLeftSide(self):
         logging.info(f"Thaum inventory scrolling to left side border...")
         if self.currentAspectsPageIdx is None:
-            self.currentAspectsPageIdx = self.maxPagesCount
+            if self.maxPagesCount is not None:
+                self.currentAspectsPageIdx = self.maxPagesCount
+            else:
+                self.currentAspectsPageIdx = THAUM_ASPECTS_INVENTORY_SLOTS_Y + 10
         for _ in range(self.currentAspectsPageIdx):
             self.scrollLeft()
             eventsDelay()
@@ -250,12 +253,15 @@ class ThaumInteractor:
     def _showDebugClick(self, point, color=QColor('lightgreen')):
         if not DEBUG:
             return
+        eventsDelay()
         clickCircle = UIPrimitives.Circle(point.x, point.y, 20, color=color)
 
+        timeToLeave = DELAY_BETWEEN_RENDER / 2 * 1000  # ms
+        circleRadius = 20
         def onTimeCallback(timeLeft):
-            clickCircle.r = timeLeft / 1000 * 20
+            clickCircle.r = timeLeft / timeToLeave * circleRadius
 
-        self.UI.addObjectAndDeleteAfterTime(clickCircle, 1000, onTimeCallback)
+        self.UI.addObjectAndDeleteAfterTime(clickCircle, timeToLeave, onTimeCallback)
 
     def moveMouseInSafePos(self):
         self.pointSafePosition.move()
@@ -395,51 +401,118 @@ class ThaumInteractor:
     def imageResize(self, image: Image.Image) -> Image.Image:
         return image.resize((ASPECTS_IMAGES_SIZE, ASPECTS_IMAGES_SIZE), Image.Resampling.LANCZOS)
 
-    #
-    # def getAvailableAspects(self):
-    #     logging.info("Detecting available aspects...")
-    #     debugHighlightingRect = None
-    #     if DEBUG:
-    #         debugHighlightingRect = UIPrimitives.Rect(self.rectAspectsListingLT.x, self.rectAspectsListingLT.y,
-    #                                                   self.rectAspectsListingRB.x, self.rectAspectsListingRB.y,
-    #                                                   fill=QColor('blue'), fillOpacity=0.3, lineWidth=1,
-    #                                                   color=QColor('blue'))
-    #         self.UI.addObject(debugHighlightingRect)
-    #     slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
-    #     slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
-    #     self.scrollToLeftSide()
-    #     xCell = THAUM_ASPECTS_INVENTORY_SLOTS_X - 1
-    #     yCell = 0
-    #     regionLX = self.rectAspectsListingLT.x + xCell * slotWidth
-    #     regionLY = self.rectAspectsListingLT.y + yCell * slotHeight
-    #     previousImageInSlot = None
-    #     while True:
-    #         if DEBUG:
-    #             debugHighlightingRect.setCoords(
-    #                 regionLX, regionLY,
-    #                 regionLX + slotWidth, regionLY + slotHeight
-    #             )
-    #             debugHighlightingRect.setVisibility(False)
-    #             renderDelay()
-    #         imageInSlot = self.imageResize(pyautogui.screenshot(region=(
-    #             regionLX, regionLY,
-    #             slotWidth, slotHeight
-    #         )))
-    #         if DEBUG:
-    #             debugHighlightingRect.setVisibility(True)
-    #         if previousImageInSlot:
-    #             diffWithEmpty = getImagesDiffPercent(previousImageInSlot, imageInSlot)
-    #             if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:
-    #                 logging.info(f"Found end of inventory. Detection ends. Total pages: {self.currentAspectsPageIdx}")
-    #                 self.maxPagesCount = self.currentAspectsPageIdx
-    #                 if DEBUG: self.UI.removeObject(debugHighlightingRect)
-    #                 break
-    #         previousImageInSlot = imageInSlot
-    #         self.scrollRight()
-    #         eventsDelay()
-    #
-    #     availableAspects = []
-    #     return availableAspects
+    def addDebugHighlightingRect(self, LTx=0, LTy=0, RTx=0, RTy=0):
+        if not DEBUG:
+            return None
+        debugHighlightingRect = UIPrimitives.Rect(LTx, LTy,
+                                                  RTx, RTy,
+                                                  fill=QColor('blue'), fillOpacity=0.3, lineWidth=1,
+                                                  color=QColor('blue'))
+        self.UI.addObject(debugHighlightingRect)
+        return debugHighlightingRect
+
+    def takeScreenshot(self, LTx, LTy, RBx, RBy, debugHighlightingRect = None) -> Image.Image:
+        if DEBUG and debugHighlightingRect is not None:
+            debugHighlightingRect.setVisibility(False)
+        screenshotImage = pyautogui.screenshot(region=(
+            LTx, LTy,
+            RBx - LTx, RBy - LTy,
+        ))
+        logging.info(f"Taken screenshot on ({LTx}, {LTy})x({RBx}, {RBy})...")
+        if DEBUG and debugHighlightingRect is not None:
+            debugHighlightingRect.setCoords(
+                LTx, LTy,
+                RBx, RBy,
+            )
+            debugHighlightingRect.setVisibility(True)
+            time.sleep(1)
+        return screenshotImage
+
+    def updateAvailableAspectsInInventory(self):
+        logging.info("Detecting available aspects...")
+        self.availableAspects = []
+
+        debugHighlightingRect = self.addDebugHighlightingRect()
+        slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
+        slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
+        self.scrollToLeftSide()
+        isFoundEndOfInventory = False
+        newAdditionalOffset = THAUM_ASPECTS_INVENTORY_SLOTS_X
+        while newAdditionalOffset > 0:
+            logging.info(f"Finding aspects on new page of inventory. Current page: {self.currentAspectsPageIdx}")
+            # Calculate screenshot area
+            screenshotRBX = self.rectAspectsListingRB.x
+            screenshotRBY = self.rectAspectsListingRB.y
+            screenshotLTX = self.rectAspectsListingRB.x - slotWidth * newAdditionalOffset
+            screenshotLTY = self.rectAspectsListingLT.y
+            screenshotImage = self.takeScreenshot(
+                screenshotLTX, screenshotLTY,
+                screenshotRBX, screenshotRBY,
+                debugHighlightingRect
+            )
+
+            # FIXME: Neurolink can't detect aspects on dark background
+            # Find aspects on screenshot
+            # logging.info("Wait for prediction")
+            # predictions = Neurolink.predict(screenshotImage)
+            # logging.info(f"Predictions: {predictions}")
+
+            # Approximate aspects coordinates by cells
+            aspectsOnScreenshot = []
+            # for prediction in predictions:
+            #     try:
+            #         aspect = self.getAspectByName(prediction.predictionName)
+            #     except ValueError:
+            #         continue
+            #     coords = (
+            #         self.currentAspectsPageIdx + prediction.x // slotWidth,
+            #         prediction.y // slotHeight,
+            #     )
+            #     aspectsOnScreenshot.append([coords, aspect])
+            def sortFunc(element):
+                return element[0][0] * THAUM_ASPECTS_INVENTORY_SLOTS_Y + element[0][1]
+            aspectsOnScreenshot.sort(key=sortFunc)
+            logging.info(f"Sorted detected aspects: {aspectsOnScreenshot}")
+
+            # add found aspects to available aspects
+            self.availableAspects.extend(map(lambda elem: elem[1], aspectsOnScreenshot))
+            logging.debug(f"All available aspects: {self.availableAspects}")
+
+            if isFoundEndOfInventory:
+                break
+
+            # Check if we really move right or it's end of inventory
+            logging.info(f"Checking if we really can move right or it's end of inventory...")
+            newAdditionalOffset = 0
+            previousScreenshotImage = self.takeScreenshot(
+                self.rectAspectsListingRB.x - slotWidth, self.rectAspectsListingLT.y,
+                self.rectAspectsListingRB.x, self.rectAspectsListingLT.y + slotHeight,
+                debugHighlightingRect
+            )
+            while newAdditionalOffset < THAUM_ASPECTS_INVENTORY_SLOTS_X:
+                self.scrollRight()
+                renderDelay()
+                newScreenshotImage = self.takeScreenshot(
+                    self.rectAspectsListingRB.x - slotWidth, self.rectAspectsListingLT.y,
+                    self.rectAspectsListingRB.x, self.rectAspectsListingLT.y + slotHeight,
+                    debugHighlightingRect
+                )
+                # check if we really scrolled right
+                diffWithEmpty = getImagesDiffPercent(previousScreenshotImage, newScreenshotImage)
+                logging.debug(f"Difference of two images before and after scrolling right: {diffWithEmpty}")
+                if diffWithEmpty < EMPTY_TOLERANCE_PERCENT: # nothing changed - it's the end of inventory
+                    logging.info(f"Found end of inventory. Detection ends")
+                    self.currentAspectsPageIdx -= 1
+                    self.maxPagesCount = self.currentAspectsPageIdx
+                    isFoundEndOfInventory = True
+                    logging.info(f"Total inventory pages: {self.currentAspectsPageIdx}")
+                    break
+                newAdditionalOffset += 1
+                previousScreenshotImage = newScreenshotImage
+            logging.info(f"New aspects page total width: {newAdditionalOffset}")
+
+        self.UI.removeObject(debugHighlightingRect)
+
 
     def logAvailableAspects(self):
         string = ""
@@ -463,20 +536,12 @@ class ThaumInteractor:
         )
 
         # Do a screenshot
-        debugHighlightingRect = None
-        if DEBUG:
-            debugHighlightingRect = UIPrimitives.Rect(
-                hexagonsRectLT.x, hexagonsRectLT.y,
-                hexagonsRectRB.x, hexagonsRectRB.y,
-                fill=QColor('blue'), fillOpacity=0.3, lineWidth=1, color=QColor('blue'))
-            self.UI.addObject(debugHighlightingRect)
-            debugHighlightingRect.setVisibility(False)
-        allHexagonsImage = pyautogui.screenshot(region=(
+        debugHighlightingRect = self.addDebugHighlightingRect()
+        allHexagonsImage = self.takeScreenshot(
             hexagonsRectLT.x, hexagonsRectLT.y,
-            hexagonsRectRB.x - hexagonsRectLT.x, hexagonsRectRB.y - hexagonsRectLT.y,
-        ))
-        if DEBUG:
-            debugHighlightingRect.setVisibility(True)
+            hexagonsRectRB.x, hexagonsRectRB.y,
+            debugHighlightingRect
+        )
 
         # Find aspects, hexagons and scripts on screenshot.
         logging.info("Wait for prediction")
@@ -549,6 +614,5 @@ class ThaumInteractor:
         logging.debug(f"Free hexagons: {freeHexagons}")
         logging.debug(f"End of detecting hexagons field")
 
-        if DEBUG:
-            self.UI.removeObject(debugHighlightingRect)
+        self.UI.removeObject(debugHighlightingRect)
         return existingAspects, noneHexagons, freeHexagons
