@@ -45,7 +45,6 @@ FREE_HEXAGON_SLOT_IMAGES_PATHS = [
     to_resource_path('images/hexagons/freeHexagons/7.png'),
 ]
 ASPECTS_IMAGES_SIZE = 32  # px
-ASPECT_COUNT_NUMBER_SIZE = (6, 10)  # px
 
 
 #------------------------
@@ -62,6 +61,15 @@ THAUM_HEXAGONS_SLOTS_COUNT = 9  # must be odd
 DELAY_BETWEEN_EVENTS = 0.15  # seconds
 DELAY_BETWEEN_RENDER = 0.5  # seconds
 
+#------------------------
+# Neurolink constants
+# MODEL_ONNX_PATH = to_resource_path("neuro_model_configs/weights.onnx")
+ROBOFLOW_API_KEY = "QOvx9sZXQBIxEMVv0p9g"
+ROBOFLOW_PROJECT_NAME = "auto-thaumcraft-2"
+ROBOFLOW_MODEL_VERSION = 1
+ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
+ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
+
 
 #------------------------
 # Other constants
@@ -69,11 +77,6 @@ EMPTY_TOLERANCE_PERCENT = 0.02
 IMAGE_TMP_PATH = to_resource_path(".tmp/tmp.png")
 LOG_FILE_PATH = to_resource_path("logs/logs.log")
 MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 # 1 Mb
-ROBOFLOW_API_KEY = "QOvx9sZXQBIxEMVv0p9g"
-ROBOFLOW_PROJECT_NAME = "auto-thaumcraft-2"
-ROBOFLOW_MODEL_VERSION = 1
-ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
-ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 
 #------------------------
 LOG_LEVEL = logging.DEBUG

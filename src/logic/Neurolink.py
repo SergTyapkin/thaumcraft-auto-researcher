@@ -1,11 +1,11 @@
 import logging
 import time
 
-import roboflow
+from inference import get_model
 from PIL import Image
 
-from utils.constants import ROBOFLOW_API_KEY, ROBOFLOW_PROJECT_NAME, ROBOFLOW_MODEL_VERSION, IMAGE_TMP_PATH
-from utils.utils import createDirByFilePath
+from utils.constants import ROBOFLOW_API_KEY, ROBOFLOW_PROJECT_NAME, ROBOFLOW_MODEL_VERSION
+
 
 class Prediction:
     x: float
@@ -25,10 +25,12 @@ class Prediction:
         return f"Prediction(\"{self.predictionName}\": ({self.x}, {self.y}) [{self.width} x {self.height}], conf: {round(self.confidence * 100, 1)}%)"
 
 class _NeurolinkClass:
-    model: roboflow.models.inference.InferenceModel
+    model: any
+    inputModelName: str
+    outputModelName: str
     isConnectionError: bool
-    minConfidence: float = 40
-    overlap: float = 30
+    minConfidence: float = 0.6
+    overlap: float = 0.3
 
     # Make it singleton
     _instances = {}
@@ -46,12 +48,26 @@ class _NeurolinkClass:
 
     def init(self):
         try:
-            rf = roboflow.Roboflow(api_key=ROBOFLOW_API_KEY)
-            logging.debug(f"Roboflow successfully initialized")
-            project = rf.workspace().project(ROBOFLOW_PROJECT_NAME)
-            logging.debug(f"Roboflow project successfully initialized")
-            self.model = project.version(ROBOFLOW_MODEL_VERSION).model
-            logging.debug(f"Roboflow model successfully initialized")
+            # Run with "roboflow"
+            # rf = roboflow.Roboflow(api_key=ROBOFLOW_API_KEY)
+            # logging.debug(f"Roboflow successfully initialized")
+            # project = rf.workspace().project(ROBOFLOW_PROJECT_NAME)
+            # logging.debug(f"Roboflow project successfully initialized")
+            # self.model = project.version(ROBOFLOW_MODEL_VERSION).model
+            # logging.debug(f"Roboflow model successfully initialized")
+
+            # Run with "inference"
+            self.model = get_model(model_id=f"{ROBOFLOW_PROJECT_NAME}/{ROBOFLOW_MODEL_VERSION}", api_key=ROBOFLOW_API_KEY)
+            logging.debug(f"Inference model successfully initialized")
+
+            # Run with onnxruntime
+            # self.model = onnxruntime.InferenceSession(
+            #     path_or_bytes=MODEL_ONNX_PATH,
+            #     providers=[],
+            # )
+            # self.inputModelName = self.model.get_inputs()[0].name
+            # self.outputModelName = self.model.get_outputs()[0].name
+
             self.isConnectionError = False
             return True
         except ConnectionError as err:
@@ -61,21 +77,51 @@ class _NeurolinkClass:
 
 
     def predict(self, image: Image.Image):
-        imagePath = IMAGE_TMP_PATH
-        createDirByFilePath(imagePath)
-        image.save(imagePath)
-        logging.debug(f"Tmp image saved to {IMAGE_TMP_PATH}")
-        predictions = self.model.predict(imagePath, confidence=self.minConfidence, overlap=self.overlap).json()
-        logging.debug(f"Gotten predictions from original neurolink: {predictions}")
-        predictions = predictions['predictions']
+        # Run with "roboflow"
+        # imagePath = IMAGE_TMP_PATH
+        # createDirByFilePath(imagePath)
+        # image.save(imagePath)
+        # logging.debug(f"Tmp image saved to {IMAGE_TMP_PATH}")
+        # predictions = self.model.predict(imagePath, confidence=self.minConfidence, overlap=self.overlap).json()
+        # logging.debug(f"Gotten predictions from original neurolink: {predictions}")
+        # predictions = predictions['predictions']
+        # result = list(map(lambda prediction: Prediction(
+        #     prediction['x'],
+        #     prediction['y'],
+        #     prediction['width'],
+        #     prediction['height'],
+        #     prediction['class'],
+        #     prediction['confidence'],
+        # ), predictions))
+
+        # Run with "inference"
+        predictions = self.model.infer(image=image, confidence=self.minConfidence, overlap=self.overlap)
+        # logging.debug(f"Gotten predictions from original neurolink: {predictions}")
+        predictions = predictions[0].predictions
         result = list(map(lambda prediction: Prediction(
-            prediction['x'],
-            prediction['y'],
-            prediction['width'],
-            prediction['height'],
-            prediction['class'],
-            prediction['confidence'],
+            prediction.x,
+            prediction.y,
+            prediction.width,
+            prediction.height,
+            prediction.class_name,
+            prediction.confidence,
         ), predictions))
+
+        # Run with "onnxruntime"
+        # image = image.copy().convert("RGB").resize(size=(640, 640), resample=Image.Resampling.LANCZOS)
+        # arrayImage = np.asarray(image)
+        # preparedImage = [[], [], []]
+        # for channelIdx in range(0, 3):
+        #     for stringPixels in arrayImage:
+        #         preparedImage[channelIdx].append([])
+        #         for pixel in stringPixels:
+        #             preparedImage[channelIdx][-1].append(pixel[channelIdx])
+        # result = self.model.run(
+        #     output_names=[self.outputModelName],
+        #     input_feed={self.inputModelName: [preparedImage]},
+        # )
+        # predictions = list(result[0][0].argmax(0))
+
         return result
 
 Neurolink = _NeurolinkClass()
