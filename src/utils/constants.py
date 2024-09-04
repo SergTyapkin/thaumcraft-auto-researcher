@@ -66,7 +66,7 @@ DELAY_BETWEEN_RENDER = 0.5  # seconds
 #------------------------
 # Other constants
 EMPTY_TOLERANCE_PERCENT = 0.02
-IMAGE_TMP_PATH = "./.tmp/tmp.png"
+IMAGE_TMP_PATH = to_resource_path(".tmp/tmp.png")
 LOG_FILE_PATH = to_resource_path("logs/logs.log")
 MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 # 1 Mb
 ROBOFLOW_API_KEY = "QOvx9sZXQBIxEMVv0p9g"
