@@ -453,22 +453,23 @@ class ThaumInteractor:
 
             # FIXME: Neurolink can't detect aspects on dark background
             # Find aspects on screenshot
-            # logging.info("Wait for prediction")
-            # predictions = Neurolink.predict(screenshotImage)
-            # logging.info(f"Predictions: {predictions}")
+            logging.info("Wait for prediction")
+            predictions = Neurolink.predict(screenshotImage)
+            logging.info(f"Predictions: {predictions}")
+            self.UI.exit()
 
             # Approximate aspects coordinates by cells
             aspectsOnScreenshot = []
-            # for prediction in predictions:
-            #     try:
-            #         aspect = self.getAspectByName(prediction.predictionName)
-            #     except ValueError:
-            #         continue
-            #     coords = (
-            #         self.currentAspectsPageIdx + prediction.x // slotWidth,
-            #         prediction.y // slotHeight,
-            #     )
-            #     aspectsOnScreenshot.append([coords, aspect])
+            for prediction in predictions:
+                try:
+                    aspect = self.getAspectByName(prediction.predictionName)
+                except ValueError:
+                    continue
+                coords = (
+                    self.currentAspectsPageIdx + prediction.x // slotWidth,
+                    prediction.y // slotHeight,
+                )
+                aspectsOnScreenshot.append([coords, aspect])
             def sortFunc(element):
                 return element[0][0] * THAUM_ASPECTS_INVENTORY_SLOTS_Y + element[0][1]
             aspectsOnScreenshot.sort(key=sortFunc)

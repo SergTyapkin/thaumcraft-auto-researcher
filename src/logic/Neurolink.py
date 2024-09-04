@@ -27,6 +27,8 @@ class Prediction:
 class _NeurolinkClass:
     model: roboflow.models.inference.InferenceModel
     isConnectionError: bool
+    minConfidence: float = 40
+    overlap: float = 30
 
     # Make it singleton
     _instances = {}
@@ -63,7 +65,7 @@ class _NeurolinkClass:
         createDirByFilePath(imagePath)
         image.save(imagePath)
         logging.debug(f"Tmp image saved to {IMAGE_TMP_PATH}")
-        predictions = self.model.predict(imagePath, confidence=40, overlap=30).json()
+        predictions = self.model.predict(imagePath, confidence=self.minConfidence, overlap=self.overlap).json()
         logging.debug(f"Gotten predictions from original neurolink: {predictions}")
         predictions = predictions['predictions']
         result = list(map(lambda prediction: Prediction(
