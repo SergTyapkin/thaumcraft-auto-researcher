@@ -174,7 +174,8 @@ class ThaumInteractor:
         for i in range(0, 10):
             self.numbersImages.append(self.loadImage(getImagePathByNumber(i), noResize=True))
 
-        # self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
+        # TODO: make with available aspects detecting
+        self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
 
         self.allAspects = []
@@ -382,10 +383,8 @@ class ThaumInteractor:
         aspectsListMap = list(aspectsMap.items())
         def sortFunc(pair):
             aspectName = pair[1]
-            for i in range(len(self.allAspects)):
-                if self.allAspects[i].name == aspectName:
-                    return i
-            return 999999
+            aspect = self.getAspectByName(aspectName)
+            return aspect.idx
         aspectsListMap.sort(key=sortFunc)
         logging.debug(f"Sorted aspects link map: {aspectsListMap}")
         # Заполняем по одному аспекту, пролистывая к каждому следующему
