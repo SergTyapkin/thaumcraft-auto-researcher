@@ -15,14 +15,19 @@
 # Автоматический исследователь для Thaumcraft 4
 > _**Thaumcraft**_ - мод для игры _Minecraft_, часто устанавливающийся в магические сборки модов на популярных серверах
 ## [Download .exe releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
-[latest version `v1.1.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.1.0)
+[latest version `v1.1.1`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.1.1)
 <details>
 <summary>Changelog:</summary>
 
 - Теперь нейросеть определяет аспекты на столе!
 Скорость исследований благодаря этому увеличилась более чем в 10 раз.
+- Улучшена скорость работы нейросети благодаря её локальному кешированию
 - Добавлены сочетания клавиш для более тонкого управления
 - Добавлен безостановочный режим исследования
+
+v1.1.X - конфигурация аспектов на столе нейросетью с возможностью изменения пользователем
+v1.0.X - конфигурация аспектов на столе пользователем
+v0.X.X - дорелизные MVP версии
 </details>
 
 ---
