@@ -1,6 +1,11 @@
 import logging
 import time
 
+# For correctly build by "pyinstaller". By default this package not included in build
+import scipy._lib.array_api_compat.numpy.fft
+import scipy.special._special_ufuncs
+#---------------------------------------------
+
 from inference import get_model
 from PIL import Image
 
