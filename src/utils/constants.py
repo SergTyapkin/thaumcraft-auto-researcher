@@ -2,6 +2,10 @@ import logging
 import os
 import sys
 
+import appdata
+app_paths = appdata.AppDataPaths(".ThaumcraftAutoResearcher")
+app_paths.setup()
+
 #------------------------
 # UI and visual part
 MARGIN = 20
@@ -14,10 +18,12 @@ def to_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
     return os.path.join(base_path, relative_path)
+def to_appdata_path(relative_path):
+    """ Get absolute path to file into appdata folder, cross-platform """
+    return os.path.join(str(app_paths.app_data_path), relative_path)
 
-
-THAUM_VERSION_CONFIG_PATH = to_resource_path('user_configs/thaumVersionConfig.json')
-THAUM_CONTROLS_CONFIG_PATH = to_resource_path('user_configs/thaumControlsConfig.json')
+THAUM_VERSION_CONFIG_PATH = to_appdata_path('user_configs/thaumVersionConfig.json')
+THAUM_CONTROLS_CONFIG_PATH = to_appdata_path('user_configs/thaumControlsConfig.json')
 THAUM_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/aspectsRecipes.json')
 THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/addonsAspectsRecipes.json')
 THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('aspects_configs/aspectsOrder.json')
@@ -74,8 +80,8 @@ ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 #------------------------
 # Other constants
 EMPTY_TOLERANCE_PERCENT = 0.02
-IMAGE_TMP_PATH = to_resource_path(".tmp/tmp.png")
-LOG_FILE_PATH = to_resource_path("logs/logs.log")
+IMAGE_TMP_PATH = to_appdata_path(".tmp/tmp.png")
+LOG_FILE_PATH = to_appdata_path("logs/logs.log")
 MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 # 1 Mb
 
 #------------------------
