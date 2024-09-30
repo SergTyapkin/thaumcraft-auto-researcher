@@ -15,7 +15,7 @@
 # Автоматический исследователь для Thaumcraft 4
 > _**Thaumcraft**_ - мод для игры _Minecraft_, часто устанавливающийся в магические сборки модов на популярных серверах
 ## [Download .exe releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
-[latest version `v1.1.1`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.1.1)
+[latest version `v1.1.2`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.1.2)
 <details>
 <summary>Changelog:</summary>
 
