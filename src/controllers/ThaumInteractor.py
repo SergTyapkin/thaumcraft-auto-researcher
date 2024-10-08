@@ -5,7 +5,7 @@ from typing import Any, Union
 
 import keyboard
 import mouse
-import pyautogui  # for screenshot
+import pyscreeze  # for screenshot
 from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
@@ -413,9 +413,9 @@ class ThaumInteractor:
     def takeScreenshot(self, LTx, LTy, RBx, RBy, debugHighlightingRect = None) -> Image.Image:
         if DEBUG and debugHighlightingRect is not None:
             debugHighlightingRect.setVisibility(False)
-        screenshotImage = pyautogui.screenshot(region=(
-            LTx, LTy,
-            RBx - LTx, RBy - LTy,
+        screenshotImage = pyscreeze.screenshot(region=(
+            int(LTx), int(LTy),
+            int(RBx - LTx), int(RBy - LTy),
         ))
         logging.info(f"Taken screenshot on ({LTx}, {LTy})x({RBx}, {RBy})...")
         if DEBUG and debugHighlightingRect is not None:
