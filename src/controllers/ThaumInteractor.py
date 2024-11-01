@@ -178,11 +178,10 @@ class ThaumInteractor:
         self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
 
-        self.allAspects = []
-        for i in range(len(orderedAvailableAspects)):
-            self.allAspects.append(Aspect(orderedAvailableAspects[i], i))
+        self.allAspects = [Aspect(orderedAvailableAspects[i], i) for i in range(len(orderedAvailableAspects))]
         self.loadAspectsImages()
         logging.info(f"ThaumcraftInteractor successfully initialized")
+        logging.info(f"All available aspects: {orderedAvailableAspects}")
 
     def loadImage(self, path: str, backgroundImage: Image.Image = None, noResize: bool = False) -> Image.Image:
         image = Image.open(path)

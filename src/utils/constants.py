@@ -82,9 +82,12 @@ ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 EMPTY_TOLERANCE_PERCENT = 0.02
 IMAGE_TMP_PATH = to_appdata_path(".tmp/tmp.png")
 LOG_FILE_PATH = to_appdata_path("logs/logs.log")
-MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 # 1 Mb
+
+# Loggers
+MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 * 5 # 5 Mb
+MAX_LOG_FILES_COUNT = 20
+LOG_LEVEL = logging.DEBUG
 
 #------------------------
-LOG_LEVEL = logging.DEBUG
 # DEBUG = True
 DEBUG = False

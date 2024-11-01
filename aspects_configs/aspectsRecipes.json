@@ -1,5 +1,5 @@
 {
-  "4.1.0g": {
+  "4.1.0g - 4.1.1.8": {
     "aer": [],
     "terra": [],
     "ignis": [],
@@ -51,7 +51,7 @@
     "vinculum": ["motus", "perditio"],
     "permutatio": ["motus", "aqua"]
   },
-  "4.1.1.9": {
+  "4.1.1.9 - 4.1.1.11": {
     "aer": [],
     "terra": [],
     "ignis": [],
@@ -101,7 +101,7 @@
     "machina": ["motus", "instrumentum"],
     "vinculum": ["motus", "perditio"]
   },
-  "4.1.1.12": {
+  "4.1.1.12 - 4.1.1.13": {
     "aer": [],
     "terra": [],
     "ignis": [],
@@ -151,7 +151,7 @@
     "machina": ["motus", "instrumentum"],
     "vinculum": ["motus", "perditio"]
   },
-  "4.1.1.14": {
+  "4.1.1.14 - 4.2.1.4": {
     "aer": [],
     "terra": [],
     "ignis": [],
@@ -201,7 +201,7 @@
     "machina": ["motus", "instrumentum"],
     "vinculum": ["motus", "perditio"]
   },
-  "4.2.2.0": {
+  "4.2.2.0 - 4.2.3.5": {
     "aer": [],
     "terra": [],
     "ignis": [],
@@ -251,7 +251,7 @@
     "vitreus": ["terra", "ordo"],
     "volatus": ["aer", "motus"]
   },
-  "5.1.3": {
+  "5.1.3.0 - 5.1.8.9": {
     "aer": [],
     "terra": [],
     "ignis": [],

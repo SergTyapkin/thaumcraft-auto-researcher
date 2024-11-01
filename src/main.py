@@ -5,18 +5,18 @@ from logging.handlers import RotatingFileHandler
 from src.controllers import Scenarios
 from src.UI.OverlayUI import OverlayUI
 from src.controllers.ThaumInteractor import createTI
-from src.utils.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL
+from src.utils.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL, MAX_LOG_FILES_COUNT
 from utils.utils import createDirByFilePath
 
 createDirByFilePath(LOG_FILE_PATH)
-loggingHandlers = [logging.handlers.RotatingFileHandler(filename=LOG_FILE_PATH, maxBytes=MAX_LOG_FILE_SIZE_BYTES, backupCount=5)]
+loggingHandlers = [logging.handlers.RotatingFileHandler(filename=LOG_FILE_PATH, maxBytes=MAX_LOG_FILE_SIZE_BYTES, backupCount=MAX_LOG_FILES_COUNT)]
 if DEBUG:
     loggingHandlers.append(logging.StreamHandler(sys.stdout))  # output both to console and log-files
 logging.basicConfig(
     handlers=loggingHandlers,
     format="%(asctime)s [%(levelname)s] (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
     level=LOG_LEVEL,
-    force=True
+    force=True,
 )
 
 UI = OverlayUI(opacity=1)

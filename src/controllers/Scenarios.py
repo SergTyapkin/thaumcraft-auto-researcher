@@ -275,20 +275,37 @@ def chooseThaumVersion(UI: OverlayUI):
     selectedVersion: list[str|None] = [None]
 
     (oldVersion, oldAddons) = loadThaumVersionConfig()
-    logging.info(f"Old selected version is: {oldVersion}. Old selected addons is: {oldAddons}")
+    logging.info(f"Selected in config version is: {oldVersion}. Selected in config addons is: {oldAddons}")
 
     def updateVersionsPosition():
+        startCurY = pointTextAnchor.y + MARGIN + infoText.h
+        curY = startCurY
+        curX = pointTextAnchor.x
         for i in range(len(versionsObjects)):
             versionObject = versionsObjects[i]
-            versionObject.y = pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4
+            if curY > UI.height() - versionObject.h:
+                curX += 300
+                curY = startCurY
+            versionObject.y = curY
+            versionObject.x = curX
+            curY += versionObject.h + MARGIN
+        startCurY = pointTextAnchor.y + MARGIN + infoText.h
+        curY = startCurY
+        curX += 300
         for i in range(len(addonsObjects)):
             addonObject = addonsObjects[i]
-            addonObject.x = pointTextAnchor.x + 250
-            addonObject.y = pointTextAnchor.y + MARGIN + infoText.h + i * MARGIN * 4
+            if curY > UI.height() - addonObject.h:
+                curX += 400
+                curY = startCurY
+            addonObject.x = curX
+            addonObject.y = curY
+            curY += addonObject.h + MARGIN
 
     infoText.LT.onMoveCallback = updateVersionsPosition
+    infoText.onMoveCallback = updateVersionsPosition
+    startCurY = pointTextAnchor.y + MARGIN + infoText.h
+    curY = startCurY
     curX = pointTextAnchor.x
-    curY = pointTextAnchor.y + MARGIN + infoText.h
     for i in range(len(versions)):
         version = versions[i]
         def onClickVersion(versionObject, version):
@@ -303,7 +320,7 @@ def chooseThaumVersion(UI: OverlayUI):
             selectedVersionObject[0].setColor(QColor('purple'))
 
         versionObject = UI.addObject(Text(
-            curX, curY,
+            0, 0,
             version,
             color=QColor('white'),
             withBackground=True,
@@ -313,14 +330,19 @@ def chooseThaumVersion(UI: OverlayUI):
             onClickCallback=onClickVersion,
             hoverable=True,
         ))
+        if curY > UI.height() - versionObject.h:
+            curX += 300
+            curY = startCurY
+        versionObject.x = curX
+        versionObject.y = curY
+        curY += versionObject.h + MARGIN
         versionObject.onClickCallbackArgs = [versionObject, version]
         versionsObjects.append(versionObject)
         if oldVersion == version:
             selectVersion(versionObject, version)
-        curY += MARGIN * 4
 
     addonsNames = list(addonsSelectingState.keys())
-    curX = pointTextAnchor.x + 250
+    curX += 300
     curY = pointTextAnchor.y + MARGIN + infoText.h
     startCurY = curY
     for i in range(len(addonsNames)):
@@ -337,7 +359,7 @@ def chooseThaumVersion(UI: OverlayUI):
                 addonObject.setColor(QColor('white'))
                 logging.debug(f"Deselected addon {addonName}")
         addonObject = UI.addObject(Text(
-            curX, curY,
+            0, 0,
             addonName,
             color=QColor('white'),
             withBackground=True,
@@ -347,14 +369,16 @@ def chooseThaumVersion(UI: OverlayUI):
             onClickCallback=onClickAddon,
             hoverable=True,
         ))
+        if curY > UI.height() - addonObject.h:
+            curX += 400
+            curY = startCurY
+        addonObject.x = curX
+        addonObject.y = curY
+        curY += addonObject.h + MARGIN
         addonObject.onClickCallbackArgs = [addonObject, addonName]
         addonsObjects.append(addonObject)
         if addonName in (oldAddons or []):
             toggleAddonSelecting(addonObject, addonName)
-        curY += MARGIN * 4
-        if curY > UI.height() - addonObject.h:
-            curX += 500
-            curY = startCurY
 
     def onSumbit():
         if selectedVersion[0] is None:
