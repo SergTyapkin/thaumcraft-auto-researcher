@@ -139,9 +139,19 @@ https://github.com/user-attachments/assets/a2eaa3b7-c7fe-4fbc-9905-1b19a32d498f
 pip install -r requirements.txt
 ```
 
-2. Запуск из корня проекта (требуется версия `Python 3.10` или выше):
+2. Добавить папку src проекта в PYTHONPATH:
+Windows:
+```cmd
+set "PYTHONPATH=$($CWD);$($PYTHONPATH)"
+```
+-Unix:
+```cmd
+export PYTHONPATH=$(cwd):$PYTHONPATH
+```
+
+3. Запуск из корня проекта (требуется версия `Python 3.10` или выше):
 ```shell
-python ./src/main.py
+python -m src.main
 ```
 
 ---

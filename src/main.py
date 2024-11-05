@@ -6,7 +6,7 @@ from src.controllers import Scenarios
 from src.UI.OverlayUI import OverlayUI
 from src.controllers.ThaumInteractor import createTI
 from src.utils.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL, MAX_LOG_FILES_COUNT
-from utils.utils import createDirByFilePath
+from src.utils.utils import createDirByFilePath
 
 createDirByFilePath(LOG_FILE_PATH)
 loggingHandlers = [logging.handlers.RotatingFileHandler(filename=LOG_FILE_PATH, maxBytes=MAX_LOG_FILE_SIZE_BYTES, backupCount=MAX_LOG_FILES_COUNT)]

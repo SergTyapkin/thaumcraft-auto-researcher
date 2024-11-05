@@ -9,7 +9,7 @@ import scipy.special._special_ufuncs
 from inference import get_model
 from PIL import Image
 
-from utils.constants import ROBOFLOW_API_KEY, ROBOFLOW_PROJECT_NAME, ROBOFLOW_MODEL_VERSION
+from src.utils.constants import ROBOFLOW_API_KEY, ROBOFLOW_PROJECT_NAME, ROBOFLOW_MODEL_VERSION
 
 
 class Prediction:

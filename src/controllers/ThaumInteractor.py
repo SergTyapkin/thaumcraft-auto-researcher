@@ -9,7 +9,7 @@ import pyscreeze  # for screenshot
 from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
-from logic.Neurolink import Neurolink
+from src.logic.Neurolink import Neurolink
 from src.UI import UIPrimitives
 from src.controllers import Scenarios
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
