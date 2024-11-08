@@ -1,24 +1,23 @@
 import logging
 import math
 import time
-from typing import Any, Union
 
-import keyboard
-import mouse
 import pyscreeze  # for screenshot
 from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
-from src.logic.Neurolink import Neurolink
-from src.UI import UIPrimitives
+from src.UI.primitives import Circle, Rect
 from src.controllers import Scenarios
+from src.controllers.Aspect import Aspect
+from src.controllers.Point import P
+from src.logic.Neurolink import Neurolink
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
-    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
+    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
     EMPTY_ASPECT_SLOT_IMAGE_PATH, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
     NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
     getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
-    HEXAGON_BORDER_MASK_IMAGE_PATH, MARGIN, UNKNOWN_ASPECT_IMAGE_PATH, ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME, \
+    HEXAGON_BORDER_MASK_IMAGE_PATH, UNKNOWN_ASPECT_IMAGE_PATH, ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME, \
     ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER
 from src.utils.constants import getAspectImagePath
 from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
@@ -49,62 +48,6 @@ def createTI(UI):
             i += 1
 
     return ThaumInteractor(UI, pointsConfig, recipesConfig, aspectsOrderConfig)
-
-
-class P:
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
-    def __repr__(self):
-        return f"({self.x}, {self.y})"
-
-    def move(self):
-        mousePos = mouse.get_position()
-        if mousePos[0] != self.x or mousePos[1] != self.y:
-            logging.debug(f"Move mouse to point {self}")
-            mouse.move(self.x, self.y)
-            eventsDelay()
-        else:
-            logging.debug(f"Move mouse to point {self} - mouse already in this pos")
-
-    def click(self, button=mouse.LEFT, shift=False):
-        self.move()
-        if not shift:
-            logging.debug(f"Click mouse on point {self}")
-            mouse.click(button)
-            return
-        keyboard.press('shift')
-        eventsDelay()
-        logging.debug(f"Click on point {self} with shift")
-        mouse.click(button)
-        eventsDelay()
-        keyboard.release('shift')
-
-    def hold(self, button=mouse.LEFT):
-        self.move()
-        logging.debug(f"Hold mouse on point {self}")
-        mouse.press(button)
-
-    def release(self, button=mouse.LEFT):
-        self.move()
-        logging.debug(f"Release mouse on point {self}")
-        mouse.release(button)
-
-
-class Aspect:
-    idx: int = None
-    name: str = None
-    image: Image.Image = None
-    pixMapImage: QPixmap = None
-    mask: Image.Image = None
-    count: int = None
-
-    def __init__(self, name: str, idx: int):
-        self.name = name
-        self.idx = idx
-
-    def __repr__(self):
-        return f"{self.name}({self.count})"
 
 
 class ThaumInteractor:
@@ -143,7 +86,8 @@ class ThaumInteractor:
     maskOnlyNumbers: Image.Image = None
     maskWithoutNumbers: Image.Image = None
 
-    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]], orderedAvailableAspects: list[str]):
+    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]],
+                 orderedAvailableAspects: list[str]):
         self.UI = UI
 
         c = controlsConfig
@@ -254,10 +198,11 @@ class ThaumInteractor:
         if not DEBUG:
             return
         eventsDelay()
-        clickCircle = UIPrimitives.Circle(point.x, point.y, 20, color=color)
+        clickCircle = Circle(point.x, point.y, 20, color=color)
 
         timeToLeave = DELAY_BETWEEN_RENDER / 2 * 1000  # ms
         circleRadius = 20
+
         def onTimeCallback(timeLeft):
             clickCircle.r = timeLeft / timeToLeave * circleRadius
 
@@ -294,7 +239,8 @@ class ThaumInteractor:
             self.rectInventoryLT.x + (slotWidth * 0.5) + slotWidth * (self.workingInventorySlot % INVENTORY_SLOTS_X),
             self.rectInventoryLT.y + (slotHeight * 0.5) + slotHeight * (self.workingInventorySlot // INVENTORY_SLOTS_X)
         )
-        logging.info(f"Current working slot increased to {self.workingInventorySlot}. New slot coordinates: {self.pointWorkingInventorySlot}")
+        logging.info(
+            f"Current working slot increased to {self.workingInventorySlot}. New slot coordinates: {self.pointWorkingInventorySlot}")
 
     def takeAspectByCellCoords(self, cellX, cellY):
         areaWidth = self.rectAspectsListingRB.x - self.rectAspectsListingLT.x
@@ -380,10 +326,12 @@ class ThaumInteractor:
         logging.info(f"Filling aspects by link map: {aspectsMap}")
         # Оптимизируем порядок аспектов, чтобы пришлось меньше листать инвентарь
         aspectsListMap = list(aspectsMap.items())
+
         def sortFunc(pair):
             aspectName = pair[1]
             aspect = self.getAspectByName(aspectName)
             return aspect.idx
+
         aspectsListMap.sort(key=sortFunc)
         logging.debug(f"Sorted aspects link map: {aspectsListMap}")
         # Заполняем по одному аспекту, пролистывая к каждому следующему
@@ -402,14 +350,14 @@ class ThaumInteractor:
     def addDebugHighlightingRect(self, LTx=0, LTy=0, RTx=0, RTy=0):
         if not DEBUG:
             return None
-        debugHighlightingRect = UIPrimitives.Rect(LTx, LTy,
-                                                  RTx, RTy,
-                                                  fill=QColor('blue'), fillOpacity=0.3, lineWidth=1,
-                                                  color=QColor('blue'))
+        debugHighlightingRect = Rect(LTx, LTy,
+                                     RTx, RTy,
+                                     fill=QColor('blue'), fillOpacity=0.3, lineWidth=1,
+                                     color=QColor('blue'))
         self.UI.addObject(debugHighlightingRect)
         return debugHighlightingRect
 
-    def takeScreenshot(self, LTx, LTy, RBx, RBy, debugHighlightingRect = None) -> Image.Image:
+    def takeScreenshot(self, LTx, LTy, RBx, RBy, debugHighlightingRect=None) -> Image.Image:
         if DEBUG and debugHighlightingRect is not None:
             debugHighlightingRect.setVisibility(False)
         screenshotImage = pyscreeze.screenshot(region=(
@@ -468,8 +416,10 @@ class ThaumInteractor:
                     prediction.y // slotHeight,
                 )
                 aspectsOnScreenshot.append([coords, aspect])
+
             def sortFunc(element):
                 return element[0][0] * THAUM_ASPECTS_INVENTORY_SLOTS_Y + element[0][1]
+
             aspectsOnScreenshot.sort(key=sortFunc)
             logging.info(f"Sorted detected aspects: {aspectsOnScreenshot}")
 
@@ -499,7 +449,7 @@ class ThaumInteractor:
                 # check if we really scrolled right
                 diffWithEmpty = getImagesDiffPercent(previousScreenshotImage, newScreenshotImage)
                 logging.debug(f"Difference of two images before and after scrolling right: {diffWithEmpty}")
-                if diffWithEmpty < EMPTY_TOLERANCE_PERCENT: # nothing changed - it's the end of inventory
+                if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:  # nothing changed - it's the end of inventory
                     logging.info(f"Found end of inventory. Detection ends")
                     self.currentAspectsPageIdx -= 1
                     self.maxPagesCount = self.currentAspectsPageIdx
@@ -511,7 +461,6 @@ class ThaumInteractor:
             logging.info(f"New aspects page total width: {newAdditionalOffset}")
 
         self.UI.removeObject(debugHighlightingRect)
-
 
     def logAvailableAspects(self):
         string = ""
@@ -554,6 +503,7 @@ class ThaumInteractor:
             aspectName: str | None
             isAspect: bool = False
             isFreeHex: bool = False
+
             def __init__(self, x, y, aspectName, isAspect, isFreeHex):
                 self.x = x
                 self.y = y
@@ -579,7 +529,8 @@ class ThaumInteractor:
             xCenter = prediction.x + hexagonsRectLT.x
             yCenter = prediction.y + hexagonsRectLT.y
             xCell = int(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1 + (xCenter - xLeft) // self.hexagonSlotSizeX)
-            yCell = int(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1 + (yCenter - yTop + ((self.hexagonSlotSizeY / 2) if xCell % 2 != 0 else 0)) // self.hexagonSlotSizeY)
+            yCell = int(-THAUM_HEXAGONS_SLOTS_COUNT // 2 + 1 + (yCenter - yTop + (
+                (self.hexagonSlotSizeY / 2) if xCell % 2 != 0 else 0)) // self.hexagonSlotSizeY)
             distFromCenter = abs(xCell) + abs(yCell) - abs(xCell) // 2
             maxDistFromCenter = max(maxDistFromCenter, distFromCenter)
             allCells.add(Cell(
@@ -600,7 +551,7 @@ class ThaumInteractor:
             for y in range(-hexagonFieldRadius + (abs(x) + 1) // 2, hexagonFieldRadius - (abs(x)) // 2 + 1):
                 noneHexagons.add((x, y))
         for cell in allCells:
-            if (cell.x, cell.y) not in noneHexagons: # coordinates out of range
+            if (cell.x, cell.y) not in noneHexagons:  # coordinates out of range
                 continue
             if cell.isAspect:
                 existingAspects[(cell.x, cell.y)] = cell.aspectName
