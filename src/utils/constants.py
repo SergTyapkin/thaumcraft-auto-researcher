@@ -76,7 +76,7 @@ DELAY_BETWEEN_RENDER = 0.5  # seconds
 
 # ------------------------
 # Neurolink constants
-MODEL_ONNX_PATH = "models/weights.onnx"
+MODEL_ONNX_PATH = to_resource_path("models/weights.onnx")
 ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
 ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 

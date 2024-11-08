@@ -64,6 +64,14 @@
   {
    "optionDest": "datas",
    "value": "./images;images/"
+  },
+  {
+   "optionDest": "datas",
+   "value": "./models;models/"
+  },
+  {
+   "optionDest": "pathex",
+   "value": "."
   }
  ],
  "nonPyinstallerOptions": {
