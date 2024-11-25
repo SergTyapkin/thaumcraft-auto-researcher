@@ -11,9 +11,7 @@ from PyQt5.QtCore import Qt, QThread, QObject, QEvent
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QFont
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
-from src.UI.primitives import UIPrimitive
-from src.UI.primitives.Point import Point
-from src.UI.primitives.Text import Text
+from src.UI.primitives import Point, Text, UIPrimitive
 from src.utils.LinkableValue import editLinkableValue
 
 FPS = 60
@@ -186,12 +184,8 @@ class _Window(QMainWindow):
                 self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x, event.x())
                 self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y, event.y())
             else:
-                self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x,
-                                                               self.currentMovingObject.x + (
-                                                                       event.x() - self.lastMouseMovePoint[0]))
-                self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y,
-                                                               self.currentMovingObject.y + (
-                                                                       event.y() - self.lastMouseMovePoint[1]))
+                self.currentMovingObject.x = editLinkableValue(self.currentMovingObject.x, self.currentMovingObject.x + (event.x() - self.lastMouseMovePoint[0]))
+                self.currentMovingObject.y = editLinkableValue(self.currentMovingObject.y, self.currentMovingObject.y + (event.y() - self.lastMouseMovePoint[1]))
 
             self.lastMouseMovePoint = (event.x(), event.y())
 
@@ -212,9 +206,9 @@ class _Window(QMainWindow):
             objToClick = None
             for obj in self.objects:
                 if (
-                        (obj.isHover(event.x(), event.y())) and
-                        (getattr(obj, 'onClickCallback') is not None) and
-                        obj.clickable
+                    (obj.isHover(event.x(), event.y())) and
+                    (getattr(obj, 'onClickCallback') is not None) and
+                    obj.clickable
                 ):
                     # and (self.currentPressedObject is obj):
                     objToClick = obj
