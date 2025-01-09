@@ -37,7 +37,7 @@ class _NeurolinkClass:
                 model_path=constants.DIGITS_CLASSIFICATION_PATH,
                 class_names=file.read().strip().split(),
                 img_height=17,
-                img_width=12,
+                img_width=13,
             )
 
     def predict_field_aspects(self, image: Image.Image) -> list[ObjectPrediction]:
@@ -50,7 +50,7 @@ class _NeurolinkClass:
 
     def predict_inventory_aspects_count(self, image: Image.Image) -> dict[str, int]:
         """
-        По изображению инвентаря определяет количество аспектов
+        По изображению инвентаря определяет количество аспектов.
         Возвращает словарь "Название аспекта - Его количество"
         """
         result = dict()
@@ -59,7 +59,9 @@ class _NeurolinkClass:
         image = image.convert("L")  # Переводим в чёрно-белое. Классификатор цифр работает в ЧБ
         image = np.array(image)
         for pred in inv_aspects_predictions:
-            x, y, h, w = map(int, [pred.x, pred.y, pred.height, pred.width])
+            if pred.predictionName.isnumeric():
+                continue
+            x, y, h, w = map(round, [pred.x, pred.y, pred.height, pred.width])
             x = x - w // 2
             y = y - h // 2
             aspect_img = image[y: y + h, x: x + w]
@@ -69,12 +71,12 @@ class _NeurolinkClass:
     def __get_aspect_number(self, aspect_img: np.ndarray) -> int:
         """Распознаёт число на изображении аспекта в инвентаре"""
         digit_width_fraction = 1 / 5    # Размеры цифр по отношению ко всему размеру аспекта
-        digit_height_fraction = 1 / 3   # Прикинул на глаз, возможно стоит уточнить
+        digit_height_fraction = 1 / 4   # Прикинул на глаз, возможно стоит уточнить
         h, w = aspect_img.shape
         digit_h = h * digit_height_fraction
         digit_w = w * digit_width_fraction
         digits = []
-        for i in range(4):
+        for i in range(1, 5):
             x = w - digit_w * i
             y = h - digit_h
             digit_img = aspect_img[int(y): int(y + digit_h), int(x): int(x + digit_w)]

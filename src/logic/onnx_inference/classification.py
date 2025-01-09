@@ -25,10 +25,10 @@ class OnnxClassification:
         image = image.convert("L")
         image_resized = image.resize((self.img_width, self.img_height))
         resized = np.array(image_resized)
-        img_in = np.transpose(resized, (2, 0, 1))
-        img_in = img_in.astype(np.float32)
-        img_in = np.expand_dims(img_in, axis=0)
+        img_in = resized.astype(np.float32)
         img_in /= 255.0
+        img_in = np.expand_dims(img_in, axis=-1)
+        img_in = np.expand_dims(img_in, axis=0)
         predictions = self.model.run(
             output_names=[self.output_layer_name],
             input_feed={self.input_layer_name: img_in},
