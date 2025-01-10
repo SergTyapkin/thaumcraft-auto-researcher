@@ -124,6 +124,11 @@ class ThaumInteractor:
 
         self.allAspects = [Aspect(orderedAvailableAspects[i], i) for i in range(len(orderedAvailableAspects))]
         self.loadAspectsImages()
+
+        for aspect in self.allAspects:
+            if aspect.count is None:
+                aspect.count = 0
+
         logging.info(f"ThaumcraftInteractor successfully initialized")
         logging.info(f"All available aspects: {orderedAvailableAspects}")
 
@@ -242,15 +247,18 @@ class ThaumInteractor:
         logging.info(
             f"Current working slot increased to {self.workingInventorySlot}. New slot coordinates: {self.pointWorkingInventorySlot}")
 
-    def takeAspectByCellCoords(self, cellX, cellY):
+    def inventory_cell_coords_to_pixel_coords(self, cellX: int, cellY: int) -> P:
         areaWidth = self.rectAspectsListingRB.x - self.rectAspectsListingLT.x
         areaHeight = self.rectAspectsListingRB.y - self.rectAspectsListingLT.y
         slotWidth = areaWidth / THAUM_ASPECTS_INVENTORY_SLOTS_X
         slotHeight = areaHeight / THAUM_ASPECTS_INVENTORY_SLOTS_Y
-        aspectPoint = P(
+        return P(
             self.rectAspectsListingLT.x + slotWidth * (cellX + 0.5),
             self.rectAspectsListingLT.y + slotHeight * (cellY + 0.5)
         )
+
+    def takeAspectByCellCoords(self, cellX, cellY):
+        aspectPoint = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
         logging.info(f"Take aspect from cell ({cellX, cellY}), coordinates: {aspectPoint}")
         aspectPoint.hold()
         self._showDebugClick(aspectPoint, QColor('blue'))
@@ -264,7 +272,7 @@ class ThaumInteractor:
         aspectPoint.release()
         self._showDebugClick(aspectPoint, QColor('red'))
 
-    def getAspectByName(self, aspectName: str):
+    def getAspectByName(self, aspectName: str) -> Aspect:
         for aspect in self.allAspects:
             if aspect.name == aspectName:
                 return aspect
@@ -290,37 +298,67 @@ class ThaumInteractor:
         return cellX - self.currentAspectsPageIdx, cellY
 
     def takeAspect(self, aspect: Aspect):
+        if aspect.count == 0:
+            self.mixAspect(aspect)
         logging.info(f"Take aspect {aspect}...")
         (cellX, cellY) = self.scrollToAspect(aspect)
         self.takeAspectByCellCoords(cellX, cellY)
+        aspect.count -= 1
 
-    def mixAspect(self, aspect: Aspect, useShift=True):
-        logging.info(f"Mixing aspect {aspect}...")
+    def mixAspect(self, aspect: Aspect, useShift=True, times=5) -> None:
+        """
+        Creates aspect by mixing aspects from its recipe
+
+        Args:
+            aspect: Aspect that we need to create
+            useShift: If True, then mixing is performed by Shift+LMB
+            times: How many aspects do we need to craft
+        """
+        logging.info(f"Mixing aspect {aspect} {times} times...")
         recipe = self.recipes.get(aspect.name)
         if recipe is None:
             raise ValueError(f"Aspect {aspect.name} not exists in known aspects recipes")
-        if len(recipe[1]) < 2:
-            raise ValueError(f"Aspect {aspect.name} is a basic and can't be created using mixing")
+        if len(recipe) < 2:  # Aspect is basic (Aqua, Terra, Aer, Ordo, Perditio)
+            if aspect.count < times:
+                raise ValueError(f"Ran out of basic aspect {aspect.name}")
+            return
+        aspect1 = self.getAspectByName(recipe[0])
+        aspect2 = self.getAspectByName(recipe[1])
+        # Creating aspects used in recipe so that they don't run out
+        self.mixAspect(aspect1, useShift=useShift, times=times)
+        self.mixAspect(aspect2, useShift=useShift, times=times)
 
         if useShift:
             (cellX, cellY) = self.scrollToAspect(aspect)
+            aspect_point = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
             eventsDelay()
-            P(cellX, cellY).click(shift=True)
-            self._showDebugClick(P(cellX, cellY))
-            return
+            for _ in range(times):
+                aspect_point.click(shift=True)
+                self._showDebugClick(aspect_point)
+                eventsDelay()
+        else:
+            (cellX, cellY) = self.scrollToAspect(aspect1)
+            aspect1_point = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
+            eventsDelay()
+            aspect1_point.click()
+            self._showDebugClick(aspect1_point)
+            eventsDelay()
+            (cellX, cellY) = self.scrollToAspect(aspect2)
+            aspect2_point = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
+            eventsDelay()
+            aspect2_point.click()
+            self._showDebugClick(aspect2_point)
+            eventsDelay()
+            for _ in range(times):
+                self.pointAspectsMixCreate.click()
+                self._showDebugClick(self.pointAspectsMixCreate)
+                eventsDelay()
 
-        (cellX, cellY) = self.scrollToAspect(recipe[0])
-        eventsDelay()
-        P(cellX, cellY).click()
-        self._showDebugClick(P(cellX, cellY))
-        eventsDelay()
-        (cellX, cellY) = self.scrollToAspect(recipe[1])
-        eventsDelay()
-        P(cellX, cellY).click()
-        self._showDebugClick(P(cellX, cellY))
-        eventsDelay()
-        self.pointAspectsMixCreate.click()
-        self._showDebugClick(self.pointAspectsMixCreate)
+        # Updating counts of aspects
+        aspect.count += times
+        aspect1.count -= times
+        aspect2.count -= times
+
 
     def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
         logging.info(f"Filling aspects by link map: {aspectsMap}")
@@ -397,18 +435,25 @@ class ThaumInteractor:
                 debugHighlightingRect
             )
 
-            # FIXME: Neurolink can't detect aspects on dark background
             # Find aspects on screenshot
             logging.info("Wait for prediction")
-            predictions = Neurolink.predict(screenshotImage)
+            predictions = Neurolink.predict_inventory_aspects(screenshotImage)
+            count_predictions = Neurolink.predict_inventory_aspects_count(screenshotImage)
             logging.info(f"Predictions: {predictions}")
-            self.UI.exit()
+            logging.info(f"Count Predictions: {count_predictions}")
 
             # Approximate aspects coordinates by cells
             aspectsOnScreenshot = []
             for prediction in predictions:
                 try:
                     aspect = self.getAspectByName(prediction.predictionName)
+                    aspect_count = count_predictions[prediction.predictionName]
+                    if aspect.count is None:  # count initialization
+                        aspect.count = aspect_count
+                    else:
+                        # If predictions differ we take minimal
+                        # because it's better to underestimate than to overestimate aspects count
+                        aspect.count = min(aspect.count, aspect_count)
                 except ValueError:
                     continue
                 coords = (
@@ -451,7 +496,7 @@ class ThaumInteractor:
                 logging.debug(f"Difference of two images before and after scrolling right: {diffWithEmpty}")
                 if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:  # nothing changed - it's the end of inventory
                     logging.info(f"Found end of inventory. Detection ends")
-                    self.currentAspectsPageIdx -= 1
+                    # self.currentAspectsPageIdx -= 1
                     self.maxPagesCount = self.currentAspectsPageIdx
                     isFoundEndOfInventory = True
                     logging.info(f"Total inventory pages: {self.currentAspectsPageIdx}")
@@ -493,7 +538,7 @@ class ThaumInteractor:
 
         # Find aspects, hexagons and scripts on screenshot.
         logging.info("Wait for prediction")
-        predictions = Neurolink.predict(allHexagonsImage)
+        predictions = Neurolink.predict_field_aspects(allHexagonsImage)
         logging.info(f"Predictions: {predictions}")
 
         # Approximate cell coords

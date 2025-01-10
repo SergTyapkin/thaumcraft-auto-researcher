@@ -477,8 +477,7 @@ def waitForCreatingTI(UI: OverlayUI):
         if TI is None:
             logging.critical(f"ThaumcraftInteractor was not created!")
             return
-        # FIXME: Neurolink can't detect aspects on dark background
-        # TI.updateAvailableAspectsInInventory()
+        TI.updateAvailableAspectsInInventory()
         runResearching(UI, TI)
 
     # UI.setKeyCallback(KeyboardKeys.enter, startCreatingTI)
