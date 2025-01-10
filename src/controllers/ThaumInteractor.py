@@ -507,10 +507,10 @@ class ThaumInteractor:
         for aspect in self.allAspects:
             if aspect.count is None:
                 aspect.count = 0
-            if aspect.name in ["ignis", "aqua", "aer", "ordo", "perditio", "terra"]:
-                aspect.count = 1000
-            else:
-                aspect.count = 0
+            # if aspect.name in ["ignis", "aqua", "aer", "ordo", "perditio", "terra"]:
+            #     aspect.count = 1000
+            # else:
+            #     aspect.count = 0
 
     def logAvailableAspects(self):
         string = ""
