@@ -18,7 +18,8 @@ X, y = ds
 
 # Приводим все изображения к одному размеру
 for i in range(len(X)):
-    X[i] = cv2.resize(X[i], (DIGIT_WIDTH, DIGIT_HEIGHT))
+    X[i] = cv2.resize(X[i], (DIGIT_WIDTH, DIGIT_HEIGHT), interpolation=cv2.INTER_AREA)
+    X[i] = np.pad(X[i], 5)
 
 test_size = int(0.15 * len(y))
 
@@ -37,8 +38,8 @@ test_ds = test_ds.batch(64)
 train_ds = ds.skip(test_size)
 train_ds = train_ds.batch(64)
 augment = keras.Sequential([
-    layers.RandomTranslation(height_factor=0.15, width_factor=0.15),
-    layers.RandomZoom(height_factor=0.15, width_factor=0.15),
+    layers.RandomTranslation(height_factor=0.2, width_factor=0.2),
+    layers.RandomZoom(height_factor=0.2, width_factor=0.2),
 ])
 train_ds = train_ds.map(lambda x, y: (augment(x), y))
 
@@ -51,9 +52,9 @@ train_ds = train_ds.map(lambda x, y: (augment(x), y))
 model = keras.Sequential([
     layers.Conv2D(filters=64, kernel_size=3),
     layers.MaxPool2D(),
+    layers.Conv2D(filters=64, kernel_size=3),
+    layers.MaxPool2D(),
     layers.Flatten(),
-    layers.Dense(64, activation="relu"),
-    layers.Dropout(0.15),
     layers.Dense(64, activation="relu"),
     layers.Dropout(0.15),
     layers.Dense(10, activation="softmax"),
@@ -64,8 +65,8 @@ model.compile(
     optimizer="adam",
     metrics=["accuracy"],
 )
-model.fit(train_ds, epochs=2, validation_data=test_ds)
+model.fit(train_ds, epochs=10, validation_data=test_ds)
 
 # model.save("model.keras")
 model.export("model")
-os.system(r"python -m tf2onnx.convert --saved-model model --output ..\..\models\digit_classification.onnx")
+os.system(r"python -m tf2onnx.convert --saved-model model --output ..\..\models\digit_classification2.onnx")
