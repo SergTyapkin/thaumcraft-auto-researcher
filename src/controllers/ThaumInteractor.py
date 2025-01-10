@@ -125,10 +125,6 @@ class ThaumInteractor:
         self.allAspects = [Aspect(orderedAvailableAspects[i], i) for i in range(len(orderedAvailableAspects))]
         self.loadAspectsImages()
 
-        for aspect in self.allAspects:
-            if aspect.count is None:
-                aspect.count = 0
-
         logging.info(f"ThaumcraftInteractor successfully initialized")
         logging.info(f"All available aspects: {orderedAvailableAspects}")
 
@@ -506,6 +502,15 @@ class ThaumInteractor:
             logging.info(f"New aspects page total width: {newAdditionalOffset}")
 
         self.UI.removeObject(debugHighlightingRect)
+
+        # Setting count 0 for each aspect that was not found
+        for aspect in self.allAspects:
+            if aspect.count is None:
+                aspect.count = 0
+            if aspect.name in ["ignis", "aqua", "aer", "ordo", "perditio", "terra"]:
+                aspect.count = 1000
+            else:
+                aspect.count = 0
 
     def logAvailableAspects(self):
         string = ""
