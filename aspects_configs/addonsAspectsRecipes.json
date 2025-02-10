@@ -49,5 +49,8 @@
   "AbyssalCraft Integration": {
     "coralos": ["venenum", "aqua"],
     "dreadia": ["venenum", "ignis"]
+  },
+  "Balanced aspect": {
+    "balanced": ["aer", "terra"]
   }
 }
