@@ -20,8 +20,7 @@ class OnnxObjectDetection:
             self,
             model_path: str,
             class_names: list[str],
-            img_height: int,
-            img_width: int,
+            img_size: int,  # Высота/ширина квадратного изображения
     ):
         self.model = onnxruntime.InferenceSession(model_path)
         self.class_names = class_names
@@ -29,8 +28,7 @@ class OnnxObjectDetection:
         outputs = self.model.get_outputs()
         self.input_layer_name = inputs[0].name
         self.output_layer_name = outputs[0].name
-        self.img_height = img_height
-        self.img_width = img_width
+        self.img_size = img_size
 
     def _predict_raw(self, img_in: np.ndarray) -> np.ndarray:
         """Performs object detection on the given image using the ONNX session.
@@ -57,10 +55,11 @@ class OnnxObjectDetection:
     def predict(self, image: Image.Image) -> list[ObjectPrediction]:
         """Поиск аспектов на изображении image"""
         image = image.convert("RGB")
-        preproc_image, returned_metadata = preprocess(image, self.img_height, self.img_width)
+        preproc_image = preprocess(image, self.img_size)
+        origin_shape = image.size[::-1]
+        scale = max(origin_shape) / self.img_size
         predicted_arrays = self._predict_raw(preproc_image)
-        postprocessed = postprocess(predicted_arrays, returned_metadata, self.img_height, self.img_width)[0]
-
+        postprocessed = postprocess(predicted_arrays, scale, origin_shape)[0]
         result = list(map(lambda prediction: ObjectPrediction(
             x=prediction[0] + abs(prediction[0] - prediction[2]) / 2,
             y=prediction[1] + abs(prediction[1] - prediction[3]) / 2,
@@ -73,36 +72,43 @@ class OnnxObjectDetection:
         return result
 
 
+def pad_to_square(img: np.ndarray) -> np.ndarray:
+    """Добавляет чёрных пикселей справа или снизу, чтобы изображение стало квадратным"""
+    h, w = img.shape[:2]
+    pad_size = abs(h - w)
+    NO_PAD = (0, 0)
+    if h > w:
+        return np.pad(img, [NO_PAD, (0, pad_size), NO_PAD], constant_values=0)
+    else:
+        return np.pad(img, [(0, pad_size), NO_PAD, NO_PAD], constant_values=0)
+
+
 def preprocess(
         image: Image.Image,
-        height: int,
-        width: int,
-) -> tuple[np.ndarray, tuple[int, int]]:
-    image_resized = image.resize((width, height))
-    np_image = np.array(image)
-    resized = np.array(image_resized)
-    img_dims = tuple(np_image.shape[:2])
-    img_in = np.transpose(resized, (2, 0, 1))
-    img_in = img_in.astype(np.float32)
-    img_in = np.expand_dims(img_in, axis=0)
-    img_in /= 255.0
-    return img_in, img_dims
+        size: int,
+) -> np.ndarray:
+    image = np.array(image)
+    image = pad_to_square(image)
+    image = np.array(Image.fromarray(image).resize((size, size)))
+    image = np.transpose(image, (2, 0, 1))
+    image = image.astype(np.float32)
+    image = np.expand_dims(image, axis=0)
+    image /= 255.0
+    return image
 
 
 def postprocess(
         predictions,
-        img_dims,
-        height: int,
-        width: int,
+        scale: float,
+        origin_shape: tuple[int, int],
         confidence: float = 0.4,
-        iou_threshold: float = 0.3,
+        iou_threshold: float = 0.5,
         max_detections: int = 300,
 ) -> list:
     """Postprocesses the object detection predictions.
 
     Args:
         predictions (np.ndarray): Raw predictions from the model.
-        img_dims (List[Tuple[int, int]]): Dimensions of the images.
         confidence (float): Confidence threshold for filtering detections. Default is 0.5.
         iou_threshold (float): IoU threshold for non-max suppression. Default is 0.5.
         max_detections (int): Maximum number of final detections. Default is 300.
@@ -113,12 +119,10 @@ def postprocess(
         iou_thresh=iou_threshold,
         max_detections=max_detections,
     )
-
-    infer_shape = (height, width)
     predictions = post_process_bboxes(
         predictions,
-        infer_shape,
-        img_dims,
+        scale,
+        origin_shape=origin_shape,
     )
     return predictions
 
@@ -280,9 +284,8 @@ def non_max_suppression_fast(boxes, overlapThresh):
 
 def post_process_bboxes(
         predictions: list[list[float]],
-        infer_shape: tuple[int, int],
-        img_dim: tuple[int, int],
-        resize_method: str = "Stretch to",
+        scale: float,
+        origin_shape: tuple[int, int],
 ) -> list[list[list[float]]]:
     scaled_predictions = []
     for i, batch_predictions in enumerate(predictions):
@@ -291,13 +294,11 @@ def post_process_bboxes(
             continue
         np_batch_predictions = np.array(batch_predictions)
         predicted_bboxes = np_batch_predictions[:, :4]
-        origin_shape = img_dim
-        if resize_method == "Stretch to":
-            predicted_bboxes = stretch_bboxes(
-                predicted_bboxes=predicted_bboxes,
-                infer_shape=infer_shape,
-                origin_shape=origin_shape,
-            )
+        predicted_bboxes = scale_bboxes(
+            bboxes=predicted_bboxes,
+            scale_x=scale,
+            scale_y=scale,
+        )
         predicted_bboxes = clip_boxes_coordinates(
             predicted_bboxes=predicted_bboxes,
             origin_shape=origin_shape,
@@ -305,20 +306,6 @@ def post_process_bboxes(
         np_batch_predictions[:, :4] = predicted_bboxes
         scaled_predictions.append(np_batch_predictions.tolist())
     return scaled_predictions
-
-
-def stretch_bboxes(
-        predicted_bboxes: np.ndarray,
-        infer_shape: tuple[int, int],
-        origin_shape: tuple[int, int],
-) -> np.ndarray:
-    scale_height = origin_shape[0] / infer_shape[0]
-    scale_width = origin_shape[1] / infer_shape[1]
-    return scale_bboxes(
-        bboxes=predicted_bboxes,
-        scale_x=scale_width,
-        scale_y=scale_height,
-    )
 
 
 def scale_bboxes(bboxes: np.ndarray, scale_x: float, scale_y: float) -> np.ndarray:

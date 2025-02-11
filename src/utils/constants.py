@@ -78,10 +78,8 @@ DELAY_BETWEEN_RENDER = 0.5  # seconds
 # Neurolink constants
 FIELD_OBJECT_DETECTION_PATH = to_resource_path("models/field_object_detection.onnx")
 INVENTORY_OBJECT_DETECTION_PATH = to_resource_path("models/inventory_object_detection.onnx")
-DIGITS_CLASSIFICATION_PATH = to_resource_path("models/digit_classification.onnx")
 FIELD_CLASS_NAMES_PATH = to_resource_path("models/field_class_names.txt")
 INVENTORY_CLASS_NAMES_PATH = to_resource_path("models/inventory_class_names.txt")
-DIGITS_CLASS_NAMES_PATH = to_resource_path("models/digits_class_names.txt")
 ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
 ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 
