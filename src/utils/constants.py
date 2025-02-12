@@ -30,7 +30,7 @@ THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('aspects_configs/aspectsOrder
 
 
 def getAspectImagePath(aspectName, colored=True):
-    return to_resource_path(f'images/{'color' if colored else 'mono'}/{aspectName}.png')
+    return to_resource_path(f'images/{"color" if colored else "mono"}/{aspectName}.png')
 def getImagePathByNumber(number):
     return to_resource_path(f'images/numbers/{number}.png')
 UNKNOWN_ASPECT_IMAGE_PATH = to_resource_path('images/unknownAspect.png')
