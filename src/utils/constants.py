@@ -4,7 +4,8 @@ import sys
 
 import appdata
 
-app_paths = appdata.AppDataPaths(".ThaumcraftAutoResearcher")
+app_paths = appdata.AppDataPaths('.ThaumcraftAutoResearcher')
+
 app_paths.setup()
 
 # ------------------------
@@ -16,13 +17,13 @@ FPS = 60
 # ------------------------
 # Files paths
 def to_resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+    ''' Get absolute path to resource, works for dev and for PyInstaller '''
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath('.'))
     return os.path.join(base_path, relative_path)
 
 
 def to_appdata_path(relative_path):
-    """ Get absolute path to file into appdata folder, cross-platform """
+    ''' Get absolute path to file into appdata folder, cross-platform '''
     return os.path.join(str(app_paths.app_data_path), relative_path)
 
 
@@ -34,15 +35,12 @@ THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('aspects_configs/aspectsOrder
 
 
 def getAspectImagePath(aspectName, colored=True):
-    return to_resource_path(f"images/{'color' if colored else 'mono'}/{aspectName}.png")
-
-
+    return to_resource_path(f'images/{"color" if colored else "mono"}/{aspectName}.png')
 def getImagePathByNumber(number):
-    return to_resource_path(f"images/numbers/{number}.png")
+    return to_resource_path(f'images/numbers/{number}.png')
+ 
 
-
-UNKNOWN_ASPECT_IMAGE_PATH = "images/unknownAspect.png"
-
+UNKNOWN_ASPECT_IMAGE_PATH = to_resource_path('images/unknownAspect.png')
 EMPTY_ASPECT_SLOT_IMAGE_PATH = to_resource_path('images/emptyAspectPlace.png')
 HEXAGON_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonMask.png')
 HEXAGON_BORDER_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonBorderMask.png')
@@ -83,11 +81,12 @@ INVENTORY_CLASS_NAMES_PATH = to_resource_path("models/inventory_class_names.txt"
 ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
 ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 
+
 # ------------------------
 # Other constants
 EMPTY_TOLERANCE_PERCENT = 0.02
-IMAGE_TMP_PATH = to_appdata_path(".tmp/tmp.png")
-LOG_FILE_PATH = to_appdata_path("logs/logs.log")
+IMAGE_TMP_PATH = to_appdata_path('.tmp/tmp.png')
+LOG_FILE_PATH = to_appdata_path('logs/logs.log')
 
 # Loggers
 MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 * 5  # 5 Mb
