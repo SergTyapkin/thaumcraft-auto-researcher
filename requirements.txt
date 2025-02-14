@@ -1,8 +1,0 @@
-keyboard==0.13.5
-mouse==0.7.1
-pillow==10
-PyScreeze==0.1.28
-PyQt5==5.15.10
-PyQt5_sip==12.13.0
-inference==0.25
-appdata==2.2.1

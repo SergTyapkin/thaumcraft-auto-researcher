@@ -2,7 +2,7 @@ import logging
 import sys
 import traceback
 from enum import Enum
-from typing import Union, Callable, Any
+from typing import Callable, Any
 from venv import logger
 
 import keyboard
@@ -11,8 +11,8 @@ from PyQt5.QtCore import Qt, QThread, QObject, QEvent
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QFont
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
+from src.UI.primitives import Point, Text, UIPrimitive
 from src.utils.LinkableValue import editLinkableValue
-from src.UI.UIPrimitives import Point, Line, Rect, Text, Image, UIPrimitive
 
 FPS = 60
 FRAME_TIME = int(1000 / FPS)
@@ -61,21 +61,27 @@ class TimedEvent:
     args: list[any]
     kwargs: dict[any]
     onChangeCallback: Callable[[int], None]
-    def __init__(self, timeLeftMs: int, callback: Callable[[], None], args=[], kwargs={}, onChangeCallback: Callable[[int], None] = lambda timeLeft: None):
+
+    def __init__(self, timeLeftMs: int, callback: Callable[[], None], args=[], kwargs={},
+                 onChangeCallback: Callable[[int], None] = lambda timeLeft: None):
         self.callback = callback
         self.timeLeftMs = timeLeftMs
         self.args = args
         self.kwargs = kwargs
         self.onChangeCallback = onChangeCallback
+
     def decreaseTime(self, timeMs):
         self.timeLeftMs -= timeMs
+
     def execCallbackIfTime0(self) -> bool:
         if self.timeLeftMs <= 0:
             self.callback(*self.args, **self.kwargs)
             return True
         return False
+
     def execOnChangeCallback(self):
         self.onChangeCallback(self.timeLeftMs)
+
 
 class _Window(QMainWindow):
     objects: list[UIPrimitive] = []
@@ -91,7 +97,6 @@ class _Window(QMainWindow):
     otherProcessThread: QThread = None
     app: QApplication = None
     holdingKeys: set[int] = set()
-
 
     def __init__(self, opacity=1.0, w=None, h=None):
         QMainWindow.__init__(
@@ -123,6 +128,7 @@ class _Window(QMainWindow):
                 # logging.debug(f"{event.name}, {event.scan_code}")
                 if set(keysCombination).issubset(self.holdingKeys):
                     self.keysCallbacks[keysCombination][0](*self.keysCallbacks[keysCombination][1])
+
         keyboard._listener.add_handler(onKeyboardEvent)
 
         self.startTimer(FRAME_TIME)
@@ -204,7 +210,7 @@ class _Window(QMainWindow):
                     (getattr(obj, 'onClickCallback') is not None) and
                     obj.clickable
                 ):
-                        # and (self.currentPressedObject is obj):
+                    # and (self.currentPressedObject is obj):
                     objToClick = obj
             if objToClick is not None:
                 objToClick.onClickCallback(*objToClick.onClickCallbackArgs)
@@ -218,8 +224,8 @@ class _Window(QMainWindow):
 
         self._updateObjectsHoverState(event, True)
 
-
-    def setTimeout(self, timeoutMs: int, callback: Callable, args=[], kwargs={}, onChangeCallback=lambda timeLeft: None):
+    def setTimeout(self, timeoutMs: int, callback: Callable, args=[], kwargs={},
+                   onChangeCallback=lambda timeLeft: None):
         self.timedEvents.add(TimedEvent(timeoutMs, callback, args, kwargs, onChangeCallback))
         # or simpler but not works: QtCore.QTimer.singleShot(timeoutMs, callback)
 
@@ -236,6 +242,7 @@ class _Window(QMainWindow):
     def setAllObjectsVisibility(self, state: bool):
         for object in self.objects:
             object.visible = state
+
     def setObjectsVisibility(self, objects: list[UIPrimitive], state: bool):
         for object in objects:
             object.visible = state
@@ -243,7 +250,7 @@ class _Window(QMainWindow):
     def removeObject(self, obj: UIPrimitive):
         try:
             self.objects.remove(obj)
-        except ValueError: # list.remove(x): x not in list
+        except ValueError:  # list.remove(x): x not in list
             pass
         return obj
 
@@ -324,10 +331,10 @@ class OverlayUI(_Window):
         sys.exit(exit_code)
 
     def createExitButton(self, size: int = 50, x: int = None, y: int = None) -> UIPrimitive:
-        font = QFont('Arial', int(size/3), weight=QFont.Bold, italic=False)
-        padding = (0, int(size/15), int(size/4), int(size/3))
+        font = QFont('Arial', int(size / 3), weight=QFont.Bold, italic=False)
+        padding = (0, int(size / 15), int(size / 4), int(size / 3))
         if x is None:
-            x = self.w - padding[1] - padding[3] - font.pointSize()/1.05 * 2
+            x = self.w - padding[1] - padding[3] - font.pointSize() / 1.05 * 2
         if y is None:
             y = 0
 
