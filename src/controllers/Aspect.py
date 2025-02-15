@@ -3,11 +3,11 @@ import logging
 from PIL import Image
 from PyQt5.QtGui import QPixmap
 
-from src.utils.constants import getAspectImagePath, UNKNOWN_ASPECT_IMAGE_PATH, EMPTY_ASPECT_SLOT_IMAGE_PATH
+from src.utils.constants import getAspectImagePath, UNKNOWN_ASPECT_IMAGE_PATH
 from src.utils.utils import loadImage
 
 
-emptyAspectInventorySlotImage = loadImage(EMPTY_ASPECT_SLOT_IMAGE_PATH)
+unknownAspectImage = loadImage(UNKNOWN_ASPECT_IMAGE_PATH)
 
 
 class Aspect:
@@ -28,11 +28,11 @@ class Aspect:
 
         imagePath = getAspectImagePath(self.name)
         try:
-            self.image = loadImage(imagePath, emptyAspectInventorySlotImage)
+            self.image = loadImage(imagePath, unknownAspectImage)
             self.pixMapImage = QPixmap(imagePath)
         except Exception as e:
             logging.critical(f"Couldn't load image from path {imagePath}. Error: {e}")
-            self.image = loadImage(UNKNOWN_ASPECT_IMAGE_PATH, emptyAspectInventorySlotImage)
+            self.image = unknownAspectImage
             self.pixMapImage = QPixmap(UNKNOWN_ASPECT_IMAGE_PATH)
         imagePath = getAspectImagePath(self.name, colored=False)
         try:

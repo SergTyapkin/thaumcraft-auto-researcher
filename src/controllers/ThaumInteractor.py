@@ -14,7 +14,7 @@ from src.logic.Neurolink import Neurolink
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
-    EMPTY_ASPECT_SLOT_IMAGE_PATH, THAUM_HEXAGONS_SLOTS_COUNT, \
+    THAUM_HEXAGONS_SLOTS_COUNT, \
     EMPTY_TOLERANCE_PERCENT, \
     THAUM_VERSION_CONFIG_PATH, DEBUG, \
     UNKNOWN_ASPECT_IMAGE_PATH, NEUROLINK_FREE_HEXAGON_PREDICTION_NAME, \
@@ -59,7 +59,6 @@ class ThaumInteractor:
     availableAspects: list[Aspect] = []  # Only available in inventory aspects
     recipes: dict[str, list[str, str]]  # All aspects recipes
     maxPagesCount: int = None  # Total aspects inventory pages count
-    # numbersImages: list[Image.Image] = []  # Loaded images with numbers 1...10 (For what??)
 
     pointWritingMaterials: P
     pointPapers: P
@@ -78,13 +77,7 @@ class ThaumInteractor:
     hexagonSlotSizeY: float
     hexagonSlotSizeX: float
 
-    emptyAspectInventorySlotImage: Image.Image = None
-    # hexagonMaskImage: Image.Image = None
-    # hexagonBorderMaskImage: Image.Image = None
-    # freeHexagonImage: Image.Image = None
-    # noneHexagonImage: Image.Image = None
-    # maskOnlyNumbers: Image.Image = None
-    # maskWithoutNumbers: Image.Image = None
+    unknownAspectImage: Image.Image = None
 
     def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str, str]],
                  orderedAvailableAspects: list[str]):
@@ -108,15 +101,7 @@ class ThaumInteractor:
         self.hexagonSlotSizeX = self.hexagonSlotSizeY * math.cos(math.pi / 6)
         self.increaseWorkingSlot()
 
-        self.emptyAspectInventorySlotImage = self.loadImage(EMPTY_ASPECT_SLOT_IMAGE_PATH)
-        # self.maskWithoutNumbers = self.loadImage(MASK_WITHOUT_NUMBER_IMAGE_PATH)
-        # self.maskOnlyNumbers = self.loadImage(MASK_ONLY_NUMBER_IMAGE_PATH)
-        # self.hexagonMaskImage = self.loadImage(HEXAGON_MASK_IMAGE_PATH)
-        # self.hexagonBorderMaskImage = self.loadImage(HEXAGON_BORDER_MASK_IMAGE_PATH)
-        # self.freeHexagonImages = [self.loadImage(path) for path in FREE_HEXAGON_SLOT_IMAGES_PATHS]
-        # self.noneHexagonImage = self.loadImage(NONE_HEXAGON_SLOT_IMAGE_PATH)
-        # for i in range(0, 10):
-        #     self.numbersImages.append(self.loadImage(getImagePathByNumber(i), noResize=True))
+        self.unknownAspectImage = self.loadImage(UNKNOWN_ASPECT_IMAGE_PATH)
 
         self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
@@ -149,11 +134,11 @@ class ThaumInteractor:
                 continue
             imagePath = getAspectImagePath(aspect.name)
             try:
-                aspect.image = self.loadImage(imagePath, self.emptyAspectInventorySlotImage)
+                aspect.image = self.loadImage(imagePath, self.unknownAspectImage)
                 aspect.pixMapImage = QPixmap(imagePath)
             except Exception as e:
                 logging.critical(f"Couldn't load image from path {imagePath}. Error: {e}")
-                aspect.image = self.loadImage(UNKNOWN_ASPECT_IMAGE_PATH, self.emptyAspectInventorySlotImage)
+                aspect.image = self.unknownAspectImage
                 aspect.pixMapImage = QPixmap(UNKNOWN_ASPECT_IMAGE_PATH)
             imagePath = getAspectImagePath(aspect.name, colored=False)
             try:
