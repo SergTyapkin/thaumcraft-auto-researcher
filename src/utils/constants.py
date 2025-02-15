@@ -36,26 +36,26 @@ THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('aspects_configs/aspectsOrder
 
 def getAspectImagePath(aspectName, colored=True):
     return to_resource_path(f'images/{"color" if colored else "mono"}/{aspectName}.png')
-def getImagePathByNumber(number):
-    return to_resource_path(f'images/numbers/{number}.png')
- 
+# def getImagePathByNumber(number):
+#     return to_resource_path(f'images/numbers/{number}.png')
+
 
 UNKNOWN_ASPECT_IMAGE_PATH = to_resource_path('images/unknownAspect.png')
 EMPTY_ASPECT_SLOT_IMAGE_PATH = to_resource_path('images/emptyAspectPlace.png')
-HEXAGON_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonMask.png')
-HEXAGON_BORDER_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonBorderMask.png')
-MASK_WITHOUT_NUMBER_IMAGE_PATH = to_resource_path('images/maskWithoutNumbers.png')
-MASK_ONLY_NUMBER_IMAGE_PATH = to_resource_path('images/maskOnlyNumbers.png')
-NONE_HEXAGON_SLOT_IMAGE_PATH = to_resource_path('images/hexagons/noneHexagon.png')
-FREE_HEXAGON_SLOT_IMAGES_PATHS = [
-    to_resource_path('images/hexagons/freeHexagons/1.png'),
-    to_resource_path('images/hexagons/freeHexagons/2.png'),
-    to_resource_path('images/hexagons/freeHexagons/3.png'),
-    to_resource_path('images/hexagons/freeHexagons/4.png'),
-    to_resource_path('images/hexagons/freeHexagons/5.png'),
-    to_resource_path('images/hexagons/freeHexagons/6.png'),
-    to_resource_path('images/hexagons/freeHexagons/7.png'),
-]
+# HEXAGON_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonMask.png')
+# HEXAGON_BORDER_MASK_IMAGE_PATH = to_resource_path('images/hexagons/hexagonBorderMask.png')
+# MASK_WITHOUT_NUMBER_IMAGE_PATH = to_resource_path('images/maskWithoutNumbers.png')
+# MASK_ONLY_NUMBER_IMAGE_PATH = to_resource_path('images/maskOnlyNumbers.png')
+# NONE_HEXAGON_SLOT_IMAGE_PATH = to_resource_path('images/hexagons/noneHexagon.png')
+# FREE_HEXAGON_SLOT_IMAGES_PATHS = [
+#     to_resource_path('images/hexagons/freeHexagons/1.png'),
+#     to_resource_path('images/hexagons/freeHexagons/2.png'),
+#     to_resource_path('images/hexagons/freeHexagons/3.png'),
+#     to_resource_path('images/hexagons/freeHexagons/4.png'),
+#     to_resource_path('images/hexagons/freeHexagons/5.png'),
+#     to_resource_path('images/hexagons/freeHexagons/6.png'),
+#     to_resource_path('images/hexagons/freeHexagons/7.png'),
+# ]
 ASPECTS_IMAGES_SIZE = 32  # px
 
 # ------------------------
@@ -78,8 +78,9 @@ FIELD_OBJECT_DETECTION_PATH = to_resource_path("models/field_object_detection.on
 INVENTORY_OBJECT_DETECTION_PATH = to_resource_path("models/inventory_object_detection.onnx")
 FIELD_CLASS_NAMES_PATH = to_resource_path("models/field_class_names.txt")
 INVENTORY_CLASS_NAMES_PATH = to_resource_path("models/inventory_class_names.txt")
-ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
-ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME = "script"
+NEUROLINK_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
+NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME = "script"
+NEUROLINK_UNKNOWN_ASPECT_PREDICTION_NAME = "unknown"
 
 
 # ------------------------

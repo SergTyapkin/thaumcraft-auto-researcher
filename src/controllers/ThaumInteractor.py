@@ -14,11 +14,11 @@ from src.logic.Neurolink import Neurolink
 from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
-    EMPTY_ASPECT_SLOT_IMAGE_PATH, THAUM_HEXAGONS_SLOTS_COUNT, HEXAGON_MASK_IMAGE_PATH, FREE_HEXAGON_SLOT_IMAGES_PATHS, \
-    NONE_HEXAGON_SLOT_IMAGE_PATH, MASK_ONLY_NUMBER_IMAGE_PATH, MASK_WITHOUT_NUMBER_IMAGE_PATH, EMPTY_TOLERANCE_PERCENT, \
-    getImagePathByNumber, THAUM_VERSION_CONFIG_PATH, DEBUG, \
-    HEXAGON_BORDER_MASK_IMAGE_PATH, UNKNOWN_ASPECT_IMAGE_PATH, ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME, \
-    ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER
+    EMPTY_ASPECT_SLOT_IMAGE_PATH, THAUM_HEXAGONS_SLOTS_COUNT, \
+    EMPTY_TOLERANCE_PERCENT, \
+    THAUM_VERSION_CONFIG_PATH, DEBUG, \
+    UNKNOWN_ASPECT_IMAGE_PATH, NEUROLINK_FREE_HEXAGON_PREDICTION_NAME, \
+    NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER
 from src.utils.constants import getAspectImagePath
 from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
     loadRecipesForSelectedVersion
@@ -54,12 +54,12 @@ class ThaumInteractor:
     UI = None
 
     workingInventorySlot = -1  # can be 0..26 (inventory 9x3)
-    currentAspectsPageIdx = None
-    allAspects: list[Aspect] = []
-    availableAspects: list[Aspect] = []
-    recipes: dict[str, [str, str]]
-    maxPagesCount: int = None
-    numbersImages: list[Image.Image] = []
+    currentAspectsPageIdx = None  # Current aspects inventory page idx
+    allAspects: list[Aspect] = []  # All aspects that for selected version and all known addons
+    availableAspects: list[Aspect] = []  # Only available in inventory aspects
+    recipes: dict[str, list[str, str]]  # All aspects recipes
+    maxPagesCount: int = None  # Total aspects inventory pages count
+    # numbersImages: list[Image.Image] = []  # Loaded images with numbers 1...10 (For what??)
 
     pointWritingMaterials: P
     pointPapers: P
@@ -79,14 +79,14 @@ class ThaumInteractor:
     hexagonSlotSizeX: float
 
     emptyAspectInventorySlotImage: Image.Image = None
-    hexagonMaskImage: Image.Image = None
-    hexagonBorderMaskImage: Image.Image = None
-    freeHexagonImage: Image.Image = None
-    noneHexagonImage: Image.Image = None
-    maskOnlyNumbers: Image.Image = None
-    maskWithoutNumbers: Image.Image = None
+    # hexagonMaskImage: Image.Image = None
+    # hexagonBorderMaskImage: Image.Image = None
+    # freeHexagonImage: Image.Image = None
+    # noneHexagonImage: Image.Image = None
+    # maskOnlyNumbers: Image.Image = None
+    # maskWithoutNumbers: Image.Image = None
 
-    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str]],
+    def __init__(self, UI, controlsConfig: dict[str, dict[str, float]], aspectsRecipes: dict[str, list[str, str]],
                  orderedAvailableAspects: list[str]):
         self.UI = UI
 
@@ -109,24 +109,26 @@ class ThaumInteractor:
         self.increaseWorkingSlot()
 
         self.emptyAspectInventorySlotImage = self.loadImage(EMPTY_ASPECT_SLOT_IMAGE_PATH)
-        self.maskWithoutNumbers = self.loadImage(MASK_WITHOUT_NUMBER_IMAGE_PATH)
-        self.maskOnlyNumbers = self.loadImage(MASK_ONLY_NUMBER_IMAGE_PATH)
-        self.hexagonMaskImage = self.loadImage(HEXAGON_MASK_IMAGE_PATH)
-        self.hexagonBorderMaskImage = self.loadImage(HEXAGON_BORDER_MASK_IMAGE_PATH)
-        self.freeHexagonImages = [self.loadImage(path) for path in FREE_HEXAGON_SLOT_IMAGES_PATHS]
-        self.noneHexagonImage = self.loadImage(NONE_HEXAGON_SLOT_IMAGE_PATH)
-        for i in range(0, 10):
-            self.numbersImages.append(self.loadImage(getImagePathByNumber(i), noResize=True))
+        # self.maskWithoutNumbers = self.loadImage(MASK_WITHOUT_NUMBER_IMAGE_PATH)
+        # self.maskOnlyNumbers = self.loadImage(MASK_ONLY_NUMBER_IMAGE_PATH)
+        # self.hexagonMaskImage = self.loadImage(HEXAGON_MASK_IMAGE_PATH)
+        # self.hexagonBorderMaskImage = self.loadImage(HEXAGON_BORDER_MASK_IMAGE_PATH)
+        # self.freeHexagonImages = [self.loadImage(path) for path in FREE_HEXAGON_SLOT_IMAGES_PATHS]
+        # self.noneHexagonImage = self.loadImage(NONE_HEXAGON_SLOT_IMAGE_PATH)
+        # for i in range(0, 10):
+        #     self.numbersImages.append(self.loadImage(getImagePathByNumber(i), noResize=True))
 
-        # TODO: make with available aspects detecting
         self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
 
         self.allAspects = [Aspect(orderedAvailableAspects[i], i) for i in range(len(orderedAvailableAspects))]
         self.loadAspectsImages()
 
+        self.updateAvailableAspectsInInventory()
+
         logging.info(f"ThaumcraftInteractor successfully initialized")
-        logging.info(f"All available aspects: {orderedAvailableAspects}")
+        logging.info(f"All known aspects:     {self.allAspects}")
+        logging.info(f"All available aspects: {self.availableAspects}")
 
     def loadImage(self, path: str, backgroundImage: Image.Image = None, noResize: bool = False) -> Image.Image:
         image = Image.open(path)
@@ -143,6 +145,8 @@ class ThaumInteractor:
     def loadAspectsImages(self):
         logging.info(f"Loading thaum aspects images...")
         for aspect in self.allAspects:
+            if aspect.image:
+                continue
             imagePath = getAspectImagePath(aspect.name)
             try:
                 aspect.image = self.loadImage(imagePath, self.emptyAspectInventorySlotImage)
@@ -275,12 +279,10 @@ class ThaumInteractor:
         raise ValueError(f"Aspect {aspectName} not exists in known aspects list")
 
     def scrollToAspect(self, aspect: Aspect) -> (int, int):
-        cellX = aspect.idx // THAUM_ASPECTS_INVENTORY_SLOTS_Y
-        cellY = aspect.idx % THAUM_ASPECTS_INVENTORY_SLOTS_Y
-        logging.info(f"Scroll to aspect {aspect}, in cell[absolute] ({cellX}, {cellY})")
+        logging.info(f"Scroll to aspect {aspect}, in cell[absolute] ({aspect.cellX}, {aspect.cellY})")
 
-        cellPageIdxMin = max(cellX - THAUM_ASPECTS_INVENTORY_SLOTS_X + 1, 0)
-        cellPageIdxMax = min(cellX, self.maxPagesCount)
+        cellPageIdxMin = max(aspect.cellX - THAUM_ASPECTS_INVENTORY_SLOTS_X + 1, 0)
+        cellPageIdxMax = min(aspect.cellX, self.maxPagesCount)
 
         if self.currentAspectsPageIdx < cellPageIdxMin:
             for _ in range(self.currentAspectsPageIdx, cellPageIdxMin):
@@ -291,7 +293,7 @@ class ThaumInteractor:
                 self.scrollLeft()
                 eventsDelay()
 
-        return cellX - self.currentAspectsPageIdx, cellY
+        return aspect.cellX - self.currentAspectsPageIdx, aspect.cellY
 
     def takeAspect(self, aspect: Aspect):
         if aspect.count == 0:
@@ -301,7 +303,7 @@ class ThaumInteractor:
         self.takeAspectByCellCoords(cellX, cellY)
         aspect.count -= 1
 
-    def mixAspect(self, aspect: Aspect, useShift=True, times=5) -> None:
+    def mixAspect(self, aspect: Aspect, useShift=True, times=1) -> None:
         """
         Creates aspect by mixing aspects from its recipe
 
@@ -358,16 +360,12 @@ class ThaumInteractor:
 
     def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
         logging.info(f"Filling aspects by link map: {aspectsMap}")
+
         # Оптимизируем порядок аспектов, чтобы пришлось меньше листать инвентарь
         aspectsListMap = list(aspectsMap.items())
-
-        def sortFunc(pair):
-            aspectName = pair[1]
-            aspect = self.getAspectByName(aspectName)
-            return aspect.idx
-
-        aspectsListMap.sort(key=sortFunc)
+        aspectsListMap.sort(key=lambda pair: self.getAspectByName(pair[1]).idx)
         logging.debug(f"Sorted aspects link map: {aspectsListMap}")
+
         # Заполняем по одному аспекту, пролистывая к каждому следующему
         self.currentAspectsPageIdx = None
         self.scrollToLeftSide()
@@ -409,7 +407,7 @@ class ThaumInteractor:
         return screenshotImage
 
     def updateAvailableAspectsInInventory(self):
-        logging.info("Detecting available aspects...")
+        logging.info("Detecting available aspects in inventory...")
         self.availableAspects = []
 
         debugHighlightingRect = self.addDebugHighlightingRect()
@@ -435,11 +433,10 @@ class ThaumInteractor:
             logging.info("Wait for prediction")
             predictions = Neurolink.predict_inventory_aspects(screenshotImage)
             count_predictions = Neurolink.predict_inventory_aspects_count(screenshotImage)
-            logging.info(f"Predictions: {predictions}")
-            logging.info(f"Count Predictions: {count_predictions}")
+            logging.info(f"Aspects predictions: {predictions}")
+            logging.info(f"Counts predictions:  {count_predictions}")
 
             # Approximate aspects coordinates by cells
-            aspectsOnScreenshot = []
             for prediction in predictions:
                 try:
                     aspect = self.getAspectByName(prediction.predictionName)
@@ -456,17 +453,11 @@ class ThaumInteractor:
                     self.currentAspectsPageIdx + prediction.x // slotWidth,
                     prediction.y // slotHeight,
                 )
-                aspectsOnScreenshot.append([coords, aspect])
+                aspect.cellX = coords[0]
+                aspect.cellY = coords[1]
+                self.availableAspects.append(aspect)
 
-            def sortFunc(element):
-                return element[0][0] * THAUM_ASPECTS_INVENTORY_SLOTS_Y + element[0][1]
-
-            aspectsOnScreenshot.sort(key=sortFunc)
-            logging.info(f"Sorted detected aspects: {aspectsOnScreenshot}")
-
-            # add found aspects to available aspects
-            self.availableAspects.extend(map(lambda elem: elem[1], aspectsOnScreenshot))
-            logging.debug(f"All available aspects: {self.availableAspects}")
+            logging.info(f"All found aspects: {self.availableAspects}")
 
             if isFoundEndOfInventory:
                 break
@@ -503,27 +494,23 @@ class ThaumInteractor:
 
         self.UI.removeObject(debugHighlightingRect)
 
-        # Setting count 0 for each aspect that was not found
-        for aspect in self.allAspects:
-            if aspect.count is None:
-                aspect.count = 0
-            # if aspect.name in ["ignis", "aqua", "aer", "ordo", "perditio", "terra"]:
-            #     aspect.count = 1000
-            # else:
-            #     aspect.count = 0
-
-    def logAvailableAspects(self):
-        string = ""
-        for i in range(len(self.availableAspects)):
-            string += str(self.availableAspects[i]) + " "
-            if i % THAUM_ASPECTS_INVENTORY_SLOTS_Y == THAUM_ASPECTS_INVENTORY_SLOTS_Y - 1:
-                logging.info(string)
-                string = ""
-        logging.info(string)
-
-    def getExistingAspectsOnField(self) -> tuple[dict[(int, int), str], set[(int, int)], set[(int, int)]]:
+        # Sort found aspects
+        self.availableAspects.sort(key=lambda a: a.idx)
+        logging.info(f"All detected available aspects was sorted")
         self.logAvailableAspects()
 
+    def logAvailableAspects(self):
+        string = "All available aspects by columns:"
+        for i in range(len(self.availableAspects)):
+            if i % THAUM_ASPECTS_INVENTORY_SLOTS_Y == 0:
+                string += f"\nCol {i // THAUM_ASPECTS_INVENTORY_SLOTS_Y + 1}: "
+            string += str(self.availableAspects[i]) + " "
+        logging.info(string)
+
+    def getAvailableAspectsNames(self) -> set[str]:
+        return set(map(lambda a: a.name, self.availableAspects))
+
+    def getExistingAspectsOnField(self) -> tuple[dict[(int, int), str], set[(int, int)], set[(int, int)]]:
         hexagonsRectLT = P(
             self.rectHexagonsCC.x - (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.5) * self.hexagonSlotSizeX,
             self.rectHexagonsCC.y - (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.1) * self.hexagonSlotSizeY,
@@ -566,9 +553,9 @@ class ThaumInteractor:
         allCells = set()
         maxDistFromCenter = 0
         for prediction in predictions:
-            if prediction.predictionName == ROBOFLOW_FREE_HEXAGON_PREDICTION_NAME:
+            if prediction.predictionName == NEUROLINK_FREE_HEXAGON_PREDICTION_NAME:
                 isAspect = False
-            elif prediction.predictionName == ROBOFLOW_SCRIPT_IMAGE_PREDICTION_NAME:
+            elif prediction.predictionName == NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME:
                 continue
             else:
                 isAspect = True

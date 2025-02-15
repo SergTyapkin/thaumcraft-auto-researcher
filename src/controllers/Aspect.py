@@ -17,10 +17,14 @@ class Aspect:
     pixMapImage: QPixmap
     mask: Image.Image
     count: int = None
+    cellX: int | None
+    cellY: int | None
 
-    def __init__(self, name: str, idx: int):
+    def __init__(self, name: str, idx: int, cellX: int = None, cellY: int = None):
         self.name = name
         self.idx = idx
+        self.cellX = cellX
+        self.cellY = cellY
 
         imagePath = getAspectImagePath(self.name)
         try:

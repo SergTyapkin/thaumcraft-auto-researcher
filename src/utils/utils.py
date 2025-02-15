@@ -2,15 +2,14 @@ import json
 import logging
 import math
 import os
-import re
 import time
 
 from PIL import Image
-from PyQt5.QtGui import QColor
 
 from src.utils.LinkableValue import linkableValueDumpsToJSON
 from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH, \
-    DELAY_BETWEEN_EVENTS, DELAY_BETWEEN_RENDER, THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
+    DELAY_BETWEEN_EVENTS, DELAY_BETWEEN_RENDER
+from utils.constants import THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
 
 
 def distance(x1, y1, x2, y2):
@@ -126,33 +125,33 @@ def getImagesDiffPercent(image1: Image.Image, image2: Image.Image, masks: list[I
     return percentDiff
 
 
-def saveThaumVersionConfig(version: str, addons: list[str]):
+def saveThaumVersionConfig(version: str):
     saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {
         'version': version,
-        'addons': addons
     })
 
 
-def loadThaumVersionConfig() -> tuple[str | None, list[str] | None]:
+def loadThaumVersionConfig() -> str | None:
     conf = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
     if conf is None:
-        return None, None
-    return conf['version'], conf['addons']
+        return None
+    return conf['version']
 
 
 def loadRecipesForSelectedVersion() -> dict[str, list[str, str]] | None:
-    selectedVersion, selectedAddons = loadThaumVersionConfig()
-    allRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
-    if None in (selectedVersion, selectedAddons, allRecipes):
-        logging.error(f'Cannot load recipes for selected version. One of selectedVersion, selectedAddons, allRecipes is None: ({selectedVersion}, {selectedAddons}, {allRecipes})')
+    selectedVersion = loadThaumVersionConfig()
+    allVersionsRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
+    if selectedVersion is None or allVersionsRecipes is None:
+        logging.error(f'Cannot load recipes for selected version. SelectedVersion or allRecipes is None: ({selectedVersion}, {allVersionsRecipes})')
         return None
-    versionRecipes = allRecipes.get(selectedVersion)
-    allAddonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
-    addonsRecipes = {}
-    for addonName in selectedAddons:
-        addonsRecipes |= allAddonsRecipes.get(addonName, set())
-    allRecipes = versionRecipes | addonsRecipes
-    return allRecipes
+    totalRecipes = allVersionsRecipes.get(selectedVersion)
+    if totalRecipes is None:
+        logging.error(f'Selected unknown version: {selectedVersion}')
+        return None
+    addonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
+    for addonRecipes in addonsRecipes.values():
+        totalRecipes |= addonRecipes
+    return totalRecipes
 
 
 def eventsDelay():

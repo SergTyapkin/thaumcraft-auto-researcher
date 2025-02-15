@@ -33,11 +33,11 @@ DEFAULT_INITIAL_PATH_LEN = 999999
 class AspectGraph:
     graph: dict[str, set[str]]
 
-    def __init__(self, aspect_recipes: dict[str, [str, str]]):
+    def __init__(self, aspect_recipes: dict[str, list[str, str]]):
         self.graph = {}
         self.regenerate_graph_combinations(aspect_recipes)
 
-    def regenerate_graph_combinations(self, aspect_recipes: dict[str, [str, str]]):
+    def regenerate_graph_combinations(self, aspect_recipes: dict[str, list[str, str]]):
         self.graph.clear()
         for aspect_name, recipe in aspect_recipes.items():
             for component in recipe:
@@ -161,14 +161,18 @@ class Aspect:
         return cells[target_aspect.coord].dist, cells[target_aspect.coord].path
 
 
-def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int, int)]) -> dict[(int, int): str]:
+def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int, int)], available_aspects: set[str]) -> dict[(int, int): str]:
     logging.debug("-----------")
     logging.info("START SOLVING")
     logging.debug("#---0. Setting up:")
     logging.info(f"EXISTING ASPECTS: {existing_aspects}")
     logging.info(f"HOLES HEXAGONS: {holes_set}")
     aspect_recipes = loadRecipesForSelectedVersion()
-    aspect_graph = AspectGraph(aspect_recipes)
+    available_aspect_recipes: dict[str, list[str, str]] = {}
+    for recipe_aspect in aspect_recipes:
+        if recipe_aspect in available_aspects:
+            available_aspect_recipes[recipe_aspect] = aspect_recipes[recipe_aspect]
+    aspect_graph = AspectGraph(available_aspect_recipes)
 
     result = {}
     initial_aspects: set[Aspect] = set()

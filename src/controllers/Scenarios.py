@@ -9,21 +9,14 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
 
 from src.UI.OverlayUI import OverlayUI, KeyboardKeys
-from src.UI.primitives import (
-    Circle,
-    Image,
-    Line,
-    Point,
-    Rect,
-    Text,
-)
+from src.UI.primitives import Circle, Image, Line, Point, Rect, Text
 from src.UI.primitives.values import DEFAULT_FONT
 from src.controllers.Aspect import Aspect
 from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.logic.LinksGeneration import generateLinkMap
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
-    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
+    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH
 from src.utils.utils import saveThaumControlsConfig, readJSONConfig, eventsDelay, renderDelay, \
     saveThaumVersionConfig, loadThaumVersionConfig
 
@@ -129,7 +122,7 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
 
 Как будет готово - жми [Enter]
 Чтобы вернуться назад, нажми [Backspace]
-(!!! После завершения этой конфигурации, если окно с игрой не во весь экран, 
+(!!! После завершения этой конфигурации, если окно с игрой открыто не во весь экран, 
 не передвигайте его по экрану !!)""",
         color=QColor('white'),
         padding=MARGIN,
@@ -269,15 +262,13 @@ def chooseThaumVersion(UI: OverlayUI):
     UI.createExitButton()
     infoText = UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
-        f"""Выберите версию Thaumcraft и установленные моды-аддоны.
+        f"""Выберите версию Thaumcraft.
 От этого будут зависеть рецепты получения аспектов.
-Если установленный тобой аддон отсутствует в этом списке, то эта программа
-помочь тебе не сможет. Напиши нам об этом и мы добавим этот аддон
 
 Когда выберешь, нажми [Enter]
 Чтобы вернуться назад, нажми [Backspace]
 
-Выбери версию:      Выбери аддоны:""",
+Выбери версию:""",
         color=QColor('white'),
         withBackground=True,
         backgroundColor=QColor('black'),
@@ -288,17 +279,12 @@ def chooseThaumVersion(UI: OverlayUI):
     recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     versions = list(recipesConfig.keys())
     versionsObjects = []
-    addonsObjects = []
-    addonsRecipesConfig = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
-    addonsSelectingState: dict[str, bool] = {}
-    for addonName in addonsRecipesConfig.keys():
-        addonsSelectingState[addonName] = False
 
     selectedVersionObject: list[Text | None] = [None]
     selectedVersion: list[str | None] = [None]
 
-    (oldVersion, oldAddons) = loadThaumVersionConfig()
-    logging.info(f"Selected in config version is: {oldVersion}. Selected in config addons is: {oldAddons}")
+    oldVersion = loadThaumVersionConfig()
+    logging.info(f"Selected in config version is: {oldVersion}")
 
     def updateVersionsPosition():
         startCurY = pointTextAnchor.y + MARGIN + infoText.h
@@ -312,17 +298,6 @@ def chooseThaumVersion(UI: OverlayUI):
             versionObject.y = curY
             versionObject.x = curX
             curY += versionObject.h + MARGIN
-        startCurY = pointTextAnchor.y + MARGIN + infoText.h
-        curY = startCurY
-        curX += 300
-        for i in range(len(addonsObjects)):
-            addonObject = addonsObjects[i]
-            if curY > UI.height() - addonObject.h:
-                curX += 400
-                curY = startCurY
-            addonObject.x = curX
-            addonObject.y = curY
-            curY += addonObject.h + MARGIN
 
     infoText.LT.onMoveCallback = updateVersionsPosition
     infoText.onMoveCallback = updateVersionsPosition
@@ -366,64 +341,17 @@ def chooseThaumVersion(UI: OverlayUI):
         if oldVersion == version:
             selectVersion(versionObject, version)
 
-    addonsNames = list(addonsSelectingState.keys())
-    curX += 300
-    curY = pointTextAnchor.y + MARGIN + infoText.h
-    startCurY = curY
-    for i in range(len(addonsNames)):
-        addonName = addonsNames[i]
-
-        def onClickAddon(addonObject, addonName):
-            logging.debug(f"Click on addon {addonName}")
-            toggleAddonSelecting(addonObject, addonName)
-
-        def toggleAddonSelecting(addonObject, addonName):
-            addonsSelectingState[addonName] = not addonsSelectingState[addonName]
-            if addonsSelectingState[addonName] is True:
-                addonObject.setColor(QColor('green'))
-                logging.debug(f"Selected addon {addonName}")
-            else:
-                addonObject.setColor(QColor('white'))
-                logging.debug(f"Deselected addon {addonName}")
-
-        addonObject = UI.addObject(Text(
-            0, 0,
-            addonName,
-            color=QColor('white'),
-            withBackground=True,
-            backgroundColor=QColor('black'),
-            padding=MARGIN,
-            UI=UI,
-            onClickCallback=onClickAddon,
-            hoverable=True,
-        ))
-        if curY > UI.height() - addonObject.h:
-            curX += 400
-            curY = startCurY
-        addonObject.x = curX
-        addonObject.y = curY
-        curY += addonObject.h + MARGIN
-        addonObject.onClickCallbackArgs = [addonObject, addonName]
-        addonsObjects.append(addonObject)
-        if addonName in (oldAddons or []):
-            toggleAddonSelecting(addonObject, addonName)
-
-    def onSumbit():
+    def onSubmit():
         if selectedVersion[0] is None:
             logging.warning(f"Enter pressed in dialogue but thaum version is not selected")
             return
-        selectedAddons = []
-        for addon, state in addonsSelectingState.items():
-            if state is True:
-                selectedAddons.append(addon)
         logging.info(f"Selected thaum version:{selectedVersion[0]}")
-        logging.info(f"Selected addons: {selectedAddons}")
-        saveThaumVersionConfig(selectedVersion[0], selectedAddons)
+        saveThaumVersionConfig(selectedVersion[0])
         waitForCreatingTI(UI)
 
-    logging.info(f"Selecting version and addons dialogue showed. Versions: {versions}, Addons: {addonsNames}")
+    logging.info(f"Selecting version dialogue showed. Versions: {versions}")
 
-    UI.setKeyCallback([KeyboardKeys.enter], onSumbit)
+    UI.setKeyCallback([KeyboardKeys.enter], onSubmit)
     UI.setKeyCallback([KeyboardKeys.backspace], configureThaumWindowCoords, UI)
 
 
@@ -457,18 +385,17 @@ def waitForCreatingTI(UI: OverlayUI):
     UI.clearAll()
     UI.createExitButton()
 
-    #     UI.addObject(Text(
-    #         pointTextAnchor.x, pointTextAnchor.y,
-    #         """Определяем аспекты в твоем столе.
-    # Перенеси это окно так, чтобы оно не перекрывало окно с игрой
-    # и нажми [Enter]
-    # Чтобы вернуться назад, нажми [Backspace]""",
-    #         color=QColor('white'),
-    #         withBackground=True,
-    #         backgroundColor=QColor('black'),
-    #         padding=MARGIN,
-    #         movable=True, UI=UI,
-    #     ))
+    UI.addObject(Text(
+        pointTextAnchor.x, pointTextAnchor.y,
+        """Сейчас нейросеть определит имеющиеся аспекты в твоем столе.
+Если готов, жми [Enter]
+Чтобы вернуться назад, нажми [Backspace]""",
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=MARGIN,
+        movable=True, UI=UI,
+    ))
 
     def startCreatingTI():
         UI.clearAll()
@@ -480,9 +407,8 @@ def waitForCreatingTI(UI: OverlayUI):
         TI.updateAvailableAspectsInInventory()
         runResearching(UI, TI)
 
-    # UI.setKeyCallback(KeyboardKeys.enter, startCreatingTI)
-    # UI.setKeyCallback(KeyboardKeys.backspace, chooseThaumVersion, UI)
-    startCreatingTI()
+    UI.setKeyCallback([KeyboardKeys.enter], startCreatingTI)
+    UI.setKeyCallback([KeyboardKeys.backspace], chooseThaumVersion, UI)
 
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
@@ -537,7 +463,8 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def updateSolving():
         logging.debug(f'Starts updating solve...')
         # Start solving
-        currentLinkMap[0] = generateLinkMap(existingAspects[0], noneHexagons[0])
+        availableAspects = TI.getAvailableAspectsNames()
+        currentLinkMap[0] = generateLinkMap(existingAspects[0], noneHexagons[0], availableAspects)
         logging.debug(f'New solving generated {currentLinkMap[0]}')
         # Rerender cells images
         updateCellsImage()
