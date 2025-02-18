@@ -427,7 +427,7 @@ class ThaumInteractor:
                     aspect = self.getAspectByName(prediction.predictionName)
                     aspect_count = count_predictions[prediction.predictionName]
                     if aspect.count is None:  # count initialization
-                        aspect.count = aspect_count
+                        aspect.count = aspect_count or 0
                     else:
                         # If predictions differ we take minimal
                         # because it's better to underestimate than to overestimate aspects count

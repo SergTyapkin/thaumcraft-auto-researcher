@@ -4,7 +4,6 @@ from logging.handlers import RotatingFileHandler
 
 from src.controllers import Scenarios
 from src.UI.OverlayUI import OverlayUI
-from src.controllers.ThaumInteractor import createTI
 from src.utils.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL, MAX_LOG_FILES_COUNT
 from src.utils.utils import createDirByFilePath
 
@@ -22,11 +21,7 @@ logging.basicConfig(
 UI = OverlayUI(opacity=1)
 
 def main():
-    TI = createTI(UI)
-    if TI is None:
-        logging.critical("Unknown error when creating ThaumcraftInteractor. It cannot be created")
-        return
-    Scenarios.beReadyForStartSolving(UI)
+    Scenarios.beReadyForCreatingTI(UI)
 
 
 if __name__ == '__main__':

@@ -41,7 +41,8 @@ class AspectGraph:
         self.graph.clear()
         for aspect_name, recipe in aspect_recipes.items():
             for component in recipe:
-                self.add_connection(aspect_name, component)
+                if component in aspect_recipes:
+                    self.add_connection(aspect_name, component)
 
     def add_connection(self, aspect1, aspect2):
         if aspect1 not in self.graph:

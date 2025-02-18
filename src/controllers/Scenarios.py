@@ -4,6 +4,7 @@ import threading
 from math import cos
 from math import pi
 from math import sin
+from typing import Callable
 
 from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
@@ -16,11 +17,75 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.logic.LinksGeneration import generateLinkMap
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
-    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH
+    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, DELAY_BETWEEN_RENDER
 from src.utils.utils import saveThaumControlsConfig, readJSONConfig, eventsDelay, renderDelay, \
     saveThaumVersionConfig, loadThaumVersionConfig
 
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
+
+
+def createNextBackButtonsAndText(
+        UI: OverlayUI, text: str,
+        nextCallback: Callable | None, nextCallbackArgs: list[any],
+        backCallback: Callable | None, backCallbackArgs: list[any],
+        overrideNextText: str = None, overrideBackText: str = None,
+) -> tuple[Text, Text | None, Text | None]:
+    def onTextMoving():
+        backButton.x = mainText.x
+        backButton.y = mainText.y + mainText.h + MARGIN
+        nextButton.x = mainText.x + ((backButton.w + MARGIN) if backCallback is not None else 0)
+        nextButton.y = mainText.y + mainText.h + MARGIN
+
+    mainText = Text(
+        pointTextAnchor.x, pointTextAnchor.y,
+        text,
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=MARGIN,
+        movable=True,
+        UI=UI,
+        onMoveCallback=onTextMoving,
+    )
+    UI.addObject(mainText)
+
+    backButton = None
+    if backCallback is not None:
+        backButton = Text(
+            mainText.x,
+            mainText.y + mainText.h + MARGIN,
+            overrideBackText or "<  Назад",
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('black'),
+            padding=MARGIN,
+            UI=UI,
+            hoverable=True,
+            clickable=True,
+            onClickCallback=backCallback,
+            onClickCallbackArgs=backCallbackArgs,
+        )
+        UI.addObject(backButton)
+
+    nextButton = None
+    if nextCallback is not None:
+        nextButton = Text(
+            mainText.x + ((backButton.w + MARGIN) if backCallback is not None else 0),
+            mainText.y + mainText.h + MARGIN,
+            overrideNextText or "Далее  >",
+            color=QColor('white'),
+            withBackground=True,
+            backgroundColor=QColor('black'),
+            padding=MARGIN,
+            UI=UI,
+            hoverable=True,
+            clickable=True,
+            onClickCallback=nextCallback,
+            onClickCallbackArgs=nextCallbackArgs,
+        )
+        UI.addObject(nextButton)
+
+    return mainText, nextButton, backButton
 
 
 def enroll(UI: OverlayUI):
@@ -66,20 +131,6 @@ def configureThaumWindowCoords(UI: OverlayUI):
     UI.clearAll()
     UI.createExitButton()
 
-    UI.addObject(Text(
-        pointTextAnchor.x, pointTextAnchor.y,
-        """Отлично! Сперва обозначим окно стола исследований.
-Открой интерфейс стола исследований, а потом передвинь две точки так, 
-чтобы прямоугольник обозначал границу этого окна.
-
-Как будет готово, жми [Enter].
-Чтобы вернуться назад, нажми [Backspace]""",
-        color=QColor('white'),
-        padding=MARGIN,
-        withBackground=True,
-        movable=True, UI=UI,
-    ))
-
     (cx, cy) = UI.getCenter()
     rectLT = LinkableCoord(cx - 200, cy - 200)
     rectRB = LinkableCoord(cx + 200, cy + 200)
@@ -91,9 +142,15 @@ def configureThaumWindowCoords(UI: OverlayUI):
     UI.addObject(Point(rectRB.x, rectRB.y, movable=True))
     logging.info("Configuring Thaum window rect dialogue successfully showed")
 
-    UI.setKeyCallback([KeyboardKeys.enter], confirmThaumWindowSlots, UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y,
-                      rectThaumWindow.RB.x, rectThaumWindow.RB.y)
-    UI.setKeyCallback([KeyboardKeys.backspace], enroll, UI)
+    createNextBackButtonsAndText(
+        UI,
+        """Отлично! Сперва обозначим окно стола исследований.
+Открой интерфейс стола исследований, а потом передвинь две точки так, 
+чтобы прямоугольник обозначал границу этого окна.""",
+        confirmThaumWindowSlots, [UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y,
+                                  rectThaumWindow.RB.x, rectThaumWindow.RB.y],
+        enroll, [UI],
+    )
 
 
 def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
@@ -105,8 +162,16 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
     UI.clearAll()
     UI.createExitButton()
 
-    UI.addObject(Text(
-        pointTextAnchor.x, pointTextAnchor.y,
+    def saveControls():
+        saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListing.LT, rectAspectsListing.RB,
+                                pointAspectsScrollLeft, pointAspectsScrollRight,
+                                pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventory.LT,
+                                rectInventory.RB, rectHexagonsCC,
+                                (rectHexagonsCC.y - rectHexagonsTy) / (THAUM_HEXAGONS_SLOTS_COUNT // 2))
+        beReadyForCreatingTI(UI)
+
+    createNextBackButtonsAndText(
+        UI,
         """Программа автоматически определила положения кнопок взаимодействия 
 так, как ты видишь. Скорее всего сделала она это не точно, так что внимательно посмотри на точки,
 и, если нужно, передвинь их точно на нужные слоты / кнопки. Вот список, где какие точки:
@@ -120,15 +185,11 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
 (очень важно совпадение всех центров ячеек на пересечениях линий);
 Фиолетовая область - 9х3 внутренних слотов инвентаря.
 
-Как будет готово - жми [Enter]
-Чтобы вернуться назад, нажми [Backspace]
 (!!! После завершения этой конфигурации, если окно с игрой открыто не во весь экран, 
 не передвигайте его по экрану !!)""",
-        color=QColor('white'),
-        padding=MARGIN,
-        withBackground=True,
-        movable=True, UI=UI,
-    ))
+        saveControls, [],
+        configureThaumWindowCoords, [UI],
+    )
 
     # Slots
     Ws = thaumWindowWidth / 15
@@ -229,8 +290,10 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
 
             deg30HexagonsLines[idx].S.x = rectHexagonsCC.x + cos(pi / 6) * rad + (i < 0) * i * slotSizeX
             deg30HexagonsLines[idx].E.x = rectHexagonsCC.x - cos(pi / 6) * rad + (i > 0) * i * slotSizeX
-            deg30HexagonsLines[idx].S.y = rectHexagonsCC.y + sin(pi / 6) * rad - (i < 0) * i * slotSizeY / 2 - (i > 0) * i * slotSizeY
-            deg30HexagonsLines[idx].E.y = rectHexagonsCC.y - sin(pi / 6) * rad - (i > 0) * i * slotSizeY / 2 - (i < 0) * i * slotSizeY
+            deg30HexagonsLines[idx].S.y = rectHexagonsCC.y + sin(pi / 6) * rad - (i < 0) * i * slotSizeY / 2 - (
+                        i > 0) * i * slotSizeY
+            deg30HexagonsLines[idx].E.y = rectHexagonsCC.y - sin(pi / 6) * rad - (i > 0) * i * slotSizeY / 2 - (
+                        i < 0) * i * slotSizeY
 
             deg60HexagonsLines[idx].S.x = -deg30HexagonsLines[idx].S.x + rectHexagonsCC.x * 2
             deg60HexagonsLines[idx].E.x = -deg30HexagonsLines[idx].E.x + rectHexagonsCC.x * 2
@@ -245,37 +308,28 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
                        onMoveCallback=updateHexagonsCoords))  # hexagons rectangle
     logging.info("Configuring Thaum controls coordinates in window dialogue successfully showed")
 
-    def saveControls():
-        saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListing.LT, rectAspectsListing.RB,
-                                pointAspectsScrollLeft, pointAspectsScrollRight,
-                                pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventory.LT,
-                                rectInventory.RB, rectHexagonsCC,
-                                (rectHexagonsCC.y - rectHexagonsTy) / (THAUM_HEXAGONS_SLOTS_COUNT // 2))
-        waitForCreatingTI(UI)
-
-    UI.setKeyCallback([KeyboardKeys.enter], saveControls)
-    UI.setKeyCallback([KeyboardKeys.backspace], configureThaumWindowCoords, UI)
-
 
 def chooseThaumVersion(UI: OverlayUI):
     UI.clearAll()
     UI.createExitButton()
-    infoText = UI.addObject(Text(
-        pointTextAnchor.x, pointTextAnchor.y,
+
+    def onSubmit():
+        if selectedVersion[0] is None:
+            logging.warning(f"Enter pressed in dialogue but thaum version is not selected")
+            return
+        logging.info(f"Selected thaum version:{selectedVersion[0]}")
+        saveThaumVersionConfig(selectedVersion[0])
+        beReadyForCreatingTI(UI)
+
+    (infoText, _, backButton) = createNextBackButtonsAndText(
+        UI,
         f"""Выберите версию Thaumcraft.
 От этого будут зависеть рецепты получения аспектов.
 
-Когда выберешь, нажми [Enter]
-Чтобы вернуться назад, нажми [Backspace]
-
 Выбери версию:""",
-        color=QColor('white'),
-        withBackground=True,
-        backgroundColor=QColor('black'),
-        padding=MARGIN,
-        movable=True,
-        UI=UI,
-    ))
+        onSubmit, [],
+        configureThaumWindowCoords, [UI],
+    )
     recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
     versions = list(recipesConfig.keys())
     versionsObjects = []
@@ -286,8 +340,10 @@ def chooseThaumVersion(UI: OverlayUI):
     oldVersion = loadThaumVersionConfig()
     logging.info(f"Selected in config version is: {oldVersion}")
 
+    oldInfoTextCallback = infoText.onMoveCallback
     def updateVersionsPosition():
-        startCurY = pointTextAnchor.y + MARGIN + infoText.h
+        oldInfoTextCallback()
+        startCurY = backButton.y + backButton.h + MARGIN
         curY = startCurY
         curX = pointTextAnchor.x
         for i in range(len(versionsObjects)):
@@ -301,7 +357,7 @@ def chooseThaumVersion(UI: OverlayUI):
 
     infoText.LT.onMoveCallback = updateVersionsPosition
     infoText.onMoveCallback = updateVersionsPosition
-    startCurY = pointTextAnchor.y + MARGIN + infoText.h
+    startCurY = backButton.y + backButton.h + MARGIN
     curY = startCurY
     curX = pointTextAnchor.x
     for i in range(len(versions)):
@@ -341,74 +397,51 @@ def chooseThaumVersion(UI: OverlayUI):
         if oldVersion == version:
             selectVersion(versionObject, version)
 
-    def onSubmit():
-        if selectedVersion[0] is None:
-            logging.warning(f"Enter pressed in dialogue but thaum version is not selected")
-            return
-        logging.info(f"Selected thaum version:{selectedVersion[0]}")
-        saveThaumVersionConfig(selectedVersion[0])
-        waitForCreatingTI(UI)
-
     logging.info(f"Selecting version dialogue showed. Versions: {versions}")
 
-    UI.setKeyCallback([KeyboardKeys.enter], onSubmit)
-    UI.setKeyCallback([KeyboardKeys.backspace], configureThaumWindowCoords, UI)
 
-
-def beReadyForStartSolving(UI: OverlayUI):
+def beReadyForStartSolving(UI: OverlayUI, TI: ThaumInteractor):
     logging.info(f"Be ready for solving scenario started")
     UI.clearAll()
     UI.createExitButton()
 
-    UI.addObject(Text(
-        MARGIN, MARGIN,
-        f"""Сейчас нейросеть будет определять аспекты, находящиеся на поле. 
-Необходимо подключение к интернету.
+    createNextBackButtonsAndText(
+        UI,
+        f"""Сейчас нейросеть будет определять аспекты, находящиеся на поле.
 Выложи записку исследования в ячейку стола, а инвентарь заполни записками исследований,
-начиная с самого верхнего левого слота. Они будут исследоваться по очереди
-
-Как будет готово, жми [Enter]
-Чтобы вернуться назад, нажми [Backspace]""",
-        color=QColor('white'),
-        withBackground=True,
-        backgroundColor=QColor('black'),
-        padding=MARGIN,
-        UI=UI,
-        movable=True,
-    ))
-
-    UI.setKeyCallback([KeyboardKeys.enter], waitForCreatingTI, UI)
-    UI.setKeyCallback([KeyboardKeys.backspace], chooseThaumVersion, UI)
+начиная с самого верхнего левого слота. Они будут исследоваться по очереди""",
+        runResearching, [UI, TI],
+        chooseThaumVersion, [UI],
+    )
 
 
-def waitForCreatingTI(UI: OverlayUI):
+def beReadyForCreatingTI(UI: OverlayUI):
     UI.clearAll()
     UI.createExitButton()
-
-    UI.addObject(Text(
-        pointTextAnchor.x, pointTextAnchor.y,
-        """Сейчас нейросеть определит имеющиеся аспекты в твоем столе.
-Если готов, жми [Enter]
-Чтобы вернуться назад, нажми [Backspace]""",
-        color=QColor('white'),
-        withBackground=True,
-        backgroundColor=QColor('black'),
-        padding=MARGIN,
-        movable=True, UI=UI,
-    ))
 
     def startCreatingTI():
         UI.clearAll()
         UI.createExitButton()
-        TI = createTI(UI)
-        if TI is None:
-            logging.critical(f"ThaumcraftInteractor was not created!")
-            return
-        TI.updateAvailableAspectsInInventory()
-        runResearching(UI, TI)
+        createNextBackButtonsAndText(
+            UI,
+            f"""Ждите и не двигайте курсором мыши""",
+            None, [], None, [],
+        )
+        def directlyCreateTI():
+            TI = createTI(UI)
+            if TI is None:
+                logging.critical(f"Unknown error when creating ThaumcraftInteractor. It cannot be created")
+                return
+            beReadyForStartSolving(UI, TI)
+        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, directlyCreateTI)
 
-    UI.setKeyCallback([KeyboardKeys.enter], startCreatingTI)
-    UI.setKeyCallback([KeyboardKeys.backspace], chooseThaumVersion, UI)
+    createNextBackButtonsAndText(
+        UI,
+        f"""Сейчас нейросеть определит имеющиеся аспекты в твоем столе.
+Не двигай курсором мыши в процессе""",
+        startCreatingTI, [],
+        chooseThaumVersion, [UI],
+    )
 
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
@@ -453,6 +486,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     cellSettingsStateDialogueObjects = []
     cellsObjects = []
 
+    # --- Cells dialogue elements
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
         UI.setAllObjectsVisibility(False)
@@ -619,8 +653,8 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     textYCoord += textCellIsFree.h + MARGIN * 2
     startTextYCoord = textYCoord
     textXCoord = MARGIN
-    for i in range(len(TI.allAspects)):
-        aspect = TI.allAspects[i]
+    for i in range(len(TI.availableAspects)):
+        aspect = TI.availableAspects[i]
         textAspect = UI.addObject(Text(
             textXCoord, textYCoord,
             aspect.name,
@@ -648,27 +682,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             textXCoord += 250
     UI.setObjectsVisibility(cellSettingsStateDialogueObjects, False)
 
-    # draw base dialogue
-    activeStateTextObject = UI.addObject(Text(
-        pointTextAnchor.x, pointTextAnchor.y,
-        f"""Нейросеть определила аспекты на поле.
-Чтобы перегенерировать полученную цепочку решения, нажми [R]
-Если аспекты определены неверно, можно кликнуть на ячейку 
-и выбрать, что в ней должно быть на самом деле. 
-
-Чтобы приостановить программу, нажми [Ctrl + Shift + Пробел]
-Если все определено правильно, жми [Enter]
-Чтобы включить безостановочный режим, жми вместо этого [Ctrl + Enter]
-Чтобы вернуться назад, нажми [Backspace]""",
-        color=QColor('white'),
-        withBackground=True,
-        backgroundColor=QColor('black'),
-        padding=MARGIN,
-        UI=UI,
-        movable=True,
-    ))
-    activeStateDialogueObjects.append(activeStateTextObject)
-
+    # --- Active state elements
     def startPuttingLinkMap():
         UI.setAllObjectsVisibility(False)
         onProcessText = UI.addObject(Text(
@@ -721,6 +735,26 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         if isUnstoppableModeOn[0]:
             startPuttingLinkMap()
 
+    def setUnstoppableModeOn():
+        isUnstoppableModeOn[0] = True
+        # draw base dialogue
+
+    (activeStateText, activeStateNextButton, activeStateBackButton) = createNextBackButtonsAndText(
+        UI,
+        f"""Нейросеть определила аспекты на поле.
+Чтобы перегенерировать полученную цепочку решения, нажми [R]
+Если аспекты определены неверно, можно кликнуть на ячейку 
+и выбрать, что в ней должно быть на самом деле. 
+
+Чтобы приостановить программу, нажми [Ctrl + Shift + Пробел]
+Чтобы вернуться к настройкам, нажми [Ctrl + Backspace]""",
+        setUnstoppableModeOn, [UI],
+        startPuttingLinkMap, [],
+        "Безостановочный режим", "Выложить решение",
+    )
+    activeStateDialogueObjects += [activeStateText, activeStateNextButton, activeStateBackButton]
+
+    # --- Paused state elements
     onPausedText = UI.addObject(Text(
         MARGIN, MARGIN,
         f"""Программа проистановлена.
@@ -735,17 +769,13 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     ))
     pausedStateDialogueObjects.append(onPausedText)
 
+    # --- Switch between states functions
     def switchToActiveState():
         logging.info("Switching to active state")
 
-        def setUnstoppableModeOn():
-            isUnstoppableModeOn[0] = True
-
         UI.clearKeyCallbacks()
-        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.enter], setUnstoppableModeOn)
-        UI.setKeyCallback([KeyboardKeys.enter], startPuttingLinkMap)
         UI.setKeyCallback([KeyboardKeys.r], updateSolving)
-        UI.setKeyCallback([KeyboardKeys.backspace], beReadyForStartSolving, UI)
+        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.backspace], chooseThaumVersion, UI)
         UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToPausedState)
         UI.setAllObjectsVisibility(False)
         UI.setObjectsVisibility(activeStateDialogueObjects, True)
