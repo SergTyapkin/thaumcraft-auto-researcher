@@ -112,6 +112,15 @@ class Text(_Object):
         super().setColor(color)
         self._currentColor = self.backgroundColor
 
+    def setText(self, text: str):
+        self.text = text
+        lines = text.split('\n')
+        self.w = max(map(len, lines)) * self.font.pointSize() / 1.05
+        self.h = self.font.pointSize() * 2 * len(lines)
+        if self.withBackground:
+            self.w += self.padding[1] + self.padding[3]
+            self.h += self.padding[0] + self.padding[2]
+
     def updateHoverState(self, x: float, y: float, isMouseRelease: bool = False):
         self._updateHoverState(x, y, isMouseRelease, "backgroundColor" if self.withBackground else "color")
 

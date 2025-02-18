@@ -53,6 +53,19 @@ class KeyboardKeys(Enum):
     x = 45
     y = 21
     z = 44
+    num1 = 2
+    num2 = 3
+    num3 = 4
+    num4 = 5
+    num5 = 6
+    num6 = 7
+    num7 = 8
+    num8 = 9
+    num9 = 10
+    num0 = 11
+    minus = 12
+    plus = 13
+    tilda = 41
 
 
 class TimedEvent:
@@ -124,8 +137,8 @@ class _Window(QMainWindow):
                 return
             self.holdingKeys.add(pressedKeyCode)
 
+            # print(f"{event.name}, {event.scan_code}")
             for keysCombination in self.keysCallbacks.keys():
-                # logging.debug(f"{event.name}, {event.scan_code}")
                 if set(keysCombination).issubset(self.holdingKeys):
                     self.keysCallbacks[keysCombination][0](*self.keysCallbacks[keysCombination][1])
 
