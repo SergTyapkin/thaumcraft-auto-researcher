@@ -254,6 +254,14 @@ class _Window(QMainWindow):
             pass
         return obj
 
+    def removeObjects(self, objects: [UIPrimitive]):
+        for obj in objects:
+            try:
+                self.objects.remove(obj)
+            except ValueError:  # list.remove(x): x not in list
+                pass
+        return objects
+
     def clear(self):
         self.objects.clear()
 

@@ -7,8 +7,9 @@ from math import sin
 from typing import Callable
 
 from PyQt5.QtCore import QEvent
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QFont
 
+from UI.primitives.Text import Align
 from src.UI.OverlayUI import OverlayUI, KeyboardKeys
 from src.UI.primitives import Circle, Image, Line, Point, Rect, Text
 from src.UI.primitives.values import DEFAULT_FONT
@@ -47,6 +48,7 @@ def createNextBackButtonsAndText(
         UI=UI,
         onMoveCallback=onTextMoving,
     )
+    mainText.LT.onMoveCallback = onTextMoving
     UI.addObject(mainText)
 
     backButton = None
@@ -427,13 +429,7 @@ def beReadyForCreatingTI(UI: OverlayUI):
             f"""Ждите и не двигайте курсором мыши""",
             None, [], None, [],
         )
-        def directlyCreateTI():
-            TI = createTI(UI)
-            if TI is None:
-                logging.critical(f"Unknown error when creating ThaumcraftInteractor. It cannot be created")
-                return
-            beReadyForStartSolving(UI, TI)
-        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, directlyCreateTI)
+        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, detectInventoryAspects, [UI])
 
     createNextBackButtonsAndText(
         UI,
@@ -443,6 +439,140 @@ def beReadyForCreatingTI(UI: OverlayUI):
         chooseThaumVersion, [UI],
     )
 
+def detectInventoryAspects(UI):
+    TI = createTI(UI)
+    if TI is None:
+        logging.critical(f"Unknown error when creating ThaumcraftInteractor. It cannot be created")
+        return
+    TI.scrollToLeftSide()
+
+    UI.clearAll()
+    UI.createExitButton()
+    createNextBackButtonsAndText(
+        UI,
+        f"""Нейросеть определила аспекты в инвентаре и их количество.
+Проверь правильность определения. В случае ошибки кликай на ячейку и исправляй.
+
+Перелистывать страницы следует исключительно кнопками, нарисованными поверх игры""",
+        runResearching, [UI],
+        chooseThaumVersion, [UI],
+    )
+
+    # --- Inventory aspects and counts dialogues
+    cellColorFree = QColor('black')
+    cellColorFree.setAlpha(50)
+    # all are lists to make them mutable
+    curMinCellX = [TI.currentAspectsPageIdx]
+    curMaxCellX = [TI.currentAspectsPageIdx + THAUM_ASPECTS_INVENTORY_SLOTS_X - 1]
+    curMinCellY = [0]
+    curMaxCellY = [THAUM_ASPECTS_INVENTORY_SLOTS_Y - 1]
+    # draw clickable cells
+    cellsObjects = []
+    def drawCurrentPageAspects():
+        UI.removeObjects(cellsObjects)
+        cellsObjects.clear()
+
+        for aspect in TI.availableAspects:
+            if (aspect.cellX < curMinCellX[0] or aspect.cellX > curMaxCellX[0]) or \
+                (aspect.cellY < curMinCellY[0] or aspect.cellY > curMaxCellY[0]):
+                continue
+            cellRectCoords = list(TI.inventoryCellCoordsToPixelBoundingBox(aspect.cellX, aspect.cellY))
+            cellWidth = cellRectCoords[2] - cellRectCoords[0]
+            cellHeight = cellRectCoords[3] - cellRectCoords[1]
+            cellRect = Rect(
+                *cellRectCoords,
+                color=cellColorFree,
+                fill=QColor(cellColorFree),
+                fillOpacity=0.1,
+                # onClickCallback=startCellDialogue,
+                # onClickCallbackArgs=[aspect],
+                hoverable=True,
+                clickable=True,
+            )
+            imageSize = cellHeight / 3 * 2
+            imageRect = Rect(
+                cellRectCoords[0], cellRectCoords[1],
+                cellRectCoords[2], cellRectCoords[1] + imageSize,
+                color=QColor('transparent'),
+                fill=QColor(cellColorFree),
+                fillOpacity=0.7,
+                # onClickCallback=startCellDialogue,
+                # onClickCallbackArgs=[aspect],
+                hoverable=True,
+                clickable=True,
+            )
+            cellAspectImageObject = Image(
+                cellRectCoords[0] + imageSize / 2,
+                cellRectCoords[1] - imageSize / 2,
+                imageSize,
+                imageSize,
+                None,
+            )
+            cellAspectImageObject.image = aspect.pixMapImage
+            cellAspectImageCountText = Text(
+                cellRectCoords[0] + cellWidth / 2,
+                cellRectCoords[1] + cellHeight * 0.2,
+                str(aspect.count),
+            )
+            # cellAspectImageCountText.font.pointSize = 8
+
+            cellsObjects.append(cellRect)
+            cellsObjects.append(imageRect)
+            cellsObjects.append(cellAspectImageObject)
+            cellsObjects.append(cellAspectImageCountText)
+            UI.addObject(cellRect)
+            UI.addObject(imageRect)
+            UI.addObject(cellAspectImageObject)
+            UI.addObject(cellAspectImageCountText)
+    drawCurrentPageAspects()
+
+    LPoint = TI.pointAspectsScrollLeft
+    RPoint = TI.pointAspectsScrollRight
+    # buttonsLRWidth = (RPoint.x - LPoint.x)
+    # buttonsLRHeight = buttonsLRWidth * 0.3
+    def onClickScrollButton(isLeft=False):
+        UI.setAllObjectsVisibility(False)
+        def afterTimeout():
+            if isLeft:
+                TI.scrollLeft()
+            else:
+                TI.scrollRight()
+            curMinCellX[0] = TI.currentAspectsPageIdx
+            curMaxCellX[0] = TI.currentAspectsPageIdx + THAUM_ASPECTS_INVENTORY_SLOTS_X - 1
+            curMinCellY[0] = 0
+            curMaxCellY[0] = THAUM_ASPECTS_INVENTORY_SLOTS_Y - 1
+            UI.setAllObjectsVisibility(True)
+        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, afterTimeout)
+    buttonL = Text(
+        LPoint.x, LPoint.y,
+        '<=',
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=(MARGIN * 0.1, MARGIN, MARGIN * 0.1, MARGIN),
+        align=Align.center,
+        UI=UI,
+        hoverable=True,
+        clickable=True,
+        onClickCallback=onClickScrollButton,
+        onClickCallbackArgs=[True],
+    )
+    buttonR = Text(
+        RPoint.x, RPoint.y,
+        '=>',
+        color=QColor('white'),
+        withBackground=True,
+        backgroundColor=QColor('black'),
+        padding=(MARGIN * 0.1, MARGIN, MARGIN * 0.1, MARGIN),
+        align=Align.center,
+        UI=UI,
+        hoverable=True,
+        clickable=True,
+        onClickCallback=onClickScrollButton,
+        onClickCallbackArgs=[False],
+    )
+    UI.addObject(buttonL)
+    UI.addObject(buttonR)
 
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     logging.info(f"Run researching scenario started")

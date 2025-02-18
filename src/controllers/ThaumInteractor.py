@@ -232,7 +232,7 @@ class ThaumInteractor:
         logging.info(
             f"Current working slot increased to {self.workingInventorySlot}. New slot coordinates: {self.pointWorkingInventorySlot}")
 
-    def inventory_cell_coords_to_pixel_coords(self, cellX: int, cellY: int) -> P:
+    def inventoryCellCoordsToPixelCoords(self, cellX: int, cellY: int) -> P:
         areaWidth = self.rectAspectsListingRB.x - self.rectAspectsListingLT.x
         areaHeight = self.rectAspectsListingRB.y - self.rectAspectsListingLT.y
         slotWidth = areaWidth / THAUM_ASPECTS_INVENTORY_SLOTS_X
@@ -242,8 +242,17 @@ class ThaumInteractor:
             self.rectAspectsListingLT.y + slotHeight * (cellY + 0.5)
         )
 
+    def inventoryCellCoordsToPixelBoundingBox(self, cellX: int, cellY: int) -> tuple[int, int, int, int]:
+        areaWidth = self.rectAspectsListingRB.x - self.rectAspectsListingLT.x
+        areaHeight = self.rectAspectsListingRB.y - self.rectAspectsListingLT.y
+        slotWidth = areaWidth / THAUM_ASPECTS_INVENTORY_SLOTS_X
+        slotHeight = areaHeight / THAUM_ASPECTS_INVENTORY_SLOTS_Y
+        x = self.rectAspectsListingLT.x + slotWidth * cellX
+        y = self.rectAspectsListingLT.y + slotHeight * cellY
+        return x, y, x + slotWidth, y + slotHeight
+
     def takeAspectByCellCoords(self, cellX, cellY):
-        aspectPoint = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
+        aspectPoint = self.inventoryCellCoordsToPixelCoords(cellX, cellY)
         logging.info(f"Take aspect from cell ({cellX, cellY}), coordinates: {aspectPoint}")
         aspectPoint.hold()
         self._showDebugClick(aspectPoint, QColor('blue'))
@@ -313,7 +322,7 @@ class ThaumInteractor:
 
         if useShift:
             (cellX, cellY) = self.scrollToAspect(aspect)
-            aspect_point = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
+            aspect_point = self.inventoryCellCoordsToPixelCoords(cellX, cellY)
             eventsDelay()
             for _ in range(times):
                 aspect_point.click(shift=True)
@@ -321,13 +330,13 @@ class ThaumInteractor:
                 eventsDelay()
         else:
             (cellX, cellY) = self.scrollToAspect(aspect1)
-            aspect1_point = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
+            aspect1_point = self.inventoryCellCoordsToPixelCoords(cellX, cellY)
             eventsDelay()
             aspect1_point.click()
             self._showDebugClick(aspect1_point)
             eventsDelay()
             (cellX, cellY) = self.scrollToAspect(aspect2)
-            aspect2_point = self.inventory_cell_coords_to_pixel_coords(cellX, cellY)
+            aspect2_point = self.inventoryCellCoordsToPixelCoords(cellX, cellY)
             eventsDelay()
             aspect2_point.click()
             self._showDebugClick(aspect2_point)
