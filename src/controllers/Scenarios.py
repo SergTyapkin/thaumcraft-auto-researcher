@@ -11,7 +11,7 @@ from PyQt5.QtGui import QColor, QFont
 
 from UI.primitives.Text import Align
 from src.UI.OverlayUI import OverlayUI, KeyboardKeys
-from src.UI.primitives import Circle, Image, Line, Point, Rect, Text
+from src.UI.primitives import Circle, Image, Line, Point, Rect, Text, UIPrimitive
 from src.UI.primitives.values import DEFAULT_FONT
 from src.controllers.Aspect import Aspect
 from src.controllers.ThaumInteractor import ThaumInteractor, createTI
@@ -25,12 +25,10 @@ from src.utils.utils import saveThaumControlsConfig, readJSONConfig, eventsDelay
 pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 
 
-def createNextBackButtonsAndText(
+def createButtonsAndText(
         UI: OverlayUI, text: str,
-        nextCallback: Callable | None, nextCallbackArgs: list[any],
-        backCallback: Callable | None, backCallbackArgs: list[any],
-        overrideNextText: str = None, overrideBackText: str = None,
-) -> tuple[Text, Text | None, Text | None]:
+        buttons: list[tuple[str, Callable, list[any]]]
+) -> list[Text]:
     mainText = Text(
         pointTextAnchor.x, pointTextAnchor.y,
         text,
@@ -40,50 +38,60 @@ def createNextBackButtonsAndText(
         movable=True,
         UI=UI,
     )
+    buttonsElements: list[Text] = []
     def onTextMoving():
-        backButton.x = mainText.x
-        backButton.y = mainText.y + mainText.h + MARGIN
-        nextButton.x = mainText.x + ((backButton.w + MARGIN) if backCallback is not None else 0)
-        nextButton.y = mainText.y + mainText.h + MARGIN
+        xCoord = mainText.x
+        for buttonElement in buttonsElements:
+            buttonElement.x = xCoord
+            buttonElement.y = mainText.y + mainText.h + MARGIN
+            xCoord += buttonElement.w + MARGIN
     mainText.onMoveCallback = onTextMoving
     mainText.LT.onMoveCallback = onTextMoving
     UI.addObject(mainText)
 
-    backButton = None
+    xCoord = mainText.x
+    for (buttonText, buttonCallback, buttonArgs) in buttons:
+        buttonElement = Text(
+            xCoord,
+            mainText.y + mainText.h + MARGIN,
+            buttonText,
+            color=QColor('white'),
+            withBackground=True,
+            padding=MARGIN,
+            UI=UI,
+            hoverable=True,
+            clickable=True,
+            onClickCallback=buttonCallback,
+            onClickCallbackArgs=buttonArgs,
+        )
+        UI.addObject(buttonElement)
+        buttonsElements.append(buttonElement)
+        xCoord += buttonElement.w + MARGIN
+
+    return [mainText, *buttonsElements]
+
+
+def createNextBackButtonsAndText(
+        UI: OverlayUI, text: str,
+        nextCallback: Callable | None, nextCallbackArgs: list[any],
+        backCallback: Callable | None, backCallbackArgs: list[any],
+        overrideNextText: str = None, overrideBackText: str = None,
+) -> tuple[Text, Text | None, Text | None]:
+    buttonsConfig = []
     if backCallback is not None:
-        backButton = Text(
-            mainText.x,
-            mainText.y + mainText.h + MARGIN,
+        buttonsConfig.append((
             overrideBackText or "<  Назад",
-            color=QColor('white'),
-            withBackground=True,
-            padding=MARGIN,
-            UI=UI,
-            hoverable=True,
-            clickable=True,
-            onClickCallback=backCallback,
-            onClickCallbackArgs=backCallbackArgs,
-        )
-        UI.addObject(backButton)
-
-    nextButton = None
+            backCallback,
+            backCallbackArgs,
+        ))
     if nextCallback is not None:
-        nextButton = Text(
-            mainText.x + ((backButton.w + MARGIN) if backCallback is not None else 0),
-            mainText.y + mainText.h + MARGIN,
+        buttonsConfig.append((
             overrideNextText or "Далее  >",
-            color=QColor('white'),
-            withBackground=True,
-            padding=MARGIN,
-            UI=UI,
-            hoverable=True,
-            clickable=True,
-            onClickCallback=nextCallback,
-            onClickCallbackArgs=nextCallbackArgs,
-        )
-        UI.addObject(nextButton)
-
-    return mainText, nextButton, backButton
+            nextCallback,
+            nextCallbackArgs,
+        ))
+    elements = createButtonsAndText(UI, text, buttonsConfig)
+    return elements[0], elements[1] if len(elements) > 1 else None, elements[2] if len(elements) > 2 else None
 
 
 def enroll(UI: OverlayUI):
@@ -457,11 +465,6 @@ def detectInventoryAspects(UI):
     # --- Inventory aspects and counts dialogue elements
     cellColorFree = QColor('black')
     cellColorFree.setAlpha(50)
-    # all of them are lists to make them mutable
-    curMinCellX = [TI.currentAspectsPageIdx]
-    curMaxCellX = [TI.currentAspectsPageIdx + THAUM_ASPECTS_INVENTORY_SLOTS_X - 1]
-    curMinCellY = [0]
-    curMaxCellY = [THAUM_ASPECTS_INVENTORY_SLOTS_Y - 1]
     # draw clickable cells
     cellsObjects = []
 
@@ -470,70 +473,76 @@ def detectInventoryAspects(UI):
         currentAspectMainText.setText(f'{currentAspect[0].name if currentAspect[0] else "не выбрано"}, {currentAspectCount[0] or "?"} шт.')
         if currentAspect[0]:
             currentAspectImage.setImage(currentAspect[0].pixMapImage)
+        else:
+            currentAspectImage.clearImage()
 
     def drawCurrentPageAspects():
         UI.removeObjects(cellsObjects)
         cellsObjects.clear()
 
-        def onClickCell(aspect: Aspect, aspectIdx: int):
-            logging.info(f"Click on aspect to change: {aspect}, idx: {aspectIdx}")
-            currentAspectIdx[0] = aspectIdx
-            currentAspectCount[0] = str(aspect.count)
+        def onClickCell(aspect: Aspect, cellX: int, cellY: int):
+            logging.info(f"Click on aspect to change: {aspect}, cellX: {cellX}, cellY {cellY}")
+            currentAspectCellCoords[0] = cellX
+            currentAspectCellCoords[1] = cellY
+            currentAspectCount[0] = str(aspect.count if aspect else "")
             currentAspect[0] = aspect
             updateCurrentAspectData()
             switchToCellDialogue()
 
-        for i in range(len(TI.availableAspects)):
-            aspect = TI.availableAspects[i]
-            if (aspect.cellX < curMinCellX[0] or aspect.cellX > curMaxCellX[0]) or \
-                (aspect.cellY < curMinCellY[0] or aspect.cellY > curMaxCellY[0]):
-                continue
-            cellRectCoords = list(TI.inventoryCellCoordsToPixelBoundingBox(aspect.cellX, aspect.cellY))
-            cellWidth = cellRectCoords[2] - cellRectCoords[0]
-            cellHeight = cellRectCoords[3] - cellRectCoords[1]
-            cellRect = Rect(
-                *cellRectCoords,
-                color=cellColorFree,
-                fill=QColor(cellColorFree),
-                fillOpacity=0.1,
-                onClickCallback=onClickCell,
-                onClickCallbackArgs=[aspect, i],
-                hoverable=True,
-                clickable=True,
-            )
-            imageSize = cellHeight / 3 * 2
-            imageRect = Rect(
-                cellRectCoords[0], cellRectCoords[1],
-                cellRectCoords[2], cellRectCoords[1] + imageSize,
-                color=QColor('transparent'),
-                fill=QColor(cellColorFree),
-                fillOpacity=0.7,
-                hoverable=True,
-                clickable=True,
-            )
-            cellAspectImageObject = Image(
-                cellRectCoords[0] + imageSize / 2,
-                cellRectCoords[1] - imageSize / 2,
-                imageSize,
-                imageSize,
-                None,
-            )
-            cellAspectImageObject.setImage(aspect.pixMapImage)
-            cellAspectImageCountText = Text(
-                cellRectCoords[0] + cellWidth / 2,
-                cellRectCoords[1] + cellHeight * 0.2,
-                str(aspect.count),
-            )
-            # cellAspectImageCountText.font.pointSize = 8
+        # for i in range(len(TI.availableAspects)):
+        for cellX in range(THAUM_ASPECTS_INVENTORY_SLOTS_X):
+            for cellY in range(THAUM_ASPECTS_INVENTORY_SLOTS_Y):
+                aspect = TI.getAspectByCellCoords(TI.currentAspectsPageIdx + cellX, cellY)
+                cellRectCoords = list(TI.inventoryCellCoordsToPixelBoundingBox(cellX, cellY))
+                cellWidth = cellRectCoords[2] - cellRectCoords[0]
+                cellHeight = cellRectCoords[3] - cellRectCoords[1]
+                cellRect = Rect(
+                    *cellRectCoords,
+                    color=cellColorFree,
+                    fill=QColor(cellColorFree),
+                    fillOpacity=0.1,
+                    onClickCallback=onClickCell,
+                    onClickCallbackArgs=[aspect, cellX, cellY],
+                    hoverable=True,
+                    clickable=True,
+                )
+                imageSize = cellHeight / 3 * 2
+                imageRect = Rect(
+                    cellRectCoords[0], cellRectCoords[1],
+                    cellRectCoords[2], cellRectCoords[1] + imageSize,
+                    color=QColor('transparent'),
+                    fill=QColor(cellColorFree),
+                    fillOpacity=0.7,
+                    hoverable=True,
+                    clickable=True,
+                )
+                cellAspectImageObject = Image(
+                    cellRectCoords[0] + imageSize / 2,
+                    cellRectCoords[1] - imageSize / 2,
+                    imageSize,
+                    imageSize,
+                    None,
+                )
+                cellsObjects.append(cellRect)
+                cellsObjects.append(imageRect)
+                cellsObjects.append(cellAspectImageObject)
+                UI.addObject(cellRect)
+                UI.addObject(imageRect)
+                UI.addObject(cellAspectImageObject)
 
-            cellsObjects.append(cellRect)
-            cellsObjects.append(imageRect)
-            cellsObjects.append(cellAspectImageObject)
-            cellsObjects.append(cellAspectImageCountText)
-            UI.addObject(cellRect)
-            UI.addObject(imageRect)
-            UI.addObject(cellAspectImageObject)
-            UI.addObject(cellAspectImageCountText)
+                if aspect:
+                    cellAspectImageObject.setImage(aspect.pixMapImage)
+                    cellAspectImageCountText = Text(
+                        cellRectCoords[0] + cellWidth * 0.4,
+                        cellRectCoords[1] + cellHeight * 0.2,
+                        str(aspect.count),
+                        color=QColor('#ff4444'),
+                        withBackground=True,
+                        padding=0,
+                    )
+                    cellsObjects.append(cellAspectImageCountText)
+                    UI.addObject(cellAspectImageCountText)
+
         logging.info(f"Inventory page with aspects successfully drawn. Current page idx {TI.currentAspectsPageIdx}")
     drawCurrentPageAspects()
 
@@ -549,10 +558,6 @@ def detectInventoryAspects(UI):
                 TI.scrollLeft()
             else:
                 TI.scrollRight()
-            curMinCellX[0] = TI.currentAspectsPageIdx
-            curMaxCellX[0] = TI.currentAspectsPageIdx + THAUM_ASPECTS_INVENTORY_SLOTS_X - 1
-            curMinCellY[0] = 0
-            curMaxCellY[0] = THAUM_ASPECTS_INVENTORY_SLOTS_Y - 1
             switchToMainDialogue()
             drawCurrentPageAspects()
             logging.info(f"New current aspects inventory page idx: {TI.currentAspectsPageIdx}")
@@ -585,47 +590,48 @@ def detectInventoryAspects(UI):
     )
     UI.addObject(buttonScrollL)
     UI.addObject(buttonScrollR)
+
     mainDialogueObjects = [mainText, nextButton, backButton, buttonScrollL, buttonScrollR]
 
     # --- Cell dialogue elements
-    currentAspectIdx: list[int | None] = [None]
+    currentAspectCellCoords: list[int | None] = [None, None]
     currentAspectCount = [""]
     currentAspect: list[Aspect | None] = [None]
-    cellDialogueObjects: list[UI.primitives] = []
+    cellDialogueObjects: list[UIPrimitive] = []
 
     def cancelAspectChanges():
         logging.info(f"Aspect changing canceled")
         switchToMainDialogue()
     def confirmAspectChanges():
         logging.info(f"Aspect changing confirmed")
-        prevAspect = TI.availableAspects[currentAspectIdx[0]]
+        prevAspect = TI.getAspectByCellCoords(*currentAspectCellCoords)
         newAspect = currentAspect[0]
         newAspect.count = int(currentAspectCount[0] or 0)
         logging.info(f"Previous aspect: {prevAspect}, change to: {newAspect}")
-        if prevAspect != newAspect:
-            newAspect.idx = prevAspect.idx
-            newAspect.cellX = prevAspect.cellX
-            newAspect.cellY = prevAspect.cellY
-            prevAspect.idx = None
-            prevAspect.cellX = None
-            prevAspect.cellY = None
-            prevAspect.count = None
-            TI.availableAspects[currentAspectIdx[0]] = newAspect
-            for i in range(len(TI.availableAspects)):
-                aspect = TI.availableAspects[i]
-                if aspect == newAspect and i != currentAspectIdx[0]:
-                    TI.availableAspects.remove(aspect)
-                    break
+        TI.setAspectIntoAvailables(
+            newAspect,
+            currentAspectCellCoords[0], currentAspectCellCoords[1]
+        )
+        logging.info(f"All new available aspects: {TI.availableAspects}")
+        switchToMainDialogue()
+    def confirmAspectIsNone():
+        logging.info(f"Aspect is none changing confirmed")
+        prevAspect = TI.getAspectByCellCoords(*currentAspectCellCoords)
+        logging.info(f"Previous aspect: {prevAspect}, change to None")
+        if prevAspect is not None:
+            TI.availableAspects.remove(prevAspect)
         logging.info(f"All new available aspects: {TI.availableAspects}")
         switchToMainDialogue()
 
-    (cellMainText, cellNextButton, cellBackButton) = createNextBackButtonsAndText(
+    [cellMainText, cellBackButton, cellNextButton, cellIsNoneButton] = createButtonsAndText(
         UI,
         f"""Чтобы изменить аспект в ячейке, выбери его из списка ниже
 Чтобы изменить его количество, испоьзуй клавиши цифр [0-9] и [Backspace]""",
-        cancelAspectChanges, [],
-        confirmAspectChanges, [],
-        "Отмена ", "Подтвердить "
+        [
+            ("Отмена ", cancelAspectChanges, []),
+            ("Подтвердить ", confirmAspectChanges, []),
+            ("Ячейка пуста или неизвестный аспект ", confirmAspectIsNone, []),
+        ]
     )
 
     textYCoord = cellBackButton.y + cellBackButton.h + MARGIN
@@ -667,6 +673,8 @@ def detectInventoryAspects(UI):
 
     textYCoord += currentAspectMainText.h + MARGIN
     startTextYCoord = textYCoord
+    cellsDialogueAspectsTexts = []
+    cellsDialogueAspectsImages = []
     for i in range(len(TI.allAspects)):
         aspect = TI.allAspects[i]
         textAspect = UI.addObject(Text(
@@ -689,12 +697,44 @@ def detectInventoryAspects(UI):
         aspectImage.setImage(aspect.pixMapImage)
         cellDialogueObjects.append(textAspect)
         cellDialogueObjects.append(aspectImage)
+        cellsDialogueAspectsTexts.append(textAspect)
+        cellsDialogueAspectsImages.append(aspectImage)
         textYCoord += textAspect.h
         if textYCoord > UI.height() - textAspect.h:
             textYCoord = startTextYCoord
             textXCoord += 250
 
-    cellDialogueObjects += [cellMainText, cellNextButton, cellBackButton, currentAspectInfoText, currentAspectMainText, currentAspectImage]
+    oldCellMainTextCallback = cellMainText.onMoveCallback
+    def onCellDialogueMainTextMoving():
+        oldCellMainTextCallback()
+
+        textYCoord = cellBackButton.y + cellBackButton.h + MARGIN
+        textXCoord = int(cellBackButton.x)
+        currentAspectInfoText.x = textXCoord
+        currentAspectInfoText.y = textYCoord
+
+        textYCoord += currentAspectInfoText.h
+        currentAspectMainText.x = textXCoord
+        currentAspectMainText.y = textYCoord
+        currentAspectImage.setX(textXCoord + MARGIN)
+        currentAspectImage.setY(textYCoord + MARGIN * 0.1)
+
+        textYCoord += currentAspectMainText.h + MARGIN
+        startTextYCoord = textYCoord
+        for i in range(len(cellsDialogueAspectsTexts)):
+            cellsDialogueAspectText = cellsDialogueAspectsTexts[i]
+            cellsDialogueAspectText.x = textXCoord
+            cellsDialogueAspectText.y = textYCoord
+            cellsDialogueAspectImage = cellsDialogueAspectsImages[i]
+            cellsDialogueAspectImage.setX(textXCoord + MARGIN)
+            cellsDialogueAspectImage.setY(textYCoord + MARGIN)
+            textYCoord += cellsDialogueAspectText.h
+            if textYCoord > UI.height() - cellsDialogueAspectText.h:
+                textYCoord = startTextYCoord
+                textXCoord += 250
+    cellMainText.onMoveCallback = onCellDialogueMainTextMoving
+    cellMainText.LT.onMoveCallback = onCellDialogueMainTextMoving
+    cellDialogueObjects += [cellMainText, cellNextButton, cellBackButton, cellIsNoneButton, currentAspectInfoText, currentAspectMainText, currentAspectImage]
     UI.setObjectsVisibility(cellDialogueObjects, False)
 
     # --- Switch states functions
@@ -1025,20 +1065,21 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         isUnstoppableModeOn[0] = True
         # draw base dialogue
 
-    (activeStateText, activeStateNextButton, activeStateBackButton) = createNextBackButtonsAndText(
+    [activeStateText, activeStateNextButton, activeStateBackButton, backButton] = createButtonsAndText(
         UI,
         f"""Нейросеть определила аспекты на поле.
 Чтобы перегенерировать полученную цепочку решения, нажми [R]
 Если аспекты определены неверно, можно кликнуть на ячейку 
 и выбрать, что в ней должно быть на самом деле. 
 
-Чтобы приостановить программу, нажми [Ctrl + Shift + Пробел]
-Чтобы вернуться к настройкам, нажми [Ctrl + Backspace]""",
-        setUnstoppableModeOn, [UI],
-        startPuttingLinkMap, [],
-        "Безостановочный режим ", "Выложить решение ",
+Чтобы приостановить программу, нажми [Ctrl + Shift + Пробел]""",
+        [
+            ("Назад в настройки", chooseThaumVersion, [UI]),
+            ("Выложить решение ", startPuttingLinkMap, []),
+            ("Безостановочный режим ", setUnstoppableModeOn, [UI]),
+        ]
     )
-    activeStateDialogueObjects += [activeStateText, activeStateNextButton, activeStateBackButton]
+    activeStateDialogueObjects += [activeStateText, activeStateNextButton, activeStateBackButton, backButton]
 
     # --- Paused state elements
     onPausedText = UI.addObject(Text(
@@ -1060,7 +1101,6 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
         UI.clearKeyCallbacks()
         UI.setKeyCallback([KeyboardKeys.r], updateSolving)
-        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.backspace], chooseThaumVersion, UI)
         UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToPausedState)
         UI.setAllObjectsVisibility(False)
         UI.setObjectsVisibility(activeStateDialogueObjects, True)

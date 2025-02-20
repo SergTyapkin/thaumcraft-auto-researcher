@@ -13,7 +13,7 @@ class Circle(_Object):
             x: float,
             y: float,
             r: float,
-            color=DEFAULT_COLOR,
+            color=QColor(DEFAULT_COLOR),
             lineWidth=DEFAULT_LINE_WIDTH,
             movable: bool = False,
             hoverable: bool = False,

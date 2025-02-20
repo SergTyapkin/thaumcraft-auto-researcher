@@ -11,7 +11,7 @@ unknownAspectImage = loadImage(UNKNOWN_ASPECT_IMAGE_PATH)
 
 
 class Aspect:
-    idx: int
+    uid: int
     name: str
     image: Image.Image
     pixMapImage: QPixmap
@@ -22,7 +22,7 @@ class Aspect:
 
     def __init__(self, name: str, idx: int, cellX: int = None, cellY: int = None):
         self.name = name
-        self.idx = idx
+        self.uid = idx
         self.cellX = cellX
         self.cellY = cellY
 

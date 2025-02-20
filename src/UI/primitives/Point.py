@@ -13,7 +13,7 @@ class Point(_Object):
             x: float,
             y: float,
             size=DEFAULT_POINT_SIZE,
-            color=DEFAULT_COLOR,
+            color=QColor(DEFAULT_COLOR),
             lineWidth=DEFAULT_LINE_WIDTH,
             movable=False,
             hoverable: bool = False,

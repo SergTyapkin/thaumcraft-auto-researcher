@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Callable
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPainter
+from PyQt5.QtGui import QColor, QPainter, QFont
 
 from src.UI.primitives.Object import _Object
 from src.UI.primitives.Point import Point
@@ -25,8 +25,8 @@ class Text(_Object):
             x: float,
             y: float,
             text: str,
-            font=DEFAULT_FONT,
-            color=DEFAULT_COLOR,
+            font=QFont(DEFAULT_FONT),
+            color=QColor(DEFAULT_COLOR),
             align: Align = Align.left,
             withBackground=False,
             backgroundColor=QColor('black'),
@@ -45,9 +45,6 @@ class Text(_Object):
         self.h = font.pointSize() * 2 * len(lines)
         self.x = x
         self.y = y
-        if align == Align.center:
-            self.x = editLinkableValue(self.x, self.x - self.w / 2)
-            self.y = editLinkableValue(self.y, self.y - self.h / 2)
         self.text = text
         self.font = font
         self.color = color
@@ -66,7 +63,9 @@ class Text(_Object):
             self.padding = padding
             self.w += padding[1] + padding[3]
             self.h += padding[0] + padding[2]
-
+        if align == Align.center:
+            self.x = editLinkableValue(self.x, self.x - self.w / 2)
+            self.y = editLinkableValue(self.y, self.y - self.h / 2)
         self.UI = UI
         self.hoverable = hoverable
         self.hoverColor = hoverColor

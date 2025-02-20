@@ -16,7 +16,7 @@ class Line(_Object):
             y1: float,
             x2: float,
             y2: float,
-            color=DEFAULT_COLOR,
+            color=QColor(DEFAULT_COLOR),
             width=DEFAULT_LINE_WIDTH,
             dashed=False,
             movable: bool = False,

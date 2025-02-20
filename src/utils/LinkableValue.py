@@ -47,7 +47,9 @@ class LinkableValue:
         if isinstance(other, LinkableValue):
             return self.val >= other.val
         return self.val >= other
-    # def __str__(self):
+    def __repr__(self):
+        return str(self.val)
+    # def __st__(self):
     #     return str(self.val)
 
 

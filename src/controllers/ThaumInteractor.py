@@ -156,7 +156,7 @@ class ThaumInteractor:
         self.currentAspectsPageIdx -= 1
 
     def scrollRight(self):
-        if self.currentAspectsPageIdx == self.maxPagesCount:
+        if self.currentAspectsPageIdx >= self.maxPagesCount - 1:
             return
         logging.info(f"Thaum inventory scrolling right")
         self.pointAspectsScrollRight.click()
@@ -272,6 +272,56 @@ class ThaumInteractor:
                 return aspect
         raise ValueError(f"Aspect {aspectName} not exists in known aspects list")
 
+    def getCellIdxByCellCoords(self, cellX: int, cellY: int) -> int:
+        return cellX * THAUM_ASPECTS_INVENTORY_SLOTS_Y + cellY
+
+    def getAspectByCellCoords(self, cellX: int, cellY: int) -> Aspect | None:
+        for i in range(len(self.availableAspects)):
+            aspect = self.availableAspects[i]
+            if aspect.cellX == cellX and aspect.cellY == cellY:
+                return aspect
+        return None
+
+    def setAspectIntoAvailables(self, aspect: Aspect, cellX: int, cellY: int):
+        prevAspect = self.getAspectByCellCoords(cellX, cellY)
+        aspect.cellX = cellX
+        aspect.cellY = cellY
+        logging.info(f"Adding new aspect to availables: {aspect}. Previous aspect in this cell: {prevAspect}")
+
+        if prevAspect is not None:
+            if prevAspect == aspect:
+                logging.info(f"Aspects is equal. Nothing to change")
+                return
+            aspectIdx = self.getAvailableAspectIdx(prevAspect)
+            prevAspect.count = None
+            prevAspect.cellX = None
+            prevAspect.cellY = None
+            self.availableAspects[aspectIdx] = aspect
+            logging.info(f"Aspect {prevAspect} successfully changed to {aspect} on idx {aspectIdx}")
+        else:
+            cellIdx = self.getCellIdxByCellCoords(cellX, cellY)
+            cellsBeforeCount = 0
+            for a in self.availableAspects:
+                if self.getCellIdxByCellCoords(a.cellX, a.cellY) < cellIdx:
+                    cellsBeforeCount += 1
+            self.availableAspects.insert(cellsBeforeCount, aspect)
+            logging.info(f"Aspect {aspect} successfully inserted on idx {cellsBeforeCount}")
+
+        # log
+        logStr = "All available aspects: "
+        for a in self.availableAspects:
+            logStr += f"{a}[{a.uid}] "
+        logging.info(logStr)
+        # remove aspect duplicate
+        def removeAspectDuplicates():
+            for a in self.availableAspects:
+                if a.uid == aspect.uid and a.cellX != cellX and a.cellY != cellY:
+                    self.availableAspects.remove(a)
+                    removeAspectDuplicates()
+                    break
+        removeAspectDuplicates()
+
+
     def scrollToAspect(self, aspect: Aspect) -> (int, int):
         logging.info(f"Scroll to aspect {aspect}, in cell[absolute] ({aspect.cellX}, {aspect.cellY})")
 
@@ -357,7 +407,7 @@ class ThaumInteractor:
 
         # Оптимизируем порядок аспектов, чтобы пришлось меньше листать инвентарь
         aspectsListMap = list(aspectsMap.items())
-        aspectsListMap.sort(key=lambda pair: self.getAspectByName(pair[1]).idx)
+        aspectsListMap.sort(key=lambda pair: self.getAspectByName(pair[1]).uid)
         logging.debug(f"Sorted aspects link map: {aspectsListMap}")
 
         # Заполняем по одному аспекту, пролистывая к каждому следующему
@@ -489,7 +539,7 @@ class ThaumInteractor:
         self.UI.removeObject(debugHighlightingRect)
 
         # Sort found aspects
-        self.availableAspects.sort(key=lambda a: a.idx)
+        self.availableAspects.sort(key=lambda a: a.uid)
         logging.info(f"All detected available aspects was sorted")
         self.logAvailableAspects()
 
@@ -503,6 +553,12 @@ class ThaumInteractor:
 
     def getAvailableAspectsNames(self) -> set[str]:
         return set(map(lambda a: a.name, self.availableAspects))
+
+    def getAvailableAspectIdx(self, aspect: Aspect) -> int | None:
+        for i in range(len(self.availableAspects)):
+            if self.availableAspects[i] == aspect:
+                return i
+        return None
 
     def getExistingAspectsOnField(self) -> tuple[dict[(int, int), str], set[(int, int)], set[(int, int)]]:
         hexagonsRectLT = P(

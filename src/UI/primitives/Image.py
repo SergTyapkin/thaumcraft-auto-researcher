@@ -46,6 +46,22 @@ class Image(_Object):
 
         super().__init__()
 
+    def setX(self, x: float):
+        self.rect.setLx(x)
+        self.rect.setRx(x + self.w)
+
+    def setY(self, y: float):
+        self.rect.setLy(y)
+        self.rect.setRy(y + self.h)
+
+    def setW(self, w: float):
+        self.w = w
+        self.rect.setRx(self.rect.LT.x + self.w)
+
+    def setH(self, h: float):
+        self.h = h
+        self.rect.setRy(self.rect.LT.y + self.h)
+
     def render(self, painter: QPainter):
         if not super().render(painter): return
         if not self.image: return
