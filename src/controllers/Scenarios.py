@@ -1122,6 +1122,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def onClickNumber (researchesCount: int):
         multyResearchesCountLeft[0] = researchesCount
         TI.resetWorkingSlot()
+        renderDelay()
         thread = threading.Thread(
             target=insertAndPrepareNextIteration, args=[True, False])  # run in thread to not blocking keys callbacks
         thread.start()
