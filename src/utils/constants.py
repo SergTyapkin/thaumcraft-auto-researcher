@@ -67,7 +67,7 @@ NEUROLINK_UNKNOWN_ASPECT_PREDICTION_NAME = "unknown"
 
 # ------------------------
 # Other constants
-EMPTY_TOLERANCE_PERCENT = 0.02
+IMAGES_TOLERANCE_PERCENT = 0.02
 IMAGE_TMP_PATH = to_appdata_path('.tmp/tmp.png')
 LOG_FILE_PATH = to_appdata_path('logs/logs.log')
 

@@ -1,6 +1,8 @@
 import logging
 import math
 import time
+from threading import Thread
+from typing import Callable
 
 import pyscreeze  # for screenshot
 from PIL import Image
@@ -15,10 +17,10 @@ from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPE
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
     THAUM_HEXAGONS_SLOTS_COUNT, \
-    EMPTY_TOLERANCE_PERCENT, \
+    IMAGES_TOLERANCE_PERCENT, \
     THAUM_VERSION_CONFIG_PATH, DEBUG, \
     UNKNOWN_ASPECT_IMAGE_PATH, NEUROLINK_FREE_HEXAGON_PREDICTION_NAME, \
-    NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER
+    NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS
 from src.utils.constants import getAspectImagePath
 from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
     loadRecipesForSelectedVersion
@@ -58,7 +60,7 @@ class ThaumInteractor:
     allAspects: list[Aspect] = []  # All aspects that for selected version and all known addons
     availableAspects: list[Aspect] = []  # Only available in inventory aspects
     recipes: dict[str, list[str, str]]  # All aspects recipes
-    maxPagesCount: int = None  # Total aspects inventory pages count
+    maxAspectsPagesCount: int = None  # Total aspects inventory pages count
 
     pointWritingMaterials: P
     pointPapers: P
@@ -103,13 +105,11 @@ class ThaumInteractor:
 
         self.unknownAspectImage = self.loadImage(UNKNOWN_ASPECT_IMAGE_PATH)
 
-        self.maxPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
+        self.maxAspectsPagesCount = max(((len(orderedAvailableAspects) - 1) // THAUM_ASPECTS_INVENTORY_SLOTS_Y) - 4, 0)
         self.recipes = aspectsRecipes
 
         self.allAspects = [Aspect(orderedAvailableAspects[i], i) for i in range(len(orderedAvailableAspects))]
         self.loadAspectsImages()
-
-        self.updateAvailableAspectsInInventory()
 
         logging.info(f"ThaumcraftInteractor successfully initialized")
         logging.info(f"All known aspects:     {self.allAspects}")
@@ -156,7 +156,7 @@ class ThaumInteractor:
         self.currentAspectsPageIdx -= 1
 
     def scrollRight(self):
-        if self.currentAspectsPageIdx >= self.maxPagesCount - 1:
+        if self.currentAspectsPageIdx >= self.maxAspectsPagesCount - 1:
             return
         logging.info(f"Thaum inventory scrolling right")
         self.pointAspectsScrollRight.click()
@@ -166,8 +166,8 @@ class ThaumInteractor:
     def scrollToLeftSide(self):
         logging.info(f"Thaum inventory scrolling to left side border...")
         if self.currentAspectsPageIdx is None:
-            if self.maxPagesCount is not None:
-                self.currentAspectsPageIdx = self.maxPagesCount
+            if self.maxAspectsPagesCount is not None:
+                self.currentAspectsPageIdx = self.maxAspectsPagesCount
             else:
                 self.currentAspectsPageIdx = THAUM_ASPECTS_INVENTORY_SLOTS_Y + 10
         for _ in range(self.currentAspectsPageIdx):
@@ -179,10 +179,10 @@ class ThaumInteractor:
         logging.info(f"Thaum inventory scrolling to right side border...")
         if self.currentAspectsPageIdx is None:
             self.currentAspectsPageIdx = 0
-        for _ in range(self.maxPagesCount - self.currentAspectsPageIdx):
+        for _ in range(self.maxAspectsPagesCount - self.currentAspectsPageIdx):
             self.scrollRight()
             eventsDelay()
-        self.currentAspectsPageIdx = self.maxPagesCount
+        self.currentAspectsPageIdx = self.maxAspectsPagesCount
 
     def _showDebugClick(self, point, color=QColor('lightgreen')):
         if not DEBUG:
@@ -326,7 +326,7 @@ class ThaumInteractor:
         logging.info(f"Scroll to aspect {aspect}, in cell[absolute] ({aspect.cellX}, {aspect.cellY})")
 
         cellPageIdxMin = max(aspect.cellX - THAUM_ASPECTS_INVENTORY_SLOTS_X + 1, 0)
-        cellPageIdxMax = min(aspect.cellX, self.maxPagesCount)
+        cellPageIdxMax = min(aspect.cellX, self.maxAspectsPagesCount)
 
         if self.currentAspectsPageIdx < cellPageIdxMin:
             for _ in range(self.currentAspectsPageIdx, cellPageIdxMin):
@@ -450,7 +450,7 @@ class ThaumInteractor:
             time.sleep(1)
         return screenshotImage
 
-    def updateAvailableAspectsInInventory(self):
+    def updateAvailableAspectsInInventory(self, onFinishCallback: Callable, callbackArgs = []):
         logging.info("Detecting available aspects in inventory...")
         self.availableAspects = []
 
@@ -458,90 +458,108 @@ class ThaumInteractor:
         slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
         slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
         self.scrollToLeftSide()
-        isFoundEndOfInventory = False
-        newAdditionalOffset = THAUM_ASPECTS_INVENTORY_SLOTS_X
-        while newAdditionalOffset > 0:
-            logging.info(f"Finding aspects on new page of inventory. Current page: {self.currentAspectsPageIdx}")
-            # Calculate screenshot area
-            screenshotRBX = self.rectAspectsListingRB.x
-            screenshotRBY = self.rectAspectsListingRB.y
-            screenshotLTX = self.rectAspectsListingRB.x - slotWidth * newAdditionalOffset
-            screenshotLTY = self.rectAspectsListingLT.y
-            screenshotImage = self.takeScreenshot(
-                screenshotLTX, screenshotLTY,
-                screenshotRBX, screenshotRBY,
-                debugHighlightingRect
-            )
 
-            # Find aspects on screenshot
-            logging.info("Wait for prediction")
-            predictions = Neurolink.predict_inventory_aspects(screenshotImage)
-            count_predictions = Neurolink.predict_inventory_aspects_count(screenshotImage)
-            logging.info(f"Aspects predictions: {predictions}")
-            logging.info(f"Counts predictions:  {count_predictions}")
+        def detectAspects():
+            def exitWithSort():
+                self.UI.removeObject(debugHighlightingRect)
 
-            # Approximate aspects coordinates by cells
-            for prediction in predictions:
-                try:
-                    aspect = self.getAspectByName(prediction.predictionName)
-                    aspect_count = count_predictions[prediction.predictionName]
-                    if aspect.count is None:  # count initialization
-                        aspect.count = aspect_count or 0
-                    else:
-                        # If predictions differ we take minimal
-                        # because it's better to underestimate than to overestimate aspects count
-                        aspect.count = min(aspect.count, aspect_count)
-                except ValueError:
-                    continue
-                coords = (
-                    self.currentAspectsPageIdx + prediction.x // slotWidth,
-                    prediction.y // slotHeight,
+                # Sort found aspects
+                self.availableAspects.sort(key=lambda a: a.uid)
+                logging.info(f"All detected available aspects was sorted")
+                self.logAvailableAspects()
+
+                onFinishCallback(*callbackArgs)
+
+            def detectionIteration(isFoundEndOfInventory = False, newAdditionalOffset = THAUM_ASPECTS_INVENTORY_SLOTS_X):
+                logging.info(f"Finding aspects on new page of inventory. Current page: {self.currentAspectsPageIdx}")
+                # Calculate screenshot area
+                screenshotRBX = self.rectAspectsListingRB.x
+                screenshotRBY = self.rectAspectsListingRB.y
+                screenshotLTX = self.rectAspectsListingRB.x - slotWidth * newAdditionalOffset
+                screenshotLTY = self.rectAspectsListingLT.y
+                screenshotImage = self.takeScreenshot(
+                    screenshotLTX, screenshotLTY,
+                    screenshotRBX, screenshotRBY,
+                    debugHighlightingRect
                 )
-                aspect.cellX = coords[0]
-                aspect.cellY = coords[1]
-                self.availableAspects.append(aspect)
 
-            logging.info(f"All found aspects: {self.availableAspects}")
+                # Find aspects on screenshot
+                logging.info("Wait for prediction aspects")
+                predictions = Neurolink.predict_inventory_aspects(screenshotImage)
+                logging.info(f"Aspects predictions: {predictions}")
 
-            if isFoundEndOfInventory:
-                break
+                logging.info("Wait for prediction counts")
+                count_predictions = Neurolink.predict_inventory_aspects_count(screenshotImage)
+                logging.info(f"Counts predictions:  {count_predictions}")
 
-            # Check if we really move right or it's end of inventory
-            logging.info(f"Checking if we really can move right or it's end of inventory...")
-            newAdditionalOffset = 0
-            previousScreenshotImage = self.takeScreenshot(
-                self.rectAspectsListingRB.x - slotWidth, self.rectAspectsListingLT.y,
-                self.rectAspectsListingRB.x, self.rectAspectsListingLT.y + slotHeight,
-                debugHighlightingRect
-            )
-            while newAdditionalOffset < THAUM_ASPECTS_INVENTORY_SLOTS_X:
-                self.scrollRight()
-                renderDelay()
-                newScreenshotImage = self.takeScreenshot(
+                # Approximate aspects coordinates by cells
+                for prediction in predictions:
+                    try:
+                        aspect = self.getAspectByName(prediction.predictionName)
+                        aspect_count = count_predictions[prediction.predictionName]
+                        if aspect.count is None:  # count initialization
+                            aspect.count = aspect_count or 0
+                        else:
+                            # If predictions differ we take minimal
+                            # because it's better to underestimate than to overestimate aspects count
+                            aspect.count = min(aspect.count, aspect_count)
+                    except ValueError:
+                        continue
+                    coords = (
+                        self.currentAspectsPageIdx + (THAUM_ASPECTS_INVENTORY_SLOTS_X - newAdditionalOffset) + prediction.x // slotWidth,
+                        prediction.y // slotHeight,
+                    )
+                    aspect.cellX = coords[0]
+                    aspect.cellY = coords[1]
+                    logging.debug(f"Cur Page: {self.currentAspectsPageIdx}, offset: {newAdditionalOffset}, {aspect}, {aspect.cellX}, {aspect.cellY} ({prediction.x, prediction.y}), {slotWidth}, {slotHeight}")
+
+                    self.availableAspects.append(aspect)
+
+                logging.info(f"All found aspects: {self.availableAspects}")
+
+                if isFoundEndOfInventory:
+                    exitWithSort()
+                    return
+
+                # Try to scroll right on maximum of
+                # Check if we really move right or it's end of inventory
+                logging.info(f"Checking if we really can move right or it's end of inventory...")
+                newAdditionalOffset = 0
+                previousScreenshotImage = self.takeScreenshot(
                     self.rectAspectsListingRB.x - slotWidth, self.rectAspectsListingLT.y,
                     self.rectAspectsListingRB.x, self.rectAspectsListingLT.y + slotHeight,
                     debugHighlightingRect
                 )
-                # check if we really scrolled right
-                diffWithEmpty = getImagesDiffPercent(previousScreenshotImage, newScreenshotImage)
-                logging.debug(f"Difference of two images before and after scrolling right: {diffWithEmpty}")
-                if diffWithEmpty < EMPTY_TOLERANCE_PERCENT:  # nothing changed - it's the end of inventory
-                    logging.info(f"Found end of inventory. Detection ends")
-                    # self.currentAspectsPageIdx -= 1
-                    self.maxPagesCount = self.currentAspectsPageIdx
-                    isFoundEndOfInventory = True
-                    logging.info(f"Total inventory pages: {self.currentAspectsPageIdx}")
-                    break
-                newAdditionalOffset += 1
-                previousScreenshotImage = newScreenshotImage
-            logging.info(f"New aspects page total width: {newAdditionalOffset}")
+                while newAdditionalOffset < THAUM_ASPECTS_INVENTORY_SLOTS_X:
+                    self.scrollRight()
+                    eventsDelay()
+                    renderDelay()
+                    newScreenshotImage = self.takeScreenshot(
+                        self.rectAspectsListingRB.x - slotWidth, self.rectAspectsListingLT.y,
+                        self.rectAspectsListingRB.x, self.rectAspectsListingLT.y + slotHeight,
+                        debugHighlightingRect
+                    )
+                    # check if we really scrolled right
+                    screenshotsDiff = getImagesDiffPercent(previousScreenshotImage, newScreenshotImage)
+                    logging.debug(f"Difference of two images before and after scrolling right: {screenshotsDiff}")
+                    if screenshotsDiff < IMAGES_TOLERANCE_PERCENT:  # nothing changed - it's the end of inventory
+                        logging.info(f"Found end of inventory. Detection ends")
+                        self.maxAspectsPagesCount = self.currentAspectsPageIdx
+                        isFoundEndOfInventory = True
+                        self.currentAspectsPageIdx -= 1
+                        logging.info(f"Total inventory pages: {self.maxAspectsPagesCount}")
+                        break
+                    newAdditionalOffset += 1
+                    previousScreenshotImage = newScreenshotImage
+                logging.info(f"New aspects page total width: {newAdditionalOffset}")
 
-        self.UI.removeObject(debugHighlightingRect)
+                if newAdditionalOffset > 0:
+                    self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectionIteration, [isFoundEndOfInventory, newAdditionalOffset])
+                else:
+                    exitWithSort()
 
-        # Sort found aspects
-        self.availableAspects.sort(key=lambda a: a.uid)
-        logging.info(f"All detected available aspects was sorted")
-        self.logAvailableAspects()
+            self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectionIteration)
+        self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectAspects)
 
     def logAvailableAspects(self):
         string = "All available aspects by columns:"

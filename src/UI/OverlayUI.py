@@ -151,8 +151,9 @@ class _Window(QMainWindow):
 
     def timerEvent(self, t):
         try:
+            eventsToProcess = set(self.timedEvents)
             eventsToDelete = set()
-            for event in self.timedEvents:
+            for event in eventsToProcess:
                 event.decreaseTime(FRAME_TIME)
                 event.execOnChangeCallback()
                 if event.execCallbackIfTime0():

@@ -18,7 +18,7 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.logic.LinksGeneration import generateLinkMap
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
-    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, DELAY_BETWEEN_RENDER
+    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS
 from src.utils.utils import saveThaumControlsConfig, readJSONConfig, eventsDelay, renderDelay, \
     saveThaumVersionConfig, loadThaumVersionConfig
 
@@ -431,7 +431,7 @@ def beReadyForCreatingTI(UI: OverlayUI):
             f"""Ждите и не двигайте курсором мыши""",
             None, [], None, [],
         )
-        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, detectInventoryAspects, [UI])
+        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, directlyCreateTI, [UI])
 
     createNextBackButtonsAndText(
         UI,
@@ -441,17 +441,23 @@ def beReadyForCreatingTI(UI: OverlayUI):
         chooseThaumVersion, [UI],
     )
 
-def detectInventoryAspects(UI):
-    logging.info(f"Detect inventory aspects scenario started")
+def directlyCreateTI(UI):
+    logging.info(f"Create TI")
     TI = createTI(UI)
     if TI is None:
         logging.critical(f"Unknown error when creating ThaumcraftInteractor. It cannot be created")
         return
+    logging.info(f"TI successfully created")
+    def detectInventoryAspects():
+        TI.updateAvailableAspectsInInventory(detectionAspectsDialogue, [UI, TI])
+    UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, detectInventoryAspects)
+
+def detectionAspectsDialogue(UI, TI):
     TI.scrollToLeftSide()
     logging.info(f"TI successfully detected all aspects")
 
     UI.clearAll()
-    UI.createExitButton()
+    exitButton = UI.createExitButton()
     (mainText, nextButton, backButton) = createNextBackButtonsAndText(
         UI,
         f"""Нейросеть определила аспекты в инвентаре и их количество.
@@ -553,15 +559,15 @@ def detectInventoryAspects(UI):
     def onClickScrollButton(isLeft=False):
         logging.info(f"Inventory aspects page scrolling to {'LEFT' if isLeft else 'RIGHT'}")
         UI.setAllObjectsVisibility(False)
+        exitButton.setVisibility(True)
         def afterTimeout():
             if isLeft:
                 TI.scrollLeft()
             else:
                 TI.scrollRight()
             switchToMainDialogue()
-            drawCurrentPageAspects()
             logging.info(f"New current aspects inventory page idx: {TI.currentAspectsPageIdx}")
-        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, afterTimeout)
+        UI.setTimeout(DELAY_BETWEEN_EVENTS * 1000, afterTimeout)
     buttonScrollL = Text(
         LPoint.x, LPoint.y,
         '<=',
@@ -588,6 +594,7 @@ def detectInventoryAspects(UI):
         onClickCallback=onClickScrollButton,
         onClickCallbackArgs=[False],
     )
+    buttonScrollL.setVisibility(False)
     UI.addObject(buttonScrollL)
     UI.addObject(buttonScrollR)
 
@@ -742,6 +749,12 @@ def detectInventoryAspects(UI):
         logging.info(f"Switching to a main change inventory apsects dialogue...")
         UI.setObjectsVisibility(cellDialogueObjects, False)
         UI.setObjectsVisibility(mainDialogueObjects, True)
+        buttonScrollL.setVisibility(True)
+        buttonScrollR.setVisibility(True)
+        if TI.currentAspectsPageIdx <= 0:
+            buttonScrollL.setVisibility(False)
+        if TI.currentAspectsPageIdx >= TI.maxAspectsPagesCount - 1:
+            buttonScrollR.setVisibility(False)
         drawCurrentPageAspects()
     def switchToCellDialogue():
         logging.info(f"Switching to a directly change aspect dialogue...")
@@ -820,6 +833,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
         UI.setAllObjectsVisibility(False)
+        exitButtonObject.setVisibility(True)
         (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
         switchToActiveState()
         logging.debug(f'Aspects on field detected')

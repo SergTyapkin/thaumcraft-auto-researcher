@@ -2,7 +2,7 @@ import logging
 
 from src.utils.utils import loadRecipesForSelectedVersion
 
-MAX_PATH_LEN = 18
+MAX_PATH_LEN = 16
 DEFAULT_INITIAL_PATH_LEN = 999999
 
 '''
