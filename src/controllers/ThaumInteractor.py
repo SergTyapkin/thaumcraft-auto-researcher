@@ -169,7 +169,7 @@ class ThaumInteractor:
             if self.maxAspectsPagesCount is not None:
                 self.currentAspectsPageIdx = self.maxAspectsPagesCount
             else:
-                self.currentAspectsPageIdx = THAUM_ASPECTS_INVENTORY_SLOTS_Y + 10
+                self.currentAspectsPageIdx = len(self.allAspects) // THAUM_ASPECTS_INVENTORY_SLOTS_Y + 1
         for _ in range(self.currentAspectsPageIdx):
             self.scrollLeft()
             eventsDelay()
@@ -219,7 +219,16 @@ class ThaumInteractor:
 
     def increaseWorkingSlot(self):
         self.workingInventorySlot += 1
+        self._updateWorkingSlotPoint()
+        logging.info(
+            f"Current working slot increased to {self.workingInventorySlot}. New slot coordinates: {self.pointWorkingInventorySlot}")
 
+    def resetWorkingSlot(self):
+        self.workingInventorySlot = 0
+        self._updateWorkingSlotPoint()
+        logging.info(f"Current working slot resetted to 0. New slot coordinates: {self.pointWorkingInventorySlot}")
+
+    def _updateWorkingSlotPoint(self):
         areaWidth = self.rectInventoryRB.x - self.rectInventoryLT.x
         areaHeight = self.rectInventoryRB.y - self.rectInventoryLT.y
         slotWidth = areaWidth / INVENTORY_SLOTS_X
@@ -229,8 +238,6 @@ class ThaumInteractor:
             self.rectInventoryLT.x + (slotWidth * 0.5) + slotWidth * (self.workingInventorySlot % INVENTORY_SLOTS_X),
             self.rectInventoryLT.y + (slotHeight * 0.5) + slotHeight * (self.workingInventorySlot // INVENTORY_SLOTS_X)
         )
-        logging.info(
-            f"Current working slot increased to {self.workingInventorySlot}. New slot coordinates: {self.pointWorkingInventorySlot}")
 
     def inventoryCellCoordsToPixelCoords(self, cellX: int, cellY: int) -> P:
         areaWidth = self.rectAspectsListingRB.x - self.rectAspectsListingLT.x
@@ -509,8 +516,8 @@ class ThaumInteractor:
                         self.currentAspectsPageIdx + (THAUM_ASPECTS_INVENTORY_SLOTS_X - newAdditionalOffset) + prediction.x // slotWidth,
                         prediction.y // slotHeight,
                     )
-                    aspect.cellX = coords[0]
-                    aspect.cellY = coords[1]
+                    aspect.cellX = int(coords[0])
+                    aspect.cellY = int(coords[1])
                     logging.debug(f"Cur Page: {self.currentAspectsPageIdx}, offset: {newAdditionalOffset}, {aspect}, {aspect.cellX}, {aspect.cellY} ({prediction.x, prediction.y}), {slotWidth}, {slotHeight}")
 
                     self.availableAspects.append(aspect)

@@ -27,33 +27,43 @@ pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 
 def createButtonsAndText(
         UI: OverlayUI, text: str,
-        buttons: list[tuple[str, Callable, list[any]]]
+        buttons: list[tuple[str, Callable, list[any]]],
+        x: int = pointTextAnchor.x, y: int = pointTextAnchor.y,
+        movable = True,
 ) -> list[Text]:
     mainText = Text(
-        pointTextAnchor.x, pointTextAnchor.y,
+        x, y,
         text,
         color=QColor('white'),
         withBackground=True,
         padding=MARGIN,
-        movable=True,
+        movable=movable,
         UI=UI,
     )
     buttonsElements: list[Text] = []
     def onTextMoving():
         xCoord = mainText.x
+        yCoord = mainText.y + mainText.h + MARGIN
+        startXCoord = xCoord
         for buttonElement in buttonsElements:
             buttonElement.x = xCoord
-            buttonElement.y = mainText.y + mainText.h + MARGIN
+            buttonElement.y = yCoord
             xCoord += buttonElement.w + MARGIN
+            if xCoord > UI.width() - buttonElement.w:
+                yCoord += buttonElement.h + MARGIN
+                xCoord = startXCoord
     mainText.onMoveCallback = onTextMoving
-    mainText.LT.onMoveCallback = onTextMoving
+    if movable:
+        mainText.LT.onMoveCallback = onTextMoving
     UI.addObject(mainText)
 
     xCoord = mainText.x
+    yCoord = mainText.y + mainText.h + MARGIN
+    startXCoord = xCoord
     for (buttonText, buttonCallback, buttonArgs) in buttons:
         buttonElement = Text(
             xCoord,
-            mainText.y + mainText.h + MARGIN,
+            yCoord,
             buttonText,
             color=QColor('white'),
             withBackground=True,
@@ -67,6 +77,9 @@ def createButtonsAndText(
         UI.addObject(buttonElement)
         buttonsElements.append(buttonElement)
         xCoord += buttonElement.w + MARGIN
+        if xCoord > UI.width() - buttonElement.w:
+            yCoord += buttonElement.h + MARGIN
+            xCoord = startXCoord
 
     return [mainText, *buttonsElements]
 
@@ -426,10 +439,12 @@ def beReadyForCreatingTI(UI: OverlayUI):
     def startCreatingTI():
         UI.clearAll()
         UI.createExitButton()
-        createNextBackButtonsAndText(
+        createButtonsAndText(
             UI,
             f"""Ждите и не двигайте курсором мыши""",
-            None, [], None, [],
+            [],
+            MARGIN, MARGIN,
+            False,
         )
         UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, directlyCreateTI, [UI])
 
@@ -822,14 +837,13 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     existingAspects = [{}]
     freeHexagons = [set()]
     noneHexagons = [set()]
-    isUnstoppableModeOn = [False]
+    multyResearchesCountLeft = [0]
 
-    activeStateDialogueObjects = []
-    pausedStateDialogueObjects = []
-    cellSettingsStateDialogueObjects = []
     cellsObjects = []
 
     # --- Cells dialogue elements
+    cellSettingsStateDialogueObjects = []
+
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
         UI.setAllObjectsVisibility(False)
@@ -1024,7 +1038,28 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     UI.setObjectsVisibility(cellSettingsStateDialogueObjects, False)
 
     # --- Active state elements
-    def startPuttingLinkMap():
+    def insertAndPrepareNextIteration(withInsertingNow = True, withInsertingLast = True):
+        UI.setAllObjectsVisibility(False)
+        logging.info("Inserting and preparing for next iteration")
+        if withInsertingNow:
+            TI.insertPaper()
+            TI.moveMouseInSafePos()
+        existingAspects[0].clear()
+        freeHexagons[0].clear()
+        noneHexagons[0].clear()
+        currentLinkMap[0].clear()
+        updateCellsImage()
+        renderDelay()
+        updateDetectingField()
+        updateSolving()
+        switchToActiveState()
+        logging.info("Everything prepared to next detecting")
+        if multyResearchesCountLeft[0] > 0:
+            multyResearchesCountLeft[0] -= 1
+            withInsertingNow = (multyResearchesCountLeft[0] == 1)
+            startPuttingLinkMap(withInsertingNow, withInsertingLast)
+
+    def startPuttingLinkMap(withInsertingNow = True, withInsertingLast = True):
         UI.setAllObjectsVisibility(False)
         onProcessText = UI.addObject(Text(
             MARGIN, MARGIN,
@@ -1051,33 +1086,17 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             TI.takeOutPaper()
             eventsDelay()
             TI.increaseWorkingSlot()
-            goToNextSlot()
+            insertAndPrepareNextIteration(withInsertingNow, withInsertingLast)
             UI.removeObject(onProcessText)
 
         puttingAspectsThread = threading.Thread(
             target=startPuttingAspects)  # run in thread to not blocking keys callbacks
         puttingAspectsThread.start()
 
-    def goToNextSlot():
-        logging.info("Going to next slot")
-        TI.insertPaper()
-        TI.moveMouseInSafePos()
-        existingAspects[0].clear()
-        freeHexagons[0].clear()
-        noneHexagons[0].clear()
-        currentLinkMap[0].clear()
-        updateCellsImage()
-        renderDelay()
-        updateDetectingField()
-        updateSolving()
-        switchToActiveState()
-        logging.info("Everything prepared to next detecting")
-        if isUnstoppableModeOn[0]:
-            startPuttingLinkMap()
 
-    def setUnstoppableModeOn():
-        isUnstoppableModeOn[0] = True
-        # draw base dialogue
+    # base dialogue
+    def onClickSwitchToMultyResearches():
+        switchToMultyResearchesState()
 
     [activeStateText, activeStateNextButton, activeStateBackButton, backButton] = createButtonsAndText(
         UI,
@@ -1090,10 +1109,42 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         [
             ("Назад в настройки", chooseThaumVersion, [UI]),
             ("Выложить решение ", startPuttingLinkMap, []),
-            ("Безостановочный режим ", setUnstoppableModeOn, [UI]),
+            ("Безостановочный режим ", onClickSwitchToMultyResearches, []),
         ]
     )
-    activeStateDialogueObjects += [activeStateText, activeStateNextButton, activeStateBackButton, backButton]
+    activeStateDialogueObjects = [activeStateText, activeStateNextButton, activeStateBackButton, backButton]
+
+
+    # --- Multy researches state elements
+    def onClickBack():
+        switchToActiveState()
+
+    def onClickNumber (researchesCount: int):
+        multyResearchesCountLeft[0] = researchesCount
+        TI.resetWorkingSlot()
+        thread = threading.Thread(
+            target=insertAndPrepareNextIteration, args=[True, False])  # run in thread to not blocking keys callbacks
+        thread.start()
+
+
+    multyResearchesObjects = createButtonsAndText(
+        UI,
+        f"""Начать безостановочное исследование нескольких записок.
+Записки должны быть разложены в инвентаре подряд, начиная с левого верхнего слота в инвентаре.
+В столе исследований записки быть не должно""",
+        [
+            ("Назад", onClickBack, []),
+            ("1", onClickNumber, [1]), ("2", onClickNumber, [2]), ("3", onClickNumber, [3]),
+            ("4", onClickNumber, [4]), ("5", onClickNumber, [5]), ("6", onClickNumber, [6]),
+            ("7", onClickNumber, [7]), ("8", onClickNumber, [8]), ("9", onClickNumber, [9]),
+            ("10", onClickNumber, [10]), ("11", onClickNumber, [11]), ("12", onClickNumber, [12]),
+            ("13", onClickNumber, [13]), ("14", onClickNumber, [14]), ("15", onClickNumber, [15]),
+            ("16", onClickNumber, [16]), ("17", onClickNumber, [17]), ("18", onClickNumber, [18]),
+            ("19", onClickNumber, [19]), ("20", onClickNumber, [20]), ("21", onClickNumber, [21]),
+            ("22", onClickNumber, [22]), ("23", onClickNumber, [23]), ("24", onClickNumber, [24]),
+            ("25", onClickNumber, [25]), ("26", onClickNumber, [26]), ("27", onClickNumber, [27]),
+        ]
+    )
 
     # --- Paused state elements
     onPausedText = UI.addObject(Text(
@@ -1107,14 +1158,26 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         movable=True,
         UI=UI,
     ))
-    pausedStateDialogueObjects.append(onPausedText)
+    pausedStateDialogueObjects = [onPausedText]
 
     # --- Switch between states functions
     def switchToActiveState():
         logging.info("Switching to active state")
 
+        def onPressR():
+            UI.setAllObjectsVisibility(False)
+            def foo():
+                updateDetectingField()
+                updateSolving()
+                UI.setObjectsVisibility(activeStateDialogueObjects, True)
+                UI.setObjectsVisibility(cellsObjects, True)
+                exitButtonObject.setVisibility(True)
+            thread = threading.Thread(
+                target=foo)  # run in thread to not blocking keys callbacks
+            thread.start()
+
         UI.clearKeyCallbacks()
-        UI.setKeyCallback([KeyboardKeys.r], updateSolving)
+        UI.setKeyCallback([KeyboardKeys.r], onPressR)
         UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToPausedState)
         UI.setAllObjectsVisibility(False)
         UI.setObjectsVisibility(activeStateDialogueObjects, True)
@@ -1137,6 +1200,14 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         UI.setAllObjectsVisibility(False)
         UI.setObjectsVisibility(cellSettingsStateDialogueObjects, True)
         UI.setObjectsVisibility(cellsObjects, True)
+        exitButtonObject.setVisibility(True)
+
+    def switchToMultyResearchesState():
+        logging.info("Switching to multy researches state")
+        UI.clearKeyCallbacks()
+        UI.setKeyCallback([KeyboardKeys.esc], exitCellDialogue)
+        UI.setAllObjectsVisibility(False)
+        UI.setObjectsVisibility(multyResearchesObjects, True)
         exitButtonObject.setVisibility(True)
 
     updateDetectingField()
