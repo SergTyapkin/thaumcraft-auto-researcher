@@ -21,7 +21,11 @@ logging.basicConfig(
 UI = OverlayUI(opacity=1)
 
 def main():
-    Scenarios.beReadyForCreatingTI(UI)
+    try:
+        Scenarios.beReadyForCreatingTI(UI)
+    except Exception as e:
+        logging.critical(f"Error excepted in main thread: {e}")
+
 
 
 if __name__ == '__main__':
@@ -30,4 +34,4 @@ if __name__ == '__main__':
     try:
         UI.start(main)
     except Exception as e:
-        logging.critical(f"Error excepted: {e}")
+        logging.critical(f"Error excepted in UI thread: {e}")
