@@ -162,7 +162,7 @@ class Aspect:
         return cells[target_aspect.coord].dist, cells[target_aspect.coord].path
 
 
-def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int, int)], available_aspects: set[str]) -> dict[(int, int): str]:
+def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int, int)], available_aspects: set[str], interruptingFlag: list[bool]) -> dict[(int, int): str]:
     logging.debug("-----------")
     logging.info("START SOLVING")
     logging.debug("#---0. Setting up:")
@@ -196,7 +196,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
     # Продолжаем, пока все изначальные аспекты не будут связаны
     is_all_aspects_linked = False
     iteration_number = 0
-    while not is_all_aspects_linked:
+    while not is_all_aspects_linked and not interruptingFlag[0]:
         is_all_aspects_linked = True
         # Вывбираем один аспект из изначальных
         for start_initial_aspect in initial_aspects:
@@ -213,7 +213,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             min_end_aspect = None
             min_end_initial_aspect = None
             min_len_between_aspects = DEFAULT_INITIAL_PATH_LEN
-            while len(not_linked_to_aspects) > 0:
+            while len(not_linked_to_aspects) > 0 and not interruptingFlag[0]:
                 end_initial_aspect = not_linked_to_aspects.pop()
                 logging.debug(f"#---1. Found initial aspects to link: {start_initial_aspect} to {end_initial_aspect}")
                 # Ищем ближайшие ПО РАССТОЯНИЮ аспекты, связанные с теми, от которого и к которому хотим привязать
@@ -243,7 +243,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             start_aspect = min_start_aspect
             target_path_len = min_len_between_aspects
             logging.debug(f"#---2. Trying to found aspects path from {start_aspect.name} to {end_aspect.name}")
-            while target_path_len < MAX_PATH_LEN:
+            while target_path_len < MAX_PATH_LEN and not interruptingFlag[0]:
                 aspects_path = aspect_graph.find_path(start_aspect.name, end_aspect.name, target_path_len)
                 if not aspects_path:
                     logging.debug(f"Path with len {target_path_len} not found")
@@ -273,7 +273,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                 # Recursive update all aspects that linked to this
                 visited_initials = set()
                 def update_all_linked_aspects(from_initial):
-                    if from_initial in visited_initials:
+                    if (from_initial in visited_initials) or interruptingFlag[0]:
                         return
                     from_initial.linked_to_initials.update(start_initial_aspect.linked_to_initials)
                     visited_initials.add(from_initial)

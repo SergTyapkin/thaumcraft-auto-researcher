@@ -18,7 +18,8 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.logic.LinksGeneration import generateLinkMap
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
-    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS
+    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS, \
+    LINK_GENERATION_MAX_TIME_MS
 from src.utils.utils import saveThaumControlsConfig, readJSONConfig, eventsDelay, renderDelay, \
     saveThaumVersionConfig, loadThaumVersionConfig
 
@@ -441,12 +442,14 @@ def beReadyForCreatingTI(UI: OverlayUI):
         UI.createExitButton()
         createButtonsAndText(
             UI,
-            f"""Ждите и не двигайте курсором мыши""",
+            f"""Жди и не двигай курсором мыши""",
             [],
             MARGIN, MARGIN,
             False,
         )
-        UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, directlyCreateTI, [UI])
+        UI.repaint()
+        renderDelay()
+        directlyCreateTI(UI)
 
     createNextBackButtonsAndText(
         UI,
@@ -463,9 +466,9 @@ def directlyCreateTI(UI):
         logging.critical(f"Unknown error when creating ThaumcraftInteractor. It cannot be created")
         return
     logging.info(f"TI successfully created")
-    def detectInventoryAspects():
-        TI.updateAvailableAspectsInInventory(detectionAspectsDialogue, [UI, TI])
-    UI.setTimeout(DELAY_BETWEEN_RENDER * 1000, detectInventoryAspects)
+    UI.repaint()
+    renderDelay()
+    TI.updateAvailableAspectsInInventory(detectionAspectsDialogue, [UI, TI])
 
 def detectionAspectsDialogue(UI, TI):
     TI.scrollToLeftSide()
@@ -523,7 +526,7 @@ def detectionAspectsDialogue(UI, TI):
                     fill=QColor(cellColorFree),
                     fillOpacity=0.1,
                     onClickCallback=onClickCell,
-                    onClickCallbackArgs=[aspect, cellX, cellY],
+                    onClickCallbackArgs=[aspect, TI.currentAspectsPageIdx + cellX, cellY],
                     hoverable=True,
                     clickable=True,
                 )
@@ -575,14 +578,14 @@ def detectionAspectsDialogue(UI, TI):
         logging.info(f"Inventory aspects page scrolling to {'LEFT' if isLeft else 'RIGHT'}")
         UI.setAllObjectsVisibility(False)
         exitButton.setVisibility(True)
-        def afterTimeout():
-            if isLeft:
-                TI.scrollLeft()
-            else:
-                TI.scrollRight()
-            switchToMainDialogue()
-            logging.info(f"New current aspects inventory page idx: {TI.currentAspectsPageIdx}")
-        UI.setTimeout(DELAY_BETWEEN_EVENTS * 1000, afterTimeout)
+        UI.repaint()
+        eventsDelay()
+        if isLeft:
+            TI.scrollLeft()
+        else:
+            TI.scrollRight()
+        switchToMainDialogue()
+        logging.info(f"New current aspects inventory page idx: {TI.currentAspectsPageIdx}")
     buttonScrollL = Text(
         LPoint.x, LPoint.y,
         '<=',
@@ -848,15 +851,16 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         logging.debug(f'Run detecting aspects on field')
         UI.setAllObjectsVisibility(False)
         exitButtonObject.setVisibility(True)
+        UI.repaint()
+        renderDelay()
         (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
-        switchToActiveState()
         logging.debug(f'Aspects on field detected')
 
-    def updateSolving():
+    def updateSolving(interruptingFlag: list[bool] = [False]):
         logging.debug(f'Starts updating solve...')
         # Start solving
         availableAspects = TI.getAvailableAspectsNames()
-        currentLinkMap[0] = generateLinkMap(existingAspects[0], noneHexagons[0], availableAspects)
+        currentLinkMap[0] = generateLinkMap(existingAspects[0], noneHexagons[0], availableAspects, interruptingFlag)
         logging.debug(f'New solving generated {currentLinkMap[0]}')
         # Rerender cells images
         updateCellsImage()
@@ -1038,28 +1042,26 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     UI.setObjectsVisibility(cellSettingsStateDialogueObjects, False)
 
     # --- Active state elements
-    def insertAndPrepareNextIteration(withInsertingNow = True, withInsertingLast = True):
-        UI.setAllObjectsVisibility(False)
+    def insertAndPrepareNextIteration():
         logging.info("Inserting and preparing for next iteration")
-        if withInsertingNow:
+        if multyResearchesCountLeft[0] > 0:
             TI.insertPaper()
-            TI.moveMouseInSafePos()
+        TI.moveMouseInSafePos()
         existingAspects[0].clear()
         freeHexagons[0].clear()
         noneHexagons[0].clear()
         currentLinkMap[0].clear()
-        updateCellsImage()
-        renderDelay()
         updateDetectingField()
         updateSolving()
-        switchToActiveState()
         logging.info("Everything prepared to next detecting")
         if multyResearchesCountLeft[0] > 0:
             multyResearchesCountLeft[0] -= 1
-            withInsertingNow = (multyResearchesCountLeft[0] == 1)
-            startPuttingLinkMap(withInsertingNow, withInsertingLast)
+            startPuttingLinkMap()
+            return
+        updateCellsImage()
+        switchToActiveState()
 
-    def startPuttingLinkMap(withInsertingNow = True, withInsertingLast = True):
+    def startPuttingLinkMap():
         UI.setAllObjectsVisibility(False)
         onProcessText = UI.addObject(Text(
             MARGIN, MARGIN,
@@ -1086,7 +1088,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             TI.takeOutPaper()
             eventsDelay()
             TI.increaseWorkingSlot()
-            insertAndPrepareNextIteration(withInsertingNow, withInsertingLast)
+            insertAndPrepareNextIteration()
             UI.removeObject(onProcessText)
 
         puttingAspectsThread = threading.Thread(
@@ -1119,14 +1121,12 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def onClickBack():
         switchToActiveState()
 
-    def onClickNumber (researchesCount: int):
+    def onClickNumber(researchesCount: int):
         multyResearchesCountLeft[0] = researchesCount
         TI.resetWorkingSlot()
         renderDelay()
-        thread = threading.Thread(
-            target=insertAndPrepareNextIteration, args=[True, False])  # run in thread to not blocking keys callbacks
-        thread.start()
-
+        renderDelay()
+        insertAndPrepareNextIteration()
 
     multyResearchesObjects = createButtonsAndText(
         UI,
@@ -1162,20 +1162,30 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     pausedStateDialogueObjects = [onPausedText]
 
     # --- Switch between states functions
+    isInUpdatingAspects = [False]
+    curUpdatingUid = [0]
     def switchToActiveState():
         logging.info("Switching to active state")
 
         def onPressR():
+            if isInUpdatingAspects[0]:
+                return
+            isInUpdatingAspects[0] = True
             UI.setAllObjectsVisibility(False)
-            def foo():
-                updateDetectingField()
-                updateSolving()
-                UI.setObjectsVisibility(activeStateDialogueObjects, True)
-                UI.setObjectsVisibility(cellsObjects, True)
-                exitButtonObject.setVisibility(True)
-            thread = threading.Thread(
-                target=foo)  # run in thread to not blocking keys callbacks
-            thread.start()
+            UI.repaint()
+            renderDelay()
+
+            curUpdatingUid[0] += 1
+            interruptingFlag = [False]
+            def interruptSolving(curUid):  # interrupt solving after LINK_GENERATION_MAX_TIME_MS
+                if isInUpdatingAspects[0] and curUid == curUpdatingUid[0]:
+                    interruptingFlag[0] = True
+            UI.setTimeout(LINK_GENERATION_MAX_TIME_MS, interruptSolving, [curUpdatingUid[0]])
+
+            updateDetectingField()
+            updateSolving(interruptingFlag)
+            switchToActiveState()
+            isInUpdatingAspects[0] = False
 
         UI.clearKeyCallbacks()
         UI.setKeyCallback([KeyboardKeys.r], onPressR)

@@ -169,6 +169,7 @@ class _Window(QMainWindow):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing, True)
             objects = self.objects.copy()
+            print(objects)
             for obj in objects:
                 obj.render(painter)
         except KeyboardInterrupt:
@@ -255,11 +256,11 @@ class _Window(QMainWindow):
 
     def setAllObjectsVisibility(self, state: bool):
         for object in self.objects:
-            object.visible = state
+            object.setVisibility(state)
 
     def setObjectsVisibility(self, objects: list[UIPrimitive], state: bool):
         for object in objects:
-            object.visible = state
+            object.setVisibility(state)
 
     def removeObject(self, obj: UIPrimitive):
         try:

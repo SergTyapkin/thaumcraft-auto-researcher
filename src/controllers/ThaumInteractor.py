@@ -465,6 +465,7 @@ class ThaumInteractor:
         slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
         slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
         self.scrollToLeftSide()
+        self.UI.repaint()
 
         def detectAspects():
             def exitWithSort():

@@ -99,6 +99,11 @@ class Text(_Object):
         if self.movable:
             self.LT.render(painter)
 
+    def setVisibility(self, state: bool) -> None:
+        super().setVisibility(state)
+        if self.movable:
+            self.LT.setVisibility(state)
+
     def isHover(self, x: float, y: float):
         if not self.visible:
             return False
