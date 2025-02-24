@@ -1045,6 +1045,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def insertAndPrepareNextIteration():
         logging.info("Inserting and preparing for next iteration")
         if multyResearchesCountLeft[0] > 0:
+            UI.setAllObjectsVisibility(False)
+            UI.repaint()
+            renderDelay()
             TI.insertPaper()
         TI.moveMouseInSafePos()
         existingAspects[0].clear()

@@ -169,7 +169,7 @@ class _Window(QMainWindow):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing, True)
             objects = self.objects.copy()
-            print(objects)
+            # print(len(objects), objects)
             for obj in objects:
                 obj.render(painter)
         except KeyboardInterrupt:

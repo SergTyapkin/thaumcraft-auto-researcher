@@ -347,41 +347,47 @@ class ThaumInteractor:
         return aspect.cellX - self.currentAspectsPageIdx, aspect.cellY
 
     def takeAspect(self, aspect: Aspect):
-        if aspect.count == 0:
-            self.mixAspect(aspect)
+        self.mixAspect(aspect)
         logging.info(f"Take aspect {aspect}...")
         (cellX, cellY) = self.scrollToAspect(aspect)
         self.takeAspectByCellCoords(cellX, cellY)
         aspect.count -= 1
 
-    def mixAspect(self, aspect: Aspect, useShift=True, times=1) -> None:
+    def getAspectRecipeByName(self, aspectName: str):
+        recipe = self.recipes.get(aspectName)
+        if recipe is None:
+            raise ValueError(f"Aspect {aspectName} not exists in known aspects recipes")
+        return recipe
+
+    def mixAspect(self, aspect: Aspect, useShift=True, targetCount=3) -> None:
         """
         Creates aspect by mixing aspects from its recipe
 
         Args:
             aspect: Aspect that we need to create
             useShift: If True, then mixing is performed by Shift+LMB
-            times: How many aspects do we need to craft
+            targetCount: How many aspects do we need to craft
         """
-        logging.info(f"Mixing aspect {aspect} {times} times...")
-        recipe = self.recipes.get(aspect.name)
-        if recipe is None:
-            raise ValueError(f"Aspect {aspect.name} not exists in known aspects recipes")
+        if aspect.count >= targetCount:
+            return
+        mixingTimes = targetCount - aspect.count
+        logging.info(f"Mixing aspect {aspect} to {targetCount} for {mixingTimes} times...")
+        recipe = self.getAspectRecipeByName(aspect.name)
         if len(recipe) < 2:  # Aspect is basic (Aqua, Terra, Aer, Ordo, Perditio)
-            if aspect.count < times:
-                raise ValueError(f"Ran out of basic aspect {aspect.name}")
+            if aspect.count < mixingTimes:
+                logging.critical(f"Ran out of basic aspect {aspect.name}")
             return
         aspect1 = self.getAspectByName(recipe[0])
         aspect2 = self.getAspectByName(recipe[1])
         # Creating aspects used in recipe so that they don't run out
-        self.mixAspect(aspect1, useShift=useShift, times=times)
-        self.mixAspect(aspect2, useShift=useShift, times=times)
+        self.mixAspect(aspect1, useShift, mixingTimes)
+        self.mixAspect(aspect2, useShift, mixingTimes)
 
         if useShift:
             (cellX, cellY) = self.scrollToAspect(aspect)
             aspect_point = self.inventoryCellCoordsToPixelCoords(cellX, cellY)
             eventsDelay()
-            for _ in range(times):
+            for _ in range(mixingTimes):
                 aspect_point.click(shift=True)
                 self._showDebugClick(aspect_point)
                 eventsDelay()
@@ -398,15 +404,15 @@ class ThaumInteractor:
             aspect2_point.click()
             self._showDebugClick(aspect2_point)
             eventsDelay()
-            for _ in range(times):
+            for _ in range(mixingTimes):
                 self.pointAspectsMixCreate.click()
                 self._showDebugClick(self.pointAspectsMixCreate)
                 eventsDelay()
 
         # Updating counts of aspects
-        aspect.count += times
-        aspect1.count -= times
-        aspect2.count -= times
+        aspect.count += mixingTimes
+        aspect1.count -= mixingTimes
+        aspect2.count -= mixingTimes
 
 
     def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
