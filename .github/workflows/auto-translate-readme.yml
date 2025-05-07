@@ -23,6 +23,7 @@ jobs:
         env:
           LANGS: 'russian,english,italian,dutch,spanish,arabic,chinese (traditional),chinese (simplified),french,hindi,korean' # List of languages to be translated
           FILES: 'README.md'
+          DEBUG: true
 
       - name: Push to GitHub  # Step: Submit changes to GitHub
         uses: crazy-max/ghaction-github-pages@v3.1.0  # Using an action to publish to GitHub Pages
