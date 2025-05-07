@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v2  # Using an action to test the code
 
       - name: Run translation  # Step: start the translation
-        uses: mrf0rtuna4/Github-Readme-AutoTranslator@v2.0.0  # Using an action to translate
+        uses: mrf0rtuna4/Github-Readme-AutoTranslator@latest  # Using an action to translate
         env:
           LANGS: 'russian,english,italian,dutch,spanish,arabic,chinese (traditional),chinese (simplified),french,hindi,korean' # List of languages to be translated
           FILES: 'README.md'
