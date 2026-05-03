@@ -1,0 +1,9 @@
+PyQt5~=5.15.11
+pillow~=12.2.0
+appdata~=2.2.1
+keyboard~=0.13.5
+mouse~=0.7.1
+pyscreeze~=1.0.1
+numpy~=2.4.4
+onnxruntime==1.20.1
+auto-py-to-exe~=2.50.1

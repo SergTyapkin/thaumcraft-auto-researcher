@@ -71,8 +71,8 @@ class KeyboardKeys(Enum):
 class TimedEvent:
     callback: Callable[[], None]
     timeLeftMs: int
-    args: list[any]
-    kwargs: dict[any]
+    args: list[Any]
+    kwargs: dict[Any, Any]
     onChangeCallback: Callable[[int], None]
 
     def __init__(self, timeLeftMs: int, callback: Callable[[], None], args=[], kwargs={},
@@ -98,10 +98,10 @@ class TimedEvent:
 
 class _Window(QMainWindow):
     objects: list[UIPrimitive] = []
-    keysCallbacks: dict[tuple[int], (Callable, list[Any])] = {}
-    mousePressCallbacks: list[(Callable, list[Any])] = []
-    mouseReleaseCallbacks: list[(Callable, list[Any])] = []
-    mouseMoveCallbacks: list[(Callable, list[Any])] = []
+    keysCallbacks: dict[tuple[int], tuple[Callable, list[Any]]] = {}
+    mousePressCallbacks: list[tuple[Callable, list[Any]]] = []
+    mouseReleaseCallbacks: list[tuple[Callable, list[Any]]] = []
+    mouseMoveCallbacks: list[tuple[Callable, list[Any]]] = []
     anchorMouseMovePoint: tuple[int, int] | None = None
     lastMouseMovePoint: tuple[int, int] | None = None
     currentMovingObject: UIPrimitive | None = None
@@ -269,7 +269,7 @@ class _Window(QMainWindow):
             pass
         return obj
 
-    def removeObjects(self, objects: [UIPrimitive]):
+    def removeObjects(self, objects: list[UIPrimitive]):
         for obj in objects:
             try:
                 self.objects.remove(obj)

@@ -19,7 +19,7 @@ from src.logic.LinksGeneration import generateLinkMap
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
     THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS, \
-    LINK_GENERATION_MAX_TIME_MS
+    LINK_GENERATION_MAX_TIME_MS, MAX_SOLVE_RETRIES
 from src.utils.utils import saveThaumControlsConfig, readJSONConfig, eventsDelay, renderDelay, \
     saveThaumVersionConfig, loadThaumVersionConfig
 
@@ -828,7 +828,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
     cells: list[Cell] = []
     selectedCell: list[Cell | None, QColor | None] = [None, None]  # list to make it mutable
-    currentLinkMap: list[dict[(int, int), str]] = [{}]  # list to make it mutable
+    currentLinkMap: list[dict[tuple[int, int], str]] = [{}]  # list to make it mutable
 
     cellColorFree = QColor('white')
     cellColorNone = QColor('black')
@@ -851,18 +851,38 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
         UI.setAllObjectsVisibility(False)
+        logging.debug(f'LOG-1')
         exitButtonObject.setVisibility(True)
+        logging.debug(f'LOG-2')
         UI.repaint()
+        logging.debug(f'LOG-3')
         renderDelay()
+        logging.debug(f'LOG-4')
         (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
         logging.debug(f'Aspects on field detected')
 
     def updateSolving(interruptingFlag: list[bool] = [False]):
         logging.debug(f'Starts updating solve...')
+
         # Start solving
-        availableAspects = TI.getAvailableAspectsNames()
-        currentLinkMap[0] = generateLinkMap(existingAspects[0], noneHexagons[0], availableAspects, interruptingFlag)
-        logging.debug(f'New solving generated {currentLinkMap[0]}')
+        solving = None
+        solveRetries = 0
+        logging.debug(f'Trying to generate solving, try number: {solveRetries + 1}')
+        while solveRetries < MAX_SOLVE_RETRIES and solving is None:
+            solving = generateLinkMap(
+                existingAspects[0],
+                noneHexagons[0],
+                TI.getAvailableAspectsNames(),
+                interruptingFlag
+            )
+            solveRetries += 1
+
+        if solving is None:
+            currentLinkMap[0] = existingAspects[0]
+            logging.debug(f'None solving gotten from "generateLinkMap"')
+        else:
+            currentLinkMap[0] = solving
+            logging.debug(f'New solving generated {currentLinkMap[0]}')
         # Rerender cells images
         updateCellsImage()
 
@@ -1046,16 +1066,24 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def insertAndPrepareNextIteration():
         logging.info("Inserting and preparing for next iteration")
         if multyResearchesCountLeft[0] > 0:
+            logging.debug("LOG-11")
             UI.setAllObjectsVisibility(False)
+            logging.debug("LOG-12")
             UI.repaint()
+            logging.debug("LOG-13")
             renderDelay()
+            logging.debug("LOG-14")
             TI.insertPaper()
+            logging.debug("LOG-15")
+        logging.debug("LOG-16")
         TI.moveMouseInSafePos()
         existingAspects[0].clear()
         freeHexagons[0].clear()
         noneHexagons[0].clear()
         currentLinkMap[0].clear()
+        logging.debug("LOG-17")
         updateDetectingField()
+        logging.debug("LOG-18")
         updateSolving()
         logging.info("Everything prepared to next detecting")
         if multyResearchesCountLeft[0] > 0:

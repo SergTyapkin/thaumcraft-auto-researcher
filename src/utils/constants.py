@@ -64,6 +64,10 @@ NEUROLINK_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
 NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 NEUROLINK_UNKNOWN_ASPECT_PREDICTION_NAME = "unknown"
 
+# ------------------------
+# Aspect link solves generation
+MAX_SOLVE_RETRIES = 3
+MAX_ASPECTS_SOLVING_PATH_LEN = 10
 
 # ------------------------
 # Other constants
@@ -80,3 +84,7 @@ LOG_LEVEL = logging.DEBUG
 # ------------------------
 # DEBUG = True
 DEBUG = False
+
+PAINT_DEBUG = DEBUG
+# PAINT_DEBUG = True
+# PAINT_DEBUG = False
