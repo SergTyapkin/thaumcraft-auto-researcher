@@ -98,12 +98,14 @@ def createNextBackButtonsAndText(
             backCallback,
             backCallbackArgs,
         ))
+        UI.setKeyCallback([KeyboardKeys.backspace], backCallback, *backCallbackArgs)
     if nextCallback is not None:
         buttonsConfig.append((
             overrideNextText or "Далее  >",
             nextCallback,
             nextCallbackArgs,
         ))
+        UI.setKeyCallback([KeyboardKeys.enter], nextCallback, *nextCallbackArgs)
     elements = createButtonsAndText(UI, text, buttonsConfig)
     return elements[0], elements[1] if len(elements) > 1 else None, elements[2] if len(elements) > 2 else None
 
@@ -111,7 +113,6 @@ def createNextBackButtonsAndText(
 def enroll(UI: OverlayUI):
     UI.clearAll()
     UI.createExitButton()
-    UI.setKeyCallback([KeyboardKeys.enter], configureThaumWindowCoords, UI)
 
     UI.addObject(Text(
         pointTextAnchor.x, pointTextAnchor.y,
@@ -120,8 +121,8 @@ def enroll(UI: OverlayUI):
 Вот такие точки можно перемещать:
 Закрыть программу всегда можно кликом по крестику в правом верхнем углу.
 
-Чтобы двинуться дальше, перемести эту точку на жёлтую точку посередине экрана.
-(Кстати, это окошко тоже можно переместить, передвинув черную точку в левом верхнем углу).""",
+Чтобы двинуться дальше, переместите эту точку на жёлтую точку посередине экрана.
+(Кстати, это окошко тоже можно перемещать).""",
         color=QColor('white'),
         withBackground=True,
         padding=MARGIN,
@@ -164,7 +165,7 @@ def configureThaumWindowCoords(UI: OverlayUI):
     createNextBackButtonsAndText(
         UI,
         """Отлично! Сперва обозначим окно стола исследований.
-Открой интерфейс стола исследований, а потом передвинь две точки так, 
+Откройте интерфейс стола исследований, а потом передвиньте две точки так, 
 чтобы прямоугольник обозначал границу этого окна.""",
         confirmThaumWindowSlots, [UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y,
                                   rectThaumWindow.RB.x, rectThaumWindow.RB.y],
@@ -192,8 +193,9 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
     createNextBackButtonsAndText(
         UI,
         """Программа автоматически определила положения кнопок взаимодействия 
-так, как ты видишь. Скорее всего сделала она это не точно, так что внимательно посмотри на точки,
-и, если нужно, передвинь их точно на нужные слоты / кнопки. Вот список, где какие точки:
+так, как показано. Скорее всего сделала она это не точно, так что внимательно посмотрите на точки,
+и, если нужно, передвиньте их точно на нужные слоты / кнопки. 
+От точности настройки зависит правильность работы программы! Вот список, где какие точки:
 
 Желтые - слот для \"бумаги и пера\", слот для \"изучений\";
 Зеленая область - выбор аспектов из стола 5х5. Важно, чтобы все
@@ -358,7 +360,11 @@ def chooseThaumVersion(UI: OverlayUI):
     selectedVersion: list[str | None] = [None]
 
     oldVersion = loadThaumVersionConfig()
-    logging.info(f"Selected in config version is: {oldVersion}")
+    if oldVersion is None:
+        oldVersion = "4.2.2.0 - 4.2.3.5"
+        logging.info(f"Selected version in config is none. Selecting default: {oldVersion}")
+    else:
+        logging.info(f"Selected in config version is: {oldVersion}")
 
     oldInfoTextCallback = infoText.onMoveCallback
     def updateVersionsPosition():
@@ -427,7 +433,7 @@ def beReadyForStartSolving(UI: OverlayUI, TI: ThaumInteractor):
     createNextBackButtonsAndText(
         UI,
         f"""Сейчас нейросеть будет определять аспекты, находящиеся на поле.
-Выложи записку исследования в ячейку стола, а инвентарь заполни записками исследований,
+Выложите записку исследования в ячейку стола, а инвентарь заполните записками исследований,
 начиная с самого верхнего левого слота. Они будут исследоваться по очереди""",
         runResearching, [UI, TI],
         chooseThaumVersion, [UI],
@@ -443,7 +449,7 @@ def beReadyForCreatingTI(UI: OverlayUI):
         UI.createExitButton()
         createButtonsAndText(
             UI,
-            f"""Жди и не двигай курсором мыши""",
+            f"""Ждите и не двигайте курсором мыши!""",
             [],
             MARGIN, MARGIN,
             False,
@@ -455,7 +461,7 @@ def beReadyForCreatingTI(UI: OverlayUI):
     createNextBackButtonsAndText(
         UI,
         f"""Сейчас нейросеть определит имеющиеся аспекты в твоем столе, сконфигурированном ранее.
-Не двигай курсором мыши в процессе""",
+Не двигайте курсором мыши в процессе!""",
         startCreatingTI, [],
         chooseThaumVersion, [UI],
     )
@@ -480,9 +486,9 @@ def detectionAspectsDialogue(UI, TI):
     (mainText, nextButton, backButton) = createNextBackButtonsAndText(
         UI,
         f"""Нейросеть определила аспекты в инвентаре и их количество.
-Проверь правильность определения. В случае ошибки кликай на ячейку и исправляй.
+Проверьте правильность определения. Ошибки определения можно исправить, нажав на ячейку.
 
-Перелистывать страницы следует исключительно кнопками, нарисованными поверх игры""",
+Перелистывать страницы следует исключительно кнопками, нарисованными поверх игры!""",
         runResearching, [UI, TI],
         chooseThaumVersion, [UI],
     )
@@ -580,7 +586,7 @@ def detectionAspectsDialogue(UI, TI):
         UI.setAllObjectsVisibility(False)
         exitButton.setVisibility(True)
         UI.repaint()
-        eventsDelay()
+        renderDelay()
         if isLeft:
             TI.scrollLeft()
         else:
@@ -632,6 +638,9 @@ def detectionAspectsDialogue(UI, TI):
         logging.info(f"Aspect changing confirmed")
         prevAspect = TI.getAspectByCellCoords(*currentAspectCellCoords)
         newAspect = currentAspect[0]
+        if newAspect is None:
+            logging.info("Aspect not chosen but trying to confirm")
+            return
         newAspect.count = int(currentAspectCount[0] or 0)
         logging.info(f"Previous aspect: {prevAspect}, change to: {newAspect}")
         TI.setAspectIntoAvailables(
@@ -651,8 +660,8 @@ def detectionAspectsDialogue(UI, TI):
 
     [cellMainText, cellBackButton, cellNextButton, cellIsNoneButton] = createButtonsAndText(
         UI,
-        f"""Чтобы изменить аспект в ячейке, выбери его из списка ниже
-Чтобы изменить его количество, испоьзуй клавиши цифр [0-9] и [Backspace]""",
+        f"""Чтобы изменить аспект в ячейке, выберите его из списка ниже
+Чтобы изменить его количество, испоьзуйте клавиши цифр [0-9] и [Backspace]""",
         [
             ("Отмена ", cancelAspectChanges, []),
             ("Подтвердить ", confirmAspectChanges, []),
@@ -809,7 +818,9 @@ def detectionAspectsDialogue(UI, TI):
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     logging.info(f"Run researching scenario started")
     UI.clearAll()
+    logging.debug(f'LOG-01')
     exitButtonObject = UI.createExitButton()
+    logging.debug(f'LOG-0')
 
     class Cell:
         x: int = None
@@ -1097,10 +1108,10 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         UI.setAllObjectsVisibility(False)
         onProcessText = UI.addObject(Text(
             MARGIN, MARGIN,
-            f"""Подожди, решение выкладывается на поле... 
-Не двигай мышью и не нажимай никакие кнопки.
+            f"""Подождите, решение выкладывается на поле... 
+Не двигайте мышью и не нажимайте никакие кнопки!
 
-Для экстренного закрытия программы нажми [Ctrl + Shift + Alt]""",
+Для экстренного закрытия программы нажмите [Ctrl + Shift + Alt]""",
             color=QColor('white'),
             withBackground=True,
             padding=MARGIN,
@@ -1127,27 +1138,51 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             target=startPuttingAspects)  # run in thread to not blocking keys callbacks
         puttingAspectsThread.start()
 
+    # vars for changing between render functions
+    isInUpdatingAspects = [False]
+    curUpdatingUid = [0]
+    def regenerateLinkMap():
+        if isInUpdatingAspects[0]:
+            return
+        isInUpdatingAspects[0] = True
+        UI.setAllObjectsVisibility(False)
+        UI.repaint()
+        renderDelay()
+
+        curUpdatingUid[0] += 1
+        interruptingFlag = [False]
+
+        def interruptSolving(curUid):  # interrupt solving after LINK_GENERATION_MAX_TIME_MS
+            if isInUpdatingAspects[0] and curUid == curUpdatingUid[0]:
+                interruptingFlag[0] = True
+
+        UI.setTimeout(LINK_GENERATION_MAX_TIME_MS, interruptSolving, [curUpdatingUid[0]])
+
+        updateDetectingField()
+        updateSolving(interruptingFlag)
+        switchToActiveState()
+        isInUpdatingAspects[0] = False
 
     # base dialogue
     def onClickSwitchToMultyResearches():
         switchToMultyResearchesState()
 
-    [activeStateText, activeStateNextButton, activeStateBackButton, backButton] = createButtonsAndText(
+    logging.debug(f'LOG-03')
+    activeStateDialogueObjects = createButtonsAndText(
         UI,
         f"""Нейросеть определила аспекты на поле.
-Чтобы перегенерировать полученную цепочку решения, нажми [R]
 Если аспекты определены неверно, можно кликнуть на ячейку 
 и выбрать, что в ней должно быть на самом деле. 
 
 Чтобы приостановить программу, нажми [Ctrl + Shift + Пробел]""",
         [
             ("Назад в настройки", chooseThaumVersion, [UI]),
+            ("Перегенерировать решение ", regenerateLinkMap, []),
             ("Выложить решение ", startPuttingLinkMap, []),
             ("Безостановочный режим ", onClickSwitchToMultyResearches, []),
         ]
     )
-    activeStateDialogueObjects = [activeStateText, activeStateNextButton, activeStateBackButton, backButton]
-
+    logging.debug(f'LOG-04')
 
     # --- Multy researches state elements
     def onClickBack():
@@ -1180,11 +1215,12 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     )
 
     # --- Paused state elements
+    logging.debug(f'LOG-05')
     onPausedText = UI.addObject(Text(
         MARGIN, MARGIN,
         f"""Программа проистановлена.
 
-Чтобы продолжить работу, нажми [Ctrl + Shift + Пробел]""",
+Чтобы продолжить работу, нажмите [Ctrl + Shift + Пробел]""",
         color=QColor('white'),
         withBackground=True,
         padding=MARGIN,
@@ -1194,33 +1230,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     pausedStateDialogueObjects = [onPausedText]
 
     # --- Switch between states functions
-    isInUpdatingAspects = [False]
-    curUpdatingUid = [0]
     def switchToActiveState():
         logging.info("Switching to active state")
-
-        def onPressR():
-            if isInUpdatingAspects[0]:
-                return
-            isInUpdatingAspects[0] = True
-            UI.setAllObjectsVisibility(False)
-            UI.repaint()
-            renderDelay()
-
-            curUpdatingUid[0] += 1
-            interruptingFlag = [False]
-            def interruptSolving(curUid):  # interrupt solving after LINK_GENERATION_MAX_TIME_MS
-                if isInUpdatingAspects[0] and curUid == curUpdatingUid[0]:
-                    interruptingFlag[0] = True
-            UI.setTimeout(LINK_GENERATION_MAX_TIME_MS, interruptSolving, [curUpdatingUid[0]])
-
-            updateDetectingField()
-            updateSolving(interruptingFlag)
-            switchToActiveState()
-            isInUpdatingAspects[0] = False
-
         UI.clearKeyCallbacks()
-        UI.setKeyCallback([KeyboardKeys.r], onPressR)
         UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.space], switchToPausedState)
         UI.setAllObjectsVisibility(False)
         UI.setObjectsVisibility(activeStateDialogueObjects, True)
@@ -1253,7 +1265,10 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         UI.setObjectsVisibility(multyResearchesObjects, True)
         exitButtonObject.setVisibility(True)
 
+    logging.debug(f'LOG-05')
     updateDetectingField()
+    logging.debug(f'LOG-06')
     updateSolving()
+    logging.debug(f'LOG-07')
     switchToActiveState()
     logging.debug("Hexagon field with configuring initial aspects showed")

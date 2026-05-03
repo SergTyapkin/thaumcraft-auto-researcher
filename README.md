@@ -1,5 +1,6 @@
-## [Download .exe releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
-[latest version `v1.2.0`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.2.0)
+## [<svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 670" width="22px" fill="#5985E1"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg> Download latest .exe release `v1.2.1`](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases/tag/v1.2.1)
+
+или [see all releases](https://github.com/SergTyapkin/thaumcraft-auto-researcher/releases)
 <details>
 <summary>Changelog:</summary>
 
