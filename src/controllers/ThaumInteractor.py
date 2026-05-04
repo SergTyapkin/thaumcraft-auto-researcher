@@ -1,15 +1,15 @@
 import logging
 import math
 import time
-from threading import Thread
 from typing import Callable
 
 import pyscreeze  # for screenshot
 from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
+from controllers.scenarios.scenario1_Enroll import enroll
+from controllers.scenarios.scenario4_ChooseThaumVersion import chooseThaumVersion
 from src.UI.primitives import Circle, Rect
-from src.controllers import Scenarios
 from src.controllers.Aspect import Aspect
 from src.controllers.Point import P
 from src.logic.Neurolink import Neurolink
@@ -29,11 +29,11 @@ from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, r
 def createTI(UI):
     pointsConfig = readJSONConfig(THAUM_CONTROLS_CONFIG_PATH)
     if pointsConfig is None:
-        Scenarios.enroll(UI)
+        enroll(UI)
         return None
     selected_thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
     if selected_thaum_version is None:
-        Scenarios.chooseThaumVersion(UI)
+        chooseThaumVersion(UI)
         return None
 
     recipesConfig = loadRecipesForSelectedVersion()

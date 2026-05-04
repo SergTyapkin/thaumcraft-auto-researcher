@@ -2,7 +2,9 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 
-from src.controllers import Scenarios
+from controllers.scenarios.scenario1_Enroll import enroll
+from controllers.scenarios.scenario4_ChooseThaumVersion import chooseThaumVersion
+from controllers.scenarios.scenario6_DetectAspectsCreateTI import beReadyForCreatingTI
 from src.UI.OverlayUI import OverlayUI
 from src.utils.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL, MAX_LOG_FILES_COUNT, \
     THAUM_CONTROLS_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
@@ -25,15 +27,15 @@ def main():
     try:
         pointsConfig = readJSONConfig(THAUM_CONTROLS_CONFIG_PATH)
         if pointsConfig is None:
-            Scenarios.enroll(UI)
+            enroll(UI)
             return None
 
         selected_thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
         if selected_thaum_version is None:
-            Scenarios.chooseThaumVersion(UI)
+            chooseThaumVersion(UI)
             return None
 
-        Scenarios.beReadyForCreatingTI(UI)
+        beReadyForCreatingTI(UI)
         return None
     except Exception as e:
         logging.critical(f"Error excepted in main thread: {e}")
