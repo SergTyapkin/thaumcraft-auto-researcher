@@ -7,7 +7,7 @@ from venv import logger
 
 import keyboard
 from PyQt5 import QtGui
-from PyQt5.QtCore import Qt, QThread, QObject, QEvent
+from PyQt5.QtCore import Qt, QThread, QObject, QEvent, pyqtSignal, QTimer
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QFont
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
@@ -97,6 +97,20 @@ class TimedEvent:
 
 
 class _Window(QMainWindow):
+    # Сигналы для безопасного обновления GUI из других потоков
+    sig_repaint = pyqtSignal()
+    sig_setAllObjectsVisibility = pyqtSignal(bool)
+    sig_setObjectsVisibility = pyqtSignal(list, bool)
+    sig_addObject = pyqtSignal(object)
+    sig_removeObject = pyqtSignal(object)
+    sig_removeObjects = pyqtSignal(list)
+    sig_clear = pyqtSignal()
+    sig_setKeyCallback = pyqtSignal(list, object, list)
+    sig_clearKeyCallbacks = pyqtSignal()
+    sig_setMouseCallback = pyqtSignal(int, object, list)
+    sig_clearMouseCallbacks = pyqtSignal()
+    sig_exit = pyqtSignal()
+
     objects: list[UIPrimitive] = []
     keysCallbacks: dict[tuple[int], tuple[Callable, list[Any]]] = {}
     mousePressCallbacks: list[tuple[Callable, list[Any]]] = []
@@ -117,6 +131,21 @@ class _Window(QMainWindow):
             Qt.FramelessWindowHint | Qt.MSWindowsFixedSizeDialogHint | Qt.WindowStaysOnTopHint
             # | Qt.Popup | Qt.WindowDoesNotAcceptFocus | Qt.WindowTransparentForInput
         )
+
+        # Подключаем сигналы к слотам
+        self.sig_repaint.connect(self._on_repaint)
+        self.sig_setAllObjectsVisibility.connect(self._on_setAllObjectsVisibility)
+        self.sig_setObjectsVisibility.connect(self._on_setObjectsVisibility)
+        self.sig_addObject.connect(self._on_addObject)
+        self.sig_removeObject.connect(self._on_removeObject)
+        self.sig_removeObjects.connect(self._on_removeObjects)
+        self.sig_clear.connect(self._on_clear)
+        self.sig_setKeyCallback.connect(self._on_setKeyCallback)
+        self.sig_clearKeyCallbacks.connect(self._on_clearKeyCallbacks)
+        self.sig_setMouseCallback.connect(self._on_setMouseCallback)
+        self.sig_clearMouseCallbacks.connect(self._on_clearMouseCallbacks)
+        self.sig_exit.connect(self._on_exit)
+
         fillScreenGeometry = QDesktopWidget().availableGeometry()
         self.w = w or fillScreenGeometry.width()
         self.h = h or fillScreenGeometry.height()
@@ -137,7 +166,6 @@ class _Window(QMainWindow):
                 return
             self.holdingKeys.add(pressedKeyCode)
 
-            # print(f"{event.name}, {event.scan_code}")
             for keysCombination in self.keysCallbacks.keys():
                 if set(keysCombination).issubset(self.holdingKeys):
                     self.keysCallbacks[keysCombination][0](*self.keysCallbacks[keysCombination][1])
@@ -145,6 +173,83 @@ class _Window(QMainWindow):
         keyboard._listener.add_handler(onKeyboardEvent)
 
         self.startTimer(FRAME_TIME)
+
+    # ----------------------------
+    # Безопасные слоты для GUI операций
+    def _on_repaint(self):
+        self.repaint()
+
+    def _on_setAllObjectsVisibility(self, state):
+        self.setAllObjectsVisibility(state)
+
+    def _on_setObjectsVisibility(self, objects, state):
+        self.setObjectsVisibility(objects, state)
+
+    def _on_addObject(self, obj):
+        self.addObject(obj)
+
+    def _on_removeObject(self, obj):
+        self.removeObject(obj)
+
+    def _on_removeObjects(self, objects):
+        self.removeObjects(objects)
+
+    def _on_clear(self):
+        self.clear()
+
+    def _on_setKeyCallback(self, keys, callback, args):
+        self.setKeyCallback(keys, callback, *args)
+
+    def _on_clearKeyCallbacks(self):
+        self.clearKeyCallbacks()
+
+    def _on_setMouseCallback(self, eventType, callback, args):
+        self.setMouseCallback(eventType, callback, *args)
+
+    def _on_clearMouseCallbacks(self):
+        self.clearMouseCallbacks()
+
+    def _on_exit(self):
+        self.exit()
+
+    # ----------------------------
+    # Потокобезопасные методы (для вызова из любого потока)
+    def safeRepaint(self):
+        self.sig_repaint.emit()
+
+    def safeSetAllObjectsVisibility(self, state):
+        self.sig_setAllObjectsVisibility.emit(state)
+
+    def safeSetObjectsVisibility(self, objects, state):
+        self.sig_setObjectsVisibility.emit(objects, state)
+
+    def safeAddObject(self, obj):
+        self.sig_addObject.emit(obj)
+
+    def safeRemoveObject(self, obj):
+        self.sig_removeObject.emit(obj)
+
+    def safeRemoveObjects(self, objects):
+        self.sig_removeObjects.emit(objects)
+
+    def safeClear(self):
+        self.sig_clear.emit()
+
+    def safeSetKeyCallback(self, keys, callback, *args):
+        self.sig_setKeyCallback.emit(keys, callback, args)
+
+    def safeClearKeyCallbacks(self):
+        self.sig_clearKeyCallbacks.emit()
+
+    def safeSetMouseCallback(self, eventType, callback, *args):
+        self.sig_setMouseCallback.emit(eventType, callback, args)
+
+    def safeClearMouseCallbacks(self):
+        self.sig_clearMouseCallbacks.emit()
+
+    def safeExit(self):
+        self.sig_exit.emit()
+    # ----------------------------
 
     def getCenter(self):
         return self.w / 2, self.h / 2
@@ -169,7 +274,6 @@ class _Window(QMainWindow):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing, True)
             objects = self.objects.copy()
-            # print(len(objects), objects)
             for obj in objects:
                 obj.render(painter)
         except KeyboardInterrupt:
@@ -242,7 +346,6 @@ class _Window(QMainWindow):
     def setTimeout(self, timeoutMs: int, callback: Callable, args=[], kwargs={},
                    onChangeCallback=lambda timeLeft: None):
         self.timedEvents.add(TimedEvent(timeoutMs, callback, args, kwargs, onChangeCallback))
-        # or simpler but not works: QtCore.QTimer.singleShot(timeoutMs, callback)
 
     def addObjectAndDeleteAfterTime(self, obj: UIPrimitive, timeoutMS: int, onChangeCallback=lambda timeLeft: None):
         self.setTimeout(timeoutMS, lambda: self.removeObject(obj), [], {}, onChangeCallback)
@@ -314,8 +417,10 @@ class _Window(QMainWindow):
     def exit(self):
         logging.info("##############")
         logging.info("Shutdown all...")
-        self.otherProcessThread.exit()
-        self.app.quit()
+        if self.otherProcessThread:
+            self.otherProcessThread.quit()
+        if self.app:
+            self.app.quit()
         # self.destroy()
 
 

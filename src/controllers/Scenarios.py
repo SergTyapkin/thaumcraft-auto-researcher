@@ -4,10 +4,10 @@ import threading
 from math import cos
 from math import pi
 from math import sin
-from typing import Callable
+from typing import Callable, Any
 
 from PyQt5.QtCore import QEvent
-from PyQt5.QtGui import QColor, QFont
+from PyQt5.QtGui import QColor
 
 from UI.primitives.Text import Align
 from src.UI.OverlayUI import OverlayUI, KeyboardKeys
@@ -18,7 +18,7 @@ from src.controllers.ThaumInteractor import ThaumInteractor, createTI
 from src.logic.LinksGeneration import generateLinkMap
 from src.utils.LinkableValue import LinkableCoord, LinkableValue
 from src.utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y, \
-    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS, \
+    THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECT_RECIPES_CONFIG_PATH, \
     LINK_GENERATION_MAX_TIME_MS, MAX_SOLVE_RETRIES
 from src.utils.utils import saveThaumControlsConfig, readJSONConfig, eventsDelay, renderDelay, \
     saveThaumVersionConfig, loadThaumVersionConfig
@@ -28,7 +28,7 @@ pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 
 def createButtonsAndText(
         UI: OverlayUI, text: str,
-        buttons: list[tuple[str, Callable, list[any]]],
+        buttons: list[tuple[str, Callable, list[Any]]],
         x: int = pointTextAnchor.x, y: int = pointTextAnchor.y,
         movable = True,
 ) -> list[Text]:
@@ -87,8 +87,8 @@ def createButtonsAndText(
 
 def createNextBackButtonsAndText(
         UI: OverlayUI, text: str,
-        nextCallback: Callable | None, nextCallbackArgs: list[any],
-        backCallback: Callable | None, backCallbackArgs: list[any],
+        nextCallback: Callable | None, nextCallbackArgs: list[Any],
+        backCallback: Callable | None, backCallbackArgs: list[Any],
         overrideNextText: str = None, overrideBackText: str = None,
 ) -> tuple[Text, Text | None, Text | None]:
     buttonsConfig = []
@@ -815,12 +815,11 @@ def detectionAspectsDialogue(UI, TI):
         UI.setKeyCallback([KeyboardKeys.enter], confirmAspectChanges)
     logging.info(f"UI to change detected aspects in inventory shown")
 
+
 def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     logging.info(f"Run researching scenario started")
     UI.clearAll()
-    logging.debug(f'LOG-01')
     exitButtonObject = UI.createExitButton()
-    logging.debug(f'LOG-0')
 
     class Cell:
         x: int = None
@@ -861,14 +860,10 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
-        UI.setAllObjectsVisibility(False)
-        logging.debug(f'LOG-1')
-        exitButtonObject.setVisibility(True)
-        logging.debug(f'LOG-2')
-        UI.repaint()
-        logging.debug(f'LOG-3')
+        UI.safeSetAllVisibility(False)
+        UI.safeSetObjectsVisibility([exitButtonObject], True)
+        UI.safeRepaint()
         renderDelay()
-        logging.debug(f'LOG-4')
         (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
         logging.debug(f'Aspects on field detected')
 
@@ -1077,24 +1072,16 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def insertAndPrepareNextIteration():
         logging.info("Inserting and preparing for next iteration")
         if multyResearchesCountLeft[0] > 0:
-            logging.debug("LOG-11")
-            UI.setAllObjectsVisibility(False)
-            logging.debug("LOG-12")
-            UI.repaint()
-            logging.debug("LOG-13")
+            UI.safeSetAllVisibility(False)
+            UI.safeRepaint()
             renderDelay()
-            logging.debug("LOG-14")
             TI.insertPaper()
-            logging.debug("LOG-15")
-        logging.debug("LOG-16")
         TI.moveMouseInSafePos()
         existingAspects[0].clear()
         freeHexagons[0].clear()
         noneHexagons[0].clear()
         currentLinkMap[0].clear()
-        logging.debug("LOG-17")
         updateDetectingField()
-        logging.debug("LOG-18")
         updateSolving()
         logging.info("Everything prepared to next detecting")
         if multyResearchesCountLeft[0] > 0:
@@ -1105,8 +1092,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         switchToActiveState()
 
     def startPuttingLinkMap():
-        UI.setAllObjectsVisibility(False)
-        onProcessText = UI.addObject(Text(
+        UI.safeSetAllObjectsVisibility(False)
+
+        onProcessText = Text(
             MARGIN, MARGIN,
             f"""Подождите, решение выкладывается на поле... 
 Не двигайте мышью и не нажимайте никакие кнопки!
@@ -1115,12 +1103,14 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             color=QColor('white'),
             withBackground=True,
             padding=MARGIN,
-        ))
-        UI.clearKeyCallbacks()
-        UI.setKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.alt], UI.exit)
+            UI=UI,  # Передаем UI для корректной инициализации объекта
+        )
+        UI.safeAddObject(onProcessText)
+        UI.safeClearKeyCallbacks()
+        UI.safeSetKeyCallback([KeyboardKeys.ctrl, KeyboardKeys.shift, KeyboardKeys.alt], UI.safeExit)
 
         finalLinkMap = currentLinkMap[0].copy()
-        # Удаляем исходные аспекты из карты заполнения
+        # Remove initial aspects from linkMap
         for aspectCoords in existingAspects[0].keys():
             del finalLinkMap[aspectCoords]
 
@@ -1132,8 +1122,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             eventsDelay()
             TI.increaseWorkingSlot()
             insertAndPrepareNextIteration()
-            UI.removeObject(onProcessText)
+            UI.safeRemoveObject(onProcessText)
 
+        # Create thread for long operations
         puttingAspectsThread = threading.Thread(
             target=startPuttingAspects)  # run in thread to not blocking keys callbacks
         puttingAspectsThread.start()
@@ -1145,8 +1136,8 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         if isInUpdatingAspects[0]:
             return
         isInUpdatingAspects[0] = True
-        UI.setAllObjectsVisibility(False)
-        UI.repaint()
+        UI.safeSetAllObjectsVisibility(False)
+        UI.safeRepaint()
         renderDelay()
 
         curUpdatingUid[0] += 1
@@ -1167,7 +1158,6 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def onClickSwitchToMultyResearches():
         switchToMultyResearchesState()
 
-    logging.debug(f'LOG-03')
     activeStateDialogueObjects = createButtonsAndText(
         UI,
         f"""Нейросеть определила аспекты на поле.
@@ -1182,7 +1172,6 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             ("Безостановочный режим ", onClickSwitchToMultyResearches, []),
         ]
     )
-    logging.debug(f'LOG-04')
 
     # --- Multy researches state elements
     def onClickBack():
@@ -1215,7 +1204,6 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     )
 
     # --- Paused state elements
-    logging.debug(f'LOG-05')
     onPausedText = UI.addObject(Text(
         MARGIN, MARGIN,
         f"""Программа проистановлена.
@@ -1265,10 +1253,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         UI.setObjectsVisibility(multyResearchesObjects, True)
         exitButtonObject.setVisibility(True)
 
-    logging.debug(f'LOG-05')
     updateDetectingField()
-    logging.debug(f'LOG-06')
     updateSolving()
-    logging.debug(f'LOG-07')
     switchToActiveState()
     logging.debug("Hexagon field with configuring initial aspects showed")
