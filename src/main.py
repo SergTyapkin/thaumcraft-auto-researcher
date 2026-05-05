@@ -23,7 +23,6 @@ UI = OverlayUI(opacity=1)
 
 def main():
     AppState.rereadAllConfigs()
-    logging.debug(AppState.selectedLanguage)
 
     try:
         if AppState.selectedLanguage is None:
