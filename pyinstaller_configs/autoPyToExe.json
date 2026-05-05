@@ -59,7 +59,7 @@
   },
   {
    "optionDest": "datas",
-   "value": "./aspects_configs;aspects_configs/"
+   "value": "./configs/aspects_configs;configs/aspects_configs"
   },
   {
    "optionDest": "datas",
@@ -71,7 +71,7 @@
   },
   {
    "optionDest": "pathex",
-   "value": "."
+   "value": "./src"
   }
  ],
  "nonPyinstallerOptions": {

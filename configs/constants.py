@@ -29,9 +29,10 @@ def to_appdata_path(relative_path):
 
 THAUM_VERSION_CONFIG_PATH = to_appdata_path('user_configs/thaumVersionConfig.json')
 THAUM_CONTROLS_CONFIG_PATH = to_appdata_path('user_configs/thaumControlsConfig.json')
-THAUM_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/aspectsRecipes.json')
-THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/addonsAspectsRecipes.json')
-THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('aspects_configs/aspectsOrder.json')
+LANGUAGE_CONFIG_PATH = to_appdata_path('user_configs/language.json')
+THAUM_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('configs/aspects_configs/aspectsRecipes.json')
+THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('configs/aspects_configs/addonsAspectsRecipes.json')
+THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('configs/aspects_configs/aspectsOrder.json')
 
 
 def getAspectImagePath(aspectName, colored=True):
@@ -64,19 +65,30 @@ NEUROLINK_FREE_HEXAGON_PREDICTION_NAME = "free_hex"
 NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME = "script"
 NEUROLINK_UNKNOWN_ASPECT_PREDICTION_NAME = "unknown"
 
+# ------------------------
+# Aspect link solves generation
+MAX_SOLVE_RETRIES = 3
+MAX_ASPECTS_SOLVING_PATH_LEN = 10
 
 # ------------------------
 # Other constants
 IMAGES_TOLERANCE_PERCENT = 0.02
 IMAGE_TMP_PATH = to_appdata_path('.tmp/tmp.png')
 LOG_FILE_PATH = to_appdata_path('logs/logs.log')
-LINK_GENERATION_MAX_TIME_MS = 10 * 1000
+LINK_GENERATION_MAX_TIME_MS = 1000 * 10  # 10 sec
 
 # Loggers
 MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 * 5  # 5 Mb
 MAX_LOG_FILES_COUNT = 20
 LOG_LEVEL = logging.DEBUG
 
+# Donate urls
+DONATE_URL_RUSSIA = 'https://tbank.ru/cf/82w1UbDljyM'
+DONATE_CRYPTO_ID_GLOBAL = 'UQAYwm--Z4va2KK_Qk_e9GDhPxrTtnsWvzN6yQYPr2MiB1em'
 # ------------------------
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
+
+# PAINT_DEBUG = DEBUG
+# PAINT_DEBUG = True
+PAINT_DEBUG = False

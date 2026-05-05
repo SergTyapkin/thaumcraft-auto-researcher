@@ -8,9 +8,9 @@ import numpy as np
 
 from PIL import Image, ImageDraw, ImageFont
 
-from src.utils.constants import getAspectImagePath, THAUM_ASPECT_RECIPES_CONFIG_PATH, \
+from configs.constants import getAspectImagePath, THAUM_ASPECT_RECIPES_CONFIG_PATH, \
     THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y
-from src.utils.utils import readJSONConfig, createDirByFilePath
+from utils.AppState import readJSONConfig, createDirByFilePath
 
 
 class P:

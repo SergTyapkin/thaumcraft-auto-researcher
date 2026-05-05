@@ -1,45 +1,47 @@
 import logging
 import math
 import time
-from threading import Thread
 from typing import Callable
 
 import pyscreeze  # for screenshot
 from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
-from src.UI.primitives import Circle, Rect
-from src.controllers import Scenarios
-from src.controllers.Aspect import Aspect
-from src.controllers.Point import P
-from src.logic.Neurolink import Neurolink
-from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
+from UI.OverlayUI import OverlayUI
+from UI.primitives import Circle, Rect
+from controllers.Aspect import Aspect
+from controllers.Point import P
+from logic.Neurolink import Neurolink
+from configs.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
-    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
     THAUM_HEXAGONS_SLOTS_COUNT, \
     IMAGES_TOLERANCE_PERCENT, \
-    THAUM_VERSION_CONFIG_PATH, DEBUG, \
+    DEBUG, PAINT_DEBUG, \
     UNKNOWN_ASPECT_IMAGE_PATH, NEUROLINK_FREE_HEXAGON_PREDICTION_NAME, \
     NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS
-from src.utils.constants import getAspectImagePath
-from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
-    loadRecipesForSelectedVersion
+from configs.constants import getAspectImagePath
+from utils.utils import getImagesDiffPercent, eventsDelay, renderDelay
+from utils import AppState
 
 
-def createTI(UI):
-    pointsConfig = readJSONConfig(THAUM_CONTROLS_CONFIG_PATH)
+def createTI(
+        UI: OverlayUI,
+        noPointsConfigCallback: Callable[[OverlayUI], None],
+        noSelectedVersionCallback: Callable[[OverlayUI], None],
+):
+    pointsConfig = AppState.thaumWindowControls
     if pointsConfig is None:
-        Scenarios.enroll(UI)
-        return None
-    selected_thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
-    if selected_thaum_version is None:
-        Scenarios.chooseThaumVersion(UI)
+        noPointsConfigCallback(UI)
         return None
 
-    recipesConfig = loadRecipesForSelectedVersion()
+    selectedThaumVersion = AppState.selectedThaumVersion
+    if selectedThaumVersion is None:
+        noSelectedVersionCallback(UI)
+        return None
 
-    aspectsOrderConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
-    aspectsOrderConfig = aspectsOrderConfig['aspects']
+    recipesConfig = AppState.aspectRecipes
+
+    aspectsOrderConfig = AppState.aspectsOrder
 
     i = 0
     while i < len(aspectsOrderConfig):
@@ -185,7 +187,7 @@ class ThaumInteractor:
         self.currentAspectsPageIdx = self.maxAspectsPagesCount
 
     def _showDebugClick(self, point, color=QColor('lightgreen')):
-        if not DEBUG:
+        if not PAINT_DEBUG:
             return
         eventsDelay()
         clickCircle = Circle(point.x, point.y, 20, color=color)
@@ -249,7 +251,7 @@ class ThaumInteractor:
             self.rectAspectsListingLT.y + slotHeight * (cellY + 0.5)
         )
 
-    def inventoryCellCoordsToPixelBoundingBox(self, cellX: int, cellY: int) -> tuple[int, int, int, int]:
+    def inventoryCellCoordsToPixelBoundingBox(self, cellX: int, cellY: int) -> tuple[float, float, float, float]:
         areaWidth = self.rectAspectsListingRB.x - self.rectAspectsListingLT.x
         areaHeight = self.rectAspectsListingRB.y - self.rectAspectsListingLT.y
         slotWidth = areaWidth / THAUM_ASPECTS_INVENTORY_SLOTS_X
@@ -319,6 +321,7 @@ class ThaumInteractor:
         for a in self.availableAspects:
             logStr += f"{a}[{a.uid}] "
         logging.info(logStr)
+
         # remove aspect duplicate
         def removeAspectDuplicates():
             for a in self.availableAspects:
@@ -326,10 +329,10 @@ class ThaumInteractor:
                     self.availableAspects.remove(a)
                     removeAspectDuplicates()
                     break
+
         removeAspectDuplicates()
 
-
-    def scrollToAspect(self, aspect: Aspect) -> (int, int):
+    def scrollToAspect(self, aspect: Aspect) -> tuple[int, int]:
         logging.info(f"Scroll to aspect {aspect}, in cell[absolute] ({aspect.cellX}, {aspect.cellY})")
 
         cellPageIdxMin = max(aspect.cellX - THAUM_ASPECTS_INVENTORY_SLOTS_X + 1, 0)
@@ -414,8 +417,7 @@ class ThaumInteractor:
         aspect1.count -= mixingTimes
         aspect2.count -= mixingTimes
 
-
-    def fillByLinkMap(self, aspectsMap: dict[(int, int), str]):
+    def fillByLinkMap(self, aspectsMap: dict[tuple[int, int], str]):
         logging.info(f"Filling aspects by link map: {aspectsMap}")
 
         # Оптимизируем порядок аспектов, чтобы пришлось меньше листать инвентарь
@@ -436,13 +438,15 @@ class ThaumInteractor:
     def imageResize(self, image: Image.Image) -> Image.Image:
         return image.resize((ASPECTS_IMAGES_SIZE, ASPECTS_IMAGES_SIZE), Image.Resampling.LANCZOS)
 
-    def addDebugHighlightingRect(self, LTx=0, LTy=0, RTx=0, RTy=0):
-        if not DEBUG:
+    def _addDebugHighlightingRect(self, LTx=0, LTy=0, RTx=0, RTy=0):
+        if not PAINT_DEBUG:
             return None
-        debugHighlightingRect = Rect(LTx, LTy,
-                                     RTx, RTy,
-                                     fill=QColor('blue'), fillOpacity=0.3, lineWidth=1,
-                                     color=QColor('blue'))
+        debugHighlightingRect = Rect(
+            LTx, LTy,
+            RTx, RTy,
+            fill=QColor('blue'), fillOpacity=0.3, lineWidth=1,
+            color=QColor('blue')
+        )
         self.UI.addObject(debugHighlightingRect)
         return debugHighlightingRect
 
@@ -463,11 +467,11 @@ class ThaumInteractor:
             time.sleep(1)
         return screenshotImage
 
-    def updateAvailableAspectsInInventory(self, onFinishCallback: Callable, callbackArgs = []):
+    def updateAvailableAspectsInInventory(self, onFinishCallback: Callable, callbackArgs=[]):
         logging.info("Detecting available aspects in inventory...")
         self.availableAspects = []
 
-        debugHighlightingRect = self.addDebugHighlightingRect()
+        debugHighlightingRect = self._addDebugHighlightingRect()
         slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
         slotHeight = (self.rectAspectsListingRB.y - self.rectAspectsListingLT.y) / THAUM_ASPECTS_INVENTORY_SLOTS_Y
         self.scrollToLeftSide()
@@ -484,7 +488,7 @@ class ThaumInteractor:
 
                 onFinishCallback(*callbackArgs)
 
-            def detectionIteration(isFoundEndOfInventory = False, newAdditionalOffset = THAUM_ASPECTS_INVENTORY_SLOTS_X):
+            def detectionIteration(isFoundEndOfInventory=False, newAdditionalOffset=THAUM_ASPECTS_INVENTORY_SLOTS_X):
                 logging.info(f"Finding aspects on new page of inventory. Current page: {self.currentAspectsPageIdx}")
                 # Calculate screenshot area
                 screenshotRBX = self.rectAspectsListingRB.x
@@ -520,12 +524,14 @@ class ThaumInteractor:
                     except ValueError:
                         continue
                     coords = (
-                        self.currentAspectsPageIdx + (THAUM_ASPECTS_INVENTORY_SLOTS_X - newAdditionalOffset) + prediction.x // slotWidth,
+                        self.currentAspectsPageIdx + (
+                                    THAUM_ASPECTS_INVENTORY_SLOTS_X - newAdditionalOffset) + prediction.x // slotWidth,
                         prediction.y // slotHeight,
                     )
                     aspect.cellX = int(coords[0])
                     aspect.cellY = int(coords[1])
-                    logging.debug(f"Cur Page: {self.currentAspectsPageIdx}, offset: {newAdditionalOffset}, {aspect}, {aspect.cellX}, {aspect.cellY} ({prediction.x, prediction.y}), {slotWidth}, {slotHeight}")
+                    logging.debug(
+                        f"Cur Page: {self.currentAspectsPageIdx}, offset: {newAdditionalOffset}, {aspect}, {aspect.cellX}, {aspect.cellY} ({prediction.x, prediction.y}), {slotWidth}, {slotHeight}")
 
                     self.availableAspects.append(aspect)
 
@@ -568,11 +574,13 @@ class ThaumInteractor:
                 logging.info(f"New aspects page total width: {newAdditionalOffset}")
 
                 if newAdditionalOffset > 0:
-                    self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectionIteration, [isFoundEndOfInventory, newAdditionalOffset])
+                    self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectionIteration,
+                                       [isFoundEndOfInventory, newAdditionalOffset])
                 else:
                     exitWithSort()
 
             self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectionIteration)
+
         self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectAspects)
 
     def logAvailableAspects(self):
@@ -592,7 +600,7 @@ class ThaumInteractor:
                 return i
         return None
 
-    def getExistingAspectsOnField(self) -> tuple[dict[(int, int), str], set[(int, int)], set[(int, int)]]:
+    def getExistingAspectsOnField(self) -> tuple[dict[tuple[int, int], str], set[tuple[int, int]], set[tuple[int, int]]]:
         hexagonsRectLT = P(
             self.rectHexagonsCC.x - (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.5) * self.hexagonSlotSizeX,
             self.rectHexagonsCC.y - (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.1) * self.hexagonSlotSizeY,
@@ -603,7 +611,7 @@ class ThaumInteractor:
         )
 
         # Do a screenshot
-        debugHighlightingRect = self.addDebugHighlightingRect()
+        debugHighlightingRect = self._addDebugHighlightingRect()
         allHexagonsImage = self.takeScreenshot(
             hexagonsRectLT.x, hexagonsRectLT.y,
             hexagonsRectRB.x, hexagonsRectRB.y,

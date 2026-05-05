@@ -1,4 +1,3 @@
-import json
 import logging
 import math
 import os
@@ -6,10 +5,7 @@ import time
 
 from PIL import Image
 
-from src.utils.LinkableValue import linkableValueDumpsToJSON
-from src.utils.constants import THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH, \
-    DELAY_BETWEEN_EVENTS, DELAY_BETWEEN_RENDER
-from utils.constants import THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
+from configs.constants import DELAY_BETWEEN_EVENTS, DELAY_BETWEEN_RENDER
 
 
 def distance(x1, y1, x2, y2):
@@ -31,48 +27,6 @@ def createDirByFilePath(fullpath: str):
         logging.info(f"Directory {dir_path} not exists. Creating...")
         os.makedirs(dir_path, exist_ok=True)
         logging.info(f"Directory {dir_path} successfully created")
-
-
-def saveJSONConfig(fullpath: str, jsonToSave: dict):
-    createDirByFilePath(fullpath)
-    with open(fullpath, 'w') as file:
-        json.dump(jsonToSave, file, indent=4, ensure_ascii=False, default=linkableValueDumpsToJSON)
-
-
-def saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListingLT, rectAspectsListingRB,
-                            pointAspectsScrollLeft, pointAspectsScrollRight,
-                            pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventoryLT,
-                            rectInventoryRB, rectHexagonsCC, hexagonSlotSizeY):
-    saveJSONConfig(THAUM_CONTROLS_CONFIG_PATH, {
-        "pointWritingMaterials": {"x": pointWritingMaterials.x, "y": pointWritingMaterials.y},
-        "pointPapers": {"x": pointPapers.x, "y": pointPapers.y},
-        "rectAspectsListingLT": {"x": rectAspectsListingLT.x, "y": rectAspectsListingLT.y},
-        "rectAspectsListingRB": {"x": rectAspectsListingRB.x, "y": rectAspectsListingRB.y},
-        "pointAspectsScrollLeft": {"x": pointAspectsScrollLeft.x, "y": pointAspectsScrollLeft.y},
-        "pointAspectsScrollRight": {"x": pointAspectsScrollRight.x, "y": pointAspectsScrollRight.y},
-        "pointAspectsMixLeft": {"x": pointAspectsMixLeft.x, "y": pointAspectsMixLeft.y},
-        "pointAspectsMixCreate": {"x": pointAspectsMixCreate.x, "y": pointAspectsMixCreate.y},
-        "pointAspectsMixRight": {"x": pointAspectsMixRight.x, "y": pointAspectsMixRight.y},
-        "rectInventoryLT": {"x": rectInventoryLT.x, "y": rectInventoryLT.y},
-        "rectInventoryRB": {"x": rectInventoryRB.x, "y": rectInventoryRB.y},
-        "rectHexagonsCC": {"x": rectHexagonsCC.x, "y": rectHexagonsCC.y},
-        "hexagonSlotSizeY": hexagonSlotSizeY,
-    })
-    logging.info(f"Thaum controls config successfully saved")
-
-
-def readJSONConfig(fullpath: str):
-    if not os.path.isfile(fullpath):
-        logging.warning(f"Config {fullpath} not exists")
-        return None
-    try:
-        with open(fullpath, 'r') as file:
-            config = json.load(file)
-    except Exception as e:
-        logging.critical(f"Something went wrong while opening config {fullpath}: {e}")
-        return None
-    logging.debug(f"Config {fullpath} successfully loaded")
-    return config
 
 
 def getImagesDiffPercent(image1: Image.Image, image2: Image.Image, masks: list[Image.Image] = []) -> float:
@@ -123,35 +77,6 @@ def getImagesDiffPercent(image1: Image.Image, image2: Image.Image, masks: list[I
     # print(diffs[i : i + image1.width])
 
     return percentDiff
-
-
-def saveThaumVersionConfig(version: str):
-    saveJSONConfig(THAUM_VERSION_CONFIG_PATH, {
-        'version': version,
-    })
-
-
-def loadThaumVersionConfig() -> str | None:
-    conf = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
-    if conf is None:
-        return None
-    return conf['version']
-
-
-def loadRecipesForSelectedVersion() -> dict[str, list[str, str]] | None:
-    selectedVersion = loadThaumVersionConfig()
-    allVersionsRecipes = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
-    if selectedVersion is None or allVersionsRecipes is None:
-        logging.error(f'Cannot load recipes for selected version. SelectedVersion or allRecipes is None: ({selectedVersion}, {allVersionsRecipes})')
-        return None
-    totalRecipes = allVersionsRecipes.get(selectedVersion)
-    if totalRecipes is None:
-        logging.error(f'Selected unknown version: {selectedVersion}')
-        return None
-    addonsRecipes = readJSONConfig(THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH)
-    for addonRecipes in addonsRecipes.values():
-        totalRecipes |= addonRecipes
-    return totalRecipes
 
 
 def eventsDelay():

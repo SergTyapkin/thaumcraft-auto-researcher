@@ -2,11 +2,11 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 
-from src.controllers import Scenarios
-from src.UI.OverlayUI import OverlayUI
-from src.utils.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL, MAX_LOG_FILES_COUNT, \
-    THAUM_CONTROLS_CONFIG_PATH, THAUM_VERSION_CONFIG_PATH
-from src.utils.utils import createDirByFilePath, readJSONConfig
+from controllers import Scenarios
+from UI.OverlayUI import OverlayUI
+from configs.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL, MAX_LOG_FILES_COUNT
+from utils import AppState
+from utils.utils import createDirByFilePath
 
 createDirByFilePath(LOG_FILE_PATH)
 loggingHandlers = [logging.handlers.RotatingFileHandler(filename=LOG_FILE_PATH, maxBytes=MAX_LOG_FILE_SIZE_BYTES, backupCount=MAX_LOG_FILES_COUNT)]
@@ -22,14 +22,18 @@ logging.basicConfig(
 UI = OverlayUI(opacity=1)
 
 def main():
+    AppState.rereadAllConfigs()
+
     try:
-        pointsConfig = readJSONConfig(THAUM_CONTROLS_CONFIG_PATH)
-        if pointsConfig is None:
-            Scenarios.enroll(UI)
+        if AppState.selectedLanguage is None:
+            Scenarios.chooseLanguage(UI)
             return None
 
-        selected_thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
-        if selected_thaum_version is None:
+        if AppState.thaumWindowControls is None:
+            Scenarios.configureThaumWindowCoords(UI)
+            return None
+
+        if AppState.selectedThaumVersion is None:
             Scenarios.chooseThaumVersion(UI)
             return None
 

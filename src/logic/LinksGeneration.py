@@ -1,8 +1,8 @@
 import logging
 
-from src.utils.utils import loadRecipesForSelectedVersion
+from configs.constants import MAX_ASPECTS_SOLVING_PATH_LEN
+from utils import AppState
 
-MAX_PATH_LEN = 16
 DEFAULT_INITIAL_PATH_LEN = 999999
 
 '''
@@ -16,7 +16,7 @@ DEFAULT_INITIAL_PATH_LEN = 999999
 2. У нас есть 2 аспекта, которые надо соединить, и кратчайшее расстояние между ними. Ищем цепочку аспектов, реализующую это. Для этого используем BFS:
 2.1. От стартового берем все аспекты, с которыми он может связаться (граф аспектов) (получаем длину цепочки 2), от них, от каждого, берём все аспекты, с которыми они могут связаться (получаем длину цепочки 3), и т.д. 
 2.2. Если любая из полученных цепочек имеет требуемую длину, и заканчивается на необходимый аспект, мы ее нашли!
-2.3. Если были перебраны все цепочки до MAX_PATH_LEN=10 длины, и среди них нет ни одной подходящей, выходим, запускаем всё это заново, но теперь будем пытаться найти цепочку на 1 длиннее.
+2.3. Если были перебраны все цепочки до MAX_ASPECTS_SOLVING_PATH_LEN длины, и среди них нет ни одной подходящей, выходим, запускаем всё это заново, но теперь будем пытаться найти цепочку на 1 длиннее.
 2.4. Если цепочка так и не была найдена - кидаем ошибку, так не должно быть.
 
 3. У нас есть два аспекта, и длина цепочки между ними. Надо найти положения, как будем раскладывать аспекты. Для этого:
@@ -83,7 +83,7 @@ class AspectGraph:
 
 class Aspect:
     name: str
-    coord: (int, int)
+    coord: tuple[int, int]
     linked_to_initials: set
 
     def __init__(self, name, coord, linked_to_initials):
@@ -94,14 +94,14 @@ class Aspect:
     def __repr__(self):
         return f"{self.name}{self.coord}"
 
-    def get_min_distance_path_to(self, target_aspect, hexagon_field_radius: int, holesSet: set[(int, int)], initial_aspects: set, min_length: int = 0) -> tuple[int, set[tuple[int, int]]]:
+    def get_min_distance_path_to(self, target_aspect, hexagon_field_radius: int, holesSet: set[tuple[int, int]], initial_aspects: set, min_length: int = 0) -> tuple[int, set[tuple[int, int]]]:
         # Алгоритм Дейкстры
         # Для каждой клетки храним минимальное расстояние до неё. Или None, если клетка ещё не посещена
 
         class PathElement:
-            path: list[(int, int)]
+            path: list[tuple[int, int]]
             dist: int = DEFAULT_INITIAL_PATH_LEN
-            coord: (int, int)
+            coord: tuple[int, int]
             def __init__(self, x: int, y: int):
                 self.coord = (x, y)
                 self.path = []
@@ -109,7 +109,7 @@ class Aspect:
                 return f"{self.coord}{'{'}{self.dist}{'}'}"
             def __lt__(self, other):
                 return self.dist < other.dist
-        cells: dict[(int, int), PathElement] = {}
+        cells: dict[tuple[int, int], PathElement] = {}
         unvisited_nodes: set[PathElement] = set()
         # Создаем все клетки
         for x in range(-hexagon_field_radius, hexagon_field_radius + 1):
@@ -162,13 +162,13 @@ class Aspect:
         return cells[target_aspect.coord].dist, cells[target_aspect.coord].path
 
 
-def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int, int)], available_aspects: set[str], interruptingFlag: list[bool]) -> dict[(int, int): str]:
+def generateLinkMap(existing_aspects: dict[tuple[int, int], str], holes_set: set[tuple[int, int]], available_aspects: set[str], interruptingFlag: list[bool]) -> dict[tuple[int, int], str] | None:
     logging.debug("-----------")
     logging.info("START SOLVING")
     logging.debug("#---0. Setting up:")
     logging.info(f"EXISTING ASPECTS: {existing_aspects}")
     logging.info(f"HOLES HEXAGONS: {holes_set}")
-    aspect_recipes = loadRecipesForSelectedVersion()
+    aspect_recipes = AppState.aspectRecipes
     available_aspect_recipes: dict[str, list[str, str]] = {}
     for recipe_aspect in aspect_recipes:
         if recipe_aspect in available_aspects:
@@ -232,7 +232,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                             min_end_aspect = end_aspect_candidate
                             min_end_initial_aspect = end_initial_aspect
                             min_len_between_aspects = path_len
-            if min_len_between_aspects > MAX_PATH_LEN:
+            if min_len_between_aspects > MAX_ASPECTS_SOLVING_PATH_LEN:
                 logging.error(f"Warning: Cell with aspect {start_initial_aspect} is unreachable from any other aspects")
                 return existing_aspects
 
@@ -243,7 +243,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
             start_aspect = min_start_aspect
             target_path_len = min_len_between_aspects
             logging.debug(f"#---2. Trying to found aspects path from {start_aspect.name} to {end_aspect.name}")
-            while target_path_len < MAX_PATH_LEN and not interruptingFlag[0]:
+            while target_path_len < MAX_ASPECTS_SOLVING_PATH_LEN and not interruptingFlag[0]:
                 aspects_path = aspect_graph.find_path(start_aspect.name, end_aspect.name, target_path_len)
                 if not aspects_path:
                     logging.debug(f"Path with len {target_path_len} not found")
@@ -254,7 +254,7 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                 logging.debug(f"#---3. Trying to find coordinates path with len {target_path_len} from {start_aspect} to {end_aspect}")
                 all_holes_set = holes_set | set(map(lambda asp: asp.coord, aspects_on_field))
                 min_len_between_aspects, coordsPath = start_aspect.get_min_distance_path_to(end_aspect, hexagon_field_radius, all_holes_set, initial_aspects, target_path_len)
-                if min_len_between_aspects > MAX_PATH_LEN:
+                if min_len_between_aspects > MAX_ASPECTS_SOLVING_PATH_LEN:
                     logging.debug(f"Coordinates path with len {target_path_len} not found")
                     target_path_len += 1
                     continue
@@ -285,9 +285,9 @@ def generateLinkMap(existing_aspects: dict[(int, int), str], holes_set: set[(int
                 logging.debug(f"Aspect path putted on field. Total aspects: {aspects_on_field}")
                 logging.debug("Iteration finished.")
                 break
-            if target_path_len == MAX_PATH_LEN:
+            if target_path_len == MAX_ASPECTS_SOLVING_PATH_LEN:
                 logging.error(f"Error: Path from {start_aspect} to {end_aspect} cannot be generated")
-                return existing_aspects
+                return None
     logging.info(f"Final solving: {result}")
     return result
 

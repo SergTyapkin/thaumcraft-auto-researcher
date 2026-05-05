@@ -2,8 +2,8 @@ from typing import Callable
 
 from PyQt5.QtGui import QColor, QPixmap, QPainter
 
-from src.UI.primitives.Object import _Object
-from src.UI.primitives.Rect import Rect
+from UI.primitives.Object import _Object
+from UI.primitives.Rect import Rect
 
 
 class Image(_Object):
