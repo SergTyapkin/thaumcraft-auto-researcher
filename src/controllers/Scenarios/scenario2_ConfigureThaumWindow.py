@@ -3,10 +3,11 @@ import logging
 from PyQt5.QtGui import QColor
 
 from UI.OverlayUI import OverlayUI
-from UI.primitives import Text, Point, Line, Rect
-from controllers.scenarios.scenario1_Enroll import enroll
-from controllers.scenarios.scenario3_ConfirmThaumWindowSlots import confirmThaumWindowSlots
-from controllers.scenarios.shared import createNextBackButtonsAndText
+from UI.primitives import Point, Line, Rect
+from configs.translations import TEXTS
+from controllers import Scenarios
+from controllers.Scenarios.shared import createNextBackButtonsAndText
+from utils.AppState import AppState
 from utils.LinkableValue import LinkableCoord
 
 
@@ -27,10 +28,8 @@ def configureThaumWindowCoords(UI: OverlayUI):
 
     createNextBackButtonsAndText(
         UI,
-        """Отлично! Сперва обозначим окно стола исследований.
-Откройте интерфейс стола исследований, а потом передвиньте две точки так, 
-чтобы прямоугольник обозначал границу этого окна.""",
-        confirmThaumWindowSlots, [UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y,
+        AppState.translatedTexts[TEXTS.configureThaumWindow],
+        Scenarios.confirmThaumWindowSlots, [UI, rectThaumWindow.LT.x, rectThaumWindow.LT.y,
                                   rectThaumWindow.RB.x, rectThaumWindow.RB.y],
-        enroll, [UI],
+        Scenarios.chooseLanguage, [UI],
     )

@@ -4,17 +4,19 @@ from PyQt5.QtGui import QColor
 
 from UI.OverlayUI import OverlayUI, KeyboardKeys
 from UI.primitives import Text
+from configs.translations import TEXTS
+from utils.AppState import AppState
 from utils.LinkableValue import LinkableCoord
-from utils.constants import MARGIN
+from configs.constants import MARGIN
 
 
-pointTextAnchor = LinkableCoord(MARGIN, MARGIN)
+PointTextAnchor = LinkableCoord(MARGIN, MARGIN)
 
 
 def createButtonsAndText(
         UI: OverlayUI, text: str,
         buttons: list[tuple[str, Callable, list[Any]]],
-        x: int = pointTextAnchor.x, y: int = pointTextAnchor.y,
+        x: int = PointTextAnchor.x, y: int = PointTextAnchor.y,
         movable=True,
 ) -> list[Text]:
     mainText = Text(
@@ -85,14 +87,14 @@ def createNextBackButtonsAndText(
     buttonsConfig = []
     if backCallback is not None:
         buttonsConfig.append((
-            overrideBackText or "<  Назад",
+            overrideBackText or AppState.translatedTexts[TEXTS.Buttons.backArrowed],
             backCallback,
             backCallbackArgs,
         ))
         UI.setKeyCallback([KeyboardKeys.backspace], backCallback, *backCallbackArgs)
     if nextCallback is not None:
         buttonsConfig.append((
-            overrideNextText or "Далее  >",
+            overrideNextText or AppState.translatedTexts[TEXTS.Buttons.nextArrowed],
             nextCallback,
             nextCallbackArgs,
         ))

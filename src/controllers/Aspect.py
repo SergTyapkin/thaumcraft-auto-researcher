@@ -3,8 +3,8 @@ import logging
 from PIL import Image
 from PyQt5.QtGui import QPixmap
 
-from src.utils.constants import getAspectImagePath, UNKNOWN_ASPECT_IMAGE_PATH
-from src.utils.utils import loadImage
+from configs.constants import getAspectImagePath, UNKNOWN_ASPECT_IMAGE_PATH
+from utils.utils import loadImage
 
 
 unknownAspectImage = loadImage(UNKNOWN_ASPECT_IMAGE_PATH)

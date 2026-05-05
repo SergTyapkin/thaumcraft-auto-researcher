@@ -1,14 +1,13 @@
-from enum import Enum
 from typing import Callable
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QFont
 
-from src.UI.primitives.Object import _Object
-from src.UI.primitives.Point import Point
-from src.UI.primitives.Rect import opacityToAlpha
-from src.UI.primitives.values import DEFAULT_FONT, DEFAULT_COLOR, DEFAULT_PADDING
-from src.utils.LinkableValue import editLinkableValue, LinkableValue
+from UI.primitives.Object import _Object
+from UI.primitives.Point import Point
+from UI.primitives.Rect import opacityToAlpha
+from UI.primitives.values import DEFAULT_FONT, DEFAULT_COLOR, DEFAULT_PADDING
+from utils.LinkableValue import editLinkableValue, LinkableValue
 
 
 class Align(int):
@@ -42,7 +41,7 @@ class Text(_Object):
             clickable: bool = None):
         lines = text.split('\n')
         self.w = max(map(len, lines)) * font.pointSize() / 1.05
-        self.h = font.pointSize() * 2 * len(lines)
+        self.h = font.pointSize() * 2.1 * len(lines)
         self.x = x
         self.y = y
         self.text = text

@@ -1,5 +1,5 @@
-from src.utils.constants import THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
-from src.utils.utils import readJSONConfig, saveJSONConfig
+from configs.constants import THAUM_ASPECT_RECIPES_CONFIG_PATH, THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH
+from utils.AppState import readJSONConfig
 
 THAUM_TRANSLATION_CONFIG_PATH = './scripts_other/translationDictionary.json'
 

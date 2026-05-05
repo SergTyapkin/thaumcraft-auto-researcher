@@ -1,11 +1,12 @@
 import logging
 
 from UI.OverlayUI import OverlayUI
+from configs.translations import TEXTS
 from controllers.ThaumInteractor import createTI
-from controllers.scenarios.scenario4_ChooseThaumVersion import chooseThaumVersion
-from controllers.scenarios.scenario7_DetectionAspectsDialogue import detectionAspectsDialogue
-from controllers.scenarios.shared import createNextBackButtonsAndText, createButtonsAndText
-from utils.constants import MARGIN
+from controllers import Scenarios
+from controllers.Scenarios.shared import createNextBackButtonsAndText, createButtonsAndText
+from configs.constants import MARGIN
+from utils.AppState import AppState
 from utils.utils import renderDelay
 
 
@@ -18,7 +19,7 @@ def beReadyForCreatingTI(UI: OverlayUI):
         UI.createExitButton()
         createButtonsAndText(
             UI,
-            f"""Ждите и не двигайте курсором мыши!""",
+            AppState.translatedTexts[TEXTS.waitForDetectionAspects],
             [],
             MARGIN, MARGIN,
             False,
@@ -29,20 +30,19 @@ def beReadyForCreatingTI(UI: OverlayUI):
 
     createNextBackButtonsAndText(
         UI,
-        f"""Сейчас нейросеть определит имеющиеся аспекты в твоем столе, сконфигурированном ранее.
-Не двигайте курсором мыши в процессе!""",
+        AppState.translatedTexts[TEXTS.beReadyForDetectionAspects],
         startCreatingTI, [],
-        chooseThaumVersion, [UI],
+        Scenarios.chooseThaumVersion, [UI],
     )
 
 
 def directlyCreateTI(UI):
     logging.info(f"Create TI")
-    TI = createTI(UI)
+    TI = createTI(UI, Scenarios.configureThaumWindowCoords, Scenarios.chooseThaumVersion)
     if TI is None:
         logging.critical(f"Unknown error when creating ThaumcraftInteractor. It cannot be created")
         return
     logging.info(f"TI successfully created")
     UI.repaint()
     renderDelay()
-    TI.updateAvailableAspectsInInventory(detectionAspectsDialogue, [UI, TI])
+    TI.updateAvailableAspectsInInventory(Scenarios.detectionAspectsDialogue, [UI, TI])

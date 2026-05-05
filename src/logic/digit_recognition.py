@@ -1,4 +1,4 @@
-from src.logic.onnx_inference import ObjectPrediction
+from logic.onnx_inference import ObjectPrediction
 
 
 def is_digit(prediction: ObjectPrediction) -> bool:

@@ -4,11 +4,11 @@ from PyQt5.QtGui import QColor
 
 from UI.OverlayUI import OverlayUI
 from UI.primitives import Text
-from controllers.scenarios.scenario2_ConfigureThaumWindow import configureThaumWindowCoords
-from controllers.scenarios.scenario6_DetectAspectsCreateTI import beReadyForCreatingTI
-from controllers.scenarios.shared import createNextBackButtonsAndText, pointTextAnchor
-from utils.constants import THAUM_ASPECT_RECIPES_CONFIG_PATH, MARGIN
-from utils.utils import saveThaumVersionConfig, readJSONConfig, loadThaumVersionConfig
+from configs.translations import TEXTS
+from controllers import Scenarios
+from controllers.Scenarios.shared import createNextBackButtonsAndText, PointTextAnchor
+from configs.constants import MARGIN
+from utils.AppState import AppState
 
 
 def chooseThaumVersion(UI: OverlayUI):
@@ -17,30 +17,26 @@ def chooseThaumVersion(UI: OverlayUI):
 
     def onSubmit():
         if selectedVersion[0] is None:
-            logging.warning(f"Enter pressed in dialogue but thaum version is not selected")
+            logging.warning(f"Trying to go next but thaum version is not selected")
             return
-        logging.info(f"Selected thaum version:{selectedVersion[0]}")
-        saveThaumVersionConfig(selectedVersion[0])
-        beReadyForCreatingTI(UI)
+        logging.info(f"Selected thaum version: {selectedVersion[0]}")
+        AppState.saveThaumVersion(selectedVersion[0])
+        Scenarios.beReadyForCreatingTI(UI)
 
     (infoText, _, backButton) = createNextBackButtonsAndText(
         UI,
-        f"""Выберите версию Thaumcraft.
-От этого будут зависеть рецепты получения аспектов.
-(Самая популярная версия - 4.2.3.5)
-
-Выбери версию:""",
+        AppState.translatedTexts[TEXTS.chooseThaumVersion],
         onSubmit, [],
-        configureThaumWindowCoords, [UI],
+        Scenarios.configureThaumWindowCoords, [UI],
     )
-    recipesConfig = readJSONConfig(THAUM_ASPECT_RECIPES_CONFIG_PATH)
+    recipesConfig = AppState.allAspectRecipes
     versions = list(recipesConfig.keys())
     versionsObjects = []
 
     selectedVersionObject: list[Text | None] = [None]
     selectedVersion: list[str | None] = [None]
 
-    oldVersion = loadThaumVersionConfig()
+    oldVersion = AppState.selectedThaumVersion
     if oldVersion is None:
         oldVersion = "4.2.2.0 - 4.2.3.5"
         logging.info(f"Selected version in config is none. Selecting default: {oldVersion}")
@@ -50,9 +46,9 @@ def chooseThaumVersion(UI: OverlayUI):
     oldInfoTextCallback = infoText.onMoveCallback
     def updateVersionsPosition():
         oldInfoTextCallback()
-        startCurY = backButton.y + backButton.h + MARGIN
+        startCurY = backButton.y + backButton.h + MARGIN * 2
         curY = startCurY
-        curX = pointTextAnchor.x
+        curX = PointTextAnchor.x
         for i in range(len(versionsObjects)):
             versionObject = versionsObjects[i]
             if curY > UI.height() - versionObject.h:
@@ -64,9 +60,9 @@ def chooseThaumVersion(UI: OverlayUI):
 
     infoText.LT.onMoveCallback = updateVersionsPosition
     infoText.onMoveCallback = updateVersionsPosition
-    startCurY = backButton.y + backButton.h + MARGIN
+    startCurY = backButton.y + backButton.h + MARGIN * 2
     curY = startCurY
-    curX = pointTextAnchor.x
+    curX = PointTextAnchor.x
     for i in range(len(versions)):
         version = versions[i]
 

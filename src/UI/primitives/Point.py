@@ -2,9 +2,9 @@ from typing import Callable
 
 from PyQt5.QtGui import QColor, QPainter
 
-from src.UI.primitives.Object import _Object
-from src.UI.primitives.values import DEFAULT_POINT_SIZE, DEFAULT_COLOR, DEFAULT_LINE_WIDTH
-from src.utils.utils import distance
+from UI.primitives.Object import _Object
+from UI.primitives.values import DEFAULT_POINT_SIZE, DEFAULT_COLOR, DEFAULT_LINE_WIDTH
+from utils.utils import distance
 
 
 class Point(_Object):

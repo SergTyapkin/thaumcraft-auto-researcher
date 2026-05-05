@@ -4,15 +4,17 @@ import threading
 
 from PyQt5.QtGui import QColor
 
+from utils.AppState import AppState
 from UI.OverlayUI import KeyboardKeys, OverlayUI
 from UI.primitives import Image, Circle
 from UI.primitives.Text import Text
+from configs.translations import TEXTS
 from controllers.Aspect import Aspect
 from controllers.ThaumInteractor import ThaumInteractor
-from controllers.scenarios.scenario4_ChooseThaumVersion import chooseThaumVersion
-from controllers.scenarios.shared import createButtonsAndText
+from controllers import Scenarios
+from controllers.Scenarios.shared import createButtonsAndText
 from logic.LinksGeneration import generateLinkMap
-from utils.constants import MARGIN, LINK_GENERATION_MAX_TIME_MS, MAX_SOLVE_RETRIES, THAUM_HEXAGONS_SLOTS_COUNT
+from configs.constants import MARGIN, LINK_GENERATION_MAX_TIME_MS, MAX_SOLVE_RETRIES, THAUM_HEXAGONS_SLOTS_COUNT
 from utils.utils import renderDelay, eventsDelay
 
 
@@ -60,7 +62,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
     def updateDetectingField():
         logging.debug(f'Run detecting aspects on field')
-        UI.safeSetAllVisibility(False)
+        UI.safeSetAllObjectsVisibility(False)
         UI.safeSetObjectsVisibility([exitButtonObject], True)
         UI.safeRepaint()
         renderDelay()
@@ -214,7 +216,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     textYCoord = MARGIN
     textCellIsNone = UI.addObject(Text(
         MARGIN, textYCoord,
-        'Ячейка недоступна (N)',
+        AppState.translatedTexts[TEXTS.Buttons.setCellNotAvailable],
         color=QColor('white'),
         withBackground=True,
         backgroundOpacity=0.8,
@@ -227,7 +229,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     textYCoord += textCellIsNone.h + MARGIN
     textCellIsFree = UI.addObject(Text(
         MARGIN, textYCoord,
-        'Ячейка свободна (F)',
+        AppState.translatedTexts[TEXTS.Buttons.setCellFree],
         color=QColor('white'),
         withBackground=True,
         backgroundOpacity=0.8,
@@ -272,7 +274,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def insertAndPrepareNextIteration():
         logging.info("Inserting and preparing for next iteration")
         if multyResearchesCountLeft[0] > 0:
-            UI.safeSetAllVisibility(False)
+            UI.safeSetAllObjectsVisibility(False)
             UI.safeRepaint()
             renderDelay()
             TI.insertPaper()
@@ -296,10 +298,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
         onProcessText = Text(
             MARGIN, MARGIN,
-            f"""Подождите, решение выкладывается на поле... 
-Не двигайте мышью и не нажимайте никакие кнопки!
-
-Для экстренного закрытия программы нажмите [Ctrl + Shift + Alt]""",
+            AppState.translatedTexts[TEXTS.waitForSolvingPlacing],
             color=QColor('white'),
             withBackground=True,
             padding=MARGIN,
@@ -360,16 +359,12 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
     activeStateDialogueObjects = createButtonsAndText(
         UI,
-        f"""Нейросеть определила аспекты на поле.
-Если аспекты определены неверно, можно кликнуть на ячейку 
-и выбрать, что в ней должно быть на самом деле. 
-
-Чтобы приостановить программу, нажми [Ctrl + Shift + Пробел]""",
+        AppState.translatedTexts[TEXTS.solvingCreated],
         [
-            ("Назад в настройки", chooseThaumVersion, [UI]),
-            ("Перегенерировать решение ", regenerateLinkMap, []),
-            ("Выложить решение ", startPuttingLinkMap, []),
-            ("Безостановочный режим ", onClickSwitchToMultyResearches, []),
+            (AppState.translatedTexts[TEXTS.Buttons.backToSettings], Scenarios.chooseThaumVersion, [UI]),
+            (AppState.translatedTexts[TEXTS.Buttons.regenerateSolving], regenerateLinkMap, []),
+            (AppState.translatedTexts[TEXTS.Buttons.placeSolving], startPuttingLinkMap, []),
+            (AppState.translatedTexts[TEXTS.Buttons.automaticMode], onClickSwitchToMultyResearches, []),
         ]
     )
 
@@ -386,11 +381,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
 
     multyResearchesObjects = createButtonsAndText(
         UI,
-        f"""Начать безостановочное исследование нескольких записок.
-Записки должны быть разложены в инвентаре подряд, начиная с левого верхнего слота в инвентаре.
-В столе исследований записки быть не должно""",
+        AppState.translatedTexts[TEXTS.startAutomaticMode],
         [
-            ("Назад", onClickBack, []),
+            (AppState.translatedTexts[TEXTS.Buttons.back], onClickBack, []),
             ("1", onClickNumber, [1]), ("2", onClickNumber, [2]), ("3", onClickNumber, [3]),
             ("4", onClickNumber, [4]), ("5", onClickNumber, [5]), ("6", onClickNumber, [6]),
             ("7", onClickNumber, [7]), ("8", onClickNumber, [8]), ("9", onClickNumber, [9]),
@@ -406,9 +399,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     # --- Paused state elements
     onPausedText = UI.addObject(Text(
         MARGIN, MARGIN,
-        f"""Программа проистановлена.
-
-Чтобы продолжить работу, нажмите [Ctrl + Shift + Пробел]""",
+        AppState.translatedTexts[TEXTS.programPaused],
         color=QColor('white'),
         withBackground=True,
         padding=MARGIN,

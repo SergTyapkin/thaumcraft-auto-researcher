@@ -1,8 +1,8 @@
 from PIL import Image
 
-from src.utils import constants
-from src.logic.onnx_inference import OnnxObjectDetection, ObjectPrediction
-from src.logic import digit_recognition
+from configs import constants
+from logic.onnx_inference import OnnxObjectDetection, ObjectPrediction
+from logic import digit_recognition
 
 
 class _NeurolinkClass:

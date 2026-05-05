@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import keyboard
 import mouse
 
-from src.utils.utils import eventsDelay
+from utils.utils import eventsDelay
 
 
 @dataclass(frozen=True)

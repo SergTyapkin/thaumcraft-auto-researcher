@@ -3,7 +3,7 @@ import itertools
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPen, QBrush, QPainter
 
-from src.UI.primitives.values import DEFAULT_COLOR, DEFAULT_LINE_WIDTH
+from UI.primitives.values import DEFAULT_COLOR, DEFAULT_LINE_WIDTH
 
 
 def mixColors(color1: QColor, color2: QColor, ratio: float = 0.5, mixAlpha: bool = False) -> QColor:

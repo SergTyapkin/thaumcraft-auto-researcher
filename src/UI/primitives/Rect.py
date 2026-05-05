@@ -2,10 +2,10 @@ from typing import Callable
 
 from PyQt5.QtGui import QColor, QPainter
 
-from src.UI.primitives.Line import Line
-from src.UI.primitives.Object import _Object
-from src.UI.primitives.Point import Point
-from src.UI.primitives.values import DEFAULT_COLOR, DEFAULT_LINE_WIDTH
+from UI.primitives.Line import Line
+from UI.primitives.Object import _Object
+from UI.primitives.Point import Point
+from UI.primitives.values import DEFAULT_COLOR, DEFAULT_LINE_WIDTH
 
 
 def opacityToAlpha(opacity: float) -> int:

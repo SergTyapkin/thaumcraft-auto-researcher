@@ -29,9 +29,10 @@ def to_appdata_path(relative_path):
 
 THAUM_VERSION_CONFIG_PATH = to_appdata_path('user_configs/thaumVersionConfig.json')
 THAUM_CONTROLS_CONFIG_PATH = to_appdata_path('user_configs/thaumControlsConfig.json')
-THAUM_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/aspectsRecipes.json')
-THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('aspects_configs/addonsAspectsRecipes.json')
-THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('aspects_configs/aspectsOrder.json')
+LANGUAGE_CONFIG_PATH = to_appdata_path('user_configs/language.json')
+THAUM_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('configs/aspects_configs/aspectsRecipes.json')
+THAUM_ADDONS_ASPECT_RECIPES_CONFIG_PATH = to_resource_path('configs/aspects_configs/addonsAspectsRecipes.json')
+THAUM_ASPECTS_ORDER_CONFIG_PATH = to_resource_path('configs/aspects_configs/aspectsOrder.json')
 
 
 def getAspectImagePath(aspectName, colored=True):
@@ -82,9 +83,9 @@ MAX_LOG_FILES_COUNT = 20
 LOG_LEVEL = logging.DEBUG
 
 # ------------------------
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
 
-PAINT_DEBUG = DEBUG
+# PAINT_DEBUG = DEBUG
 # PAINT_DEBUG = True
-# PAINT_DEBUG = False
+PAINT_DEBUG = False

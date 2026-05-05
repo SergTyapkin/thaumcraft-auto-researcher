@@ -11,8 +11,8 @@ from PyQt5.QtCore import Qt, QThread, QObject, QEvent, pyqtSignal, QTimer
 from PyQt5.QtGui import QPainter, QMouseEvent, QColor, QFont
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QMainWindow
 
-from src.UI.primitives import Point, Text, UIPrimitive
-from src.utils.LinkableValue import editLinkableValue
+from UI.primitives import Point, Text, UIPrimitive
+from utils.LinkableValue import editLinkableValue
 
 FPS = 60
 FRAME_TIME = int(1000 / FPS)
@@ -105,9 +105,7 @@ class _Window(QMainWindow):
     sig_removeObject = pyqtSignal(object)
     sig_removeObjects = pyqtSignal(list)
     sig_clear = pyqtSignal()
-    sig_setKeyCallback = pyqtSignal(list, object, list)
     sig_clearKeyCallbacks = pyqtSignal()
-    sig_setMouseCallback = pyqtSignal(int, object, list)
     sig_clearMouseCallbacks = pyqtSignal()
     sig_exit = pyqtSignal()
 
@@ -140,9 +138,7 @@ class _Window(QMainWindow):
         self.sig_removeObject.connect(self._on_removeObject)
         self.sig_removeObjects.connect(self._on_removeObjects)
         self.sig_clear.connect(self._on_clear)
-        self.sig_setKeyCallback.connect(self._on_setKeyCallback)
         self.sig_clearKeyCallbacks.connect(self._on_clearKeyCallbacks)
-        self.sig_setMouseCallback.connect(self._on_setMouseCallback)
         self.sig_clearMouseCallbacks.connect(self._on_clearMouseCallbacks)
         self.sig_exit.connect(self._on_exit)
 
@@ -197,14 +193,8 @@ class _Window(QMainWindow):
     def _on_clear(self):
         self.clear()
 
-    def _on_setKeyCallback(self, keys, callback, args):
-        self.setKeyCallback(keys, callback, *args)
-
     def _on_clearKeyCallbacks(self):
         self.clearKeyCallbacks()
-
-    def _on_setMouseCallback(self, eventType, callback, args):
-        self.setMouseCallback(eventType, callback, *args)
 
     def _on_clearMouseCallbacks(self):
         self.clearMouseCallbacks()
@@ -235,14 +225,16 @@ class _Window(QMainWindow):
     def safeClear(self):
         self.sig_clear.emit()
 
+    # Методы со сложными типами функций используют QTimer.singleShot
     def safeSetKeyCallback(self, keys, callback, *args):
-        self.sig_setKeyCallback.emit(keys, callback, args)
+        QTimer.singleShot(0, lambda: self.setKeyCallback(keys, callback, *args))
 
     def safeClearKeyCallbacks(self):
         self.sig_clearKeyCallbacks.emit()
 
+    # Методы со сложными типами функций используют QTimer.singleShot
     def safeSetMouseCallback(self, eventType, callback, *args):
-        self.sig_setMouseCallback.emit(eventType, callback, args)
+        QTimer.singleShot(0, lambda: self.setMouseCallback(eventType, callback, *args))
 
     def safeClearMouseCallbacks(self):
         self.sig_clearMouseCallbacks.emit()

@@ -1,7 +1,7 @@
 import logging
 
-from src.utils.utils import loadRecipesForSelectedVersion
-from utils.constants import MAX_ASPECTS_SOLVING_PATH_LEN
+from configs.constants import MAX_ASPECTS_SOLVING_PATH_LEN
+from utils.AppState import AppState
 
 DEFAULT_INITIAL_PATH_LEN = 999999
 
@@ -168,7 +168,7 @@ def generateLinkMap(existing_aspects: dict[tuple[int, int], str], holes_set: set
     logging.debug("#---0. Setting up:")
     logging.info(f"EXISTING ASPECTS: {existing_aspects}")
     logging.info(f"HOLES HEXAGONS: {holes_set}")
-    aspect_recipes = loadRecipesForSelectedVersion()
+    aspect_recipes = AppState.aspectRecipes
     available_aspect_recipes: dict[str, list[str, str]] = {}
     for recipe_aspect in aspect_recipes:
         if recipe_aspect in available_aspects:

@@ -7,39 +7,41 @@ import pyscreeze  # for screenshot
 from PIL import Image
 from PyQt5.QtGui import QColor, QPixmap
 
-from controllers.scenarios.scenario1_Enroll import enroll
-from controllers.scenarios.scenario4_ChooseThaumVersion import chooseThaumVersion
-from src.UI.primitives import Circle, Rect
-from src.controllers.Aspect import Aspect
-from src.controllers.Point import P
-from src.logic.Neurolink import Neurolink
-from src.utils.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
+from UI.OverlayUI import OverlayUI
+from UI.primitives import Circle, Rect
+from controllers.Aspect import Aspect
+from controllers.Point import P
+from logic.Neurolink import Neurolink
+from configs.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y, ASPECTS_IMAGES_SIZE, \
-    THAUM_CONTROLS_CONFIG_PATH, THAUM_ASPECTS_ORDER_CONFIG_PATH, \
     THAUM_HEXAGONS_SLOTS_COUNT, \
     IMAGES_TOLERANCE_PERCENT, \
-    THAUM_VERSION_CONFIG_PATH, DEBUG, PAINT_DEBUG, \
+    DEBUG, PAINT_DEBUG, \
     UNKNOWN_ASPECT_IMAGE_PATH, NEUROLINK_FREE_HEXAGON_PREDICTION_NAME, \
     NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS
-from src.utils.constants import getAspectImagePath
-from src.utils.utils import getImagesDiffPercent, readJSONConfig, eventsDelay, renderDelay, \
-    loadRecipesForSelectedVersion
+from configs.constants import getAspectImagePath
+from utils.utils import getImagesDiffPercent, eventsDelay, renderDelay
+from utils.AppState import AppState
 
 
-def createTI(UI):
-    pointsConfig = readJSONConfig(THAUM_CONTROLS_CONFIG_PATH)
+def createTI(
+        UI: OverlayUI,
+        noPointsConfigCallback: Callable[[OverlayUI], None],
+        noSelectedVersionCallback: Callable[[OverlayUI], None],
+):
+    pointsConfig = AppState.thaumWindowControls
     if pointsConfig is None:
-        enroll(UI)
-        return None
-    selected_thaum_version = readJSONConfig(THAUM_VERSION_CONFIG_PATH)
-    if selected_thaum_version is None:
-        chooseThaumVersion(UI)
+        noPointsConfigCallback(UI)
         return None
 
-    recipesConfig = loadRecipesForSelectedVersion()
+    selectedThaumVersion = AppState.selectedThaumVersion
+    if selectedThaumVersion is None:
+        noSelectedVersionCallback(UI)
+        return None
 
-    aspectsOrderConfig = readJSONConfig(THAUM_ASPECTS_ORDER_CONFIG_PATH)
-    aspectsOrderConfig = aspectsOrderConfig['aspects']
+    recipesConfig = AppState.aspectRecipes
+
+    aspectsOrderConfig = AppState.aspectsOrder
 
     i = 0
     while i < len(aspectsOrderConfig):
@@ -599,27 +601,22 @@ class ThaumInteractor:
         return None
 
     def getExistingAspectsOnField(self) -> tuple[dict[tuple[int, int], str], set[tuple[int, int]], set[tuple[int, int]]]:
-        logging.debug(f'LOG-6')
         hexagonsRectLT = P(
             self.rectHexagonsCC.x - (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.5) * self.hexagonSlotSizeX,
             self.rectHexagonsCC.y - (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.1) * self.hexagonSlotSizeY,
         )
-        logging.debug(f'LOG-7')
         hexagonsRectRB = P(
             self.rectHexagonsCC.x + (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.5) * self.hexagonSlotSizeX,
             self.rectHexagonsCC.y + (THAUM_HEXAGONS_SLOTS_COUNT / 2 + 0.1) * self.hexagonSlotSizeY,
         )
-        logging.debug(f'LOG-8')
 
         # Do a screenshot
         debugHighlightingRect = self._addDebugHighlightingRect()
-        logging.debug(f'LOG-9')
         allHexagonsImage = self.takeScreenshot(
             hexagonsRectLT.x, hexagonsRectLT.y,
             hexagonsRectRB.x, hexagonsRectRB.y,
             debugHighlightingRect
         )
-        logging.debug(f'LOG-10')
 
         # Find aspects, hexagons and scripts on screenshot.
         logging.info("Wait for prediction")

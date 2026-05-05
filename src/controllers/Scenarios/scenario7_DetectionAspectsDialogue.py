@@ -5,9 +5,12 @@ from PyQt5.QtGui import QColor
 from UI.OverlayUI import KeyboardKeys
 from UI.primitives import UIPrimitive, Image, Rect
 from UI.primitives.Text import Align, Text
+from configs.translations import TEXTS
 from controllers.Aspect import Aspect
-from controllers.scenarios.shared import createNextBackButtonsAndText, createButtonsAndText
-from utils.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y
+from controllers import Scenarios
+from controllers.Scenarios.shared import createNextBackButtonsAndText, createButtonsAndText
+from configs.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y
+from utils.AppState import AppState
 from utils.utils import renderDelay
 
 
@@ -19,12 +22,9 @@ def detectionAspectsDialogue(UI, TI):
     exitButton = UI.createExitButton()
     (mainText, nextButton, backButton) = createNextBackButtonsAndText(
         UI,
-        f"""Нейросеть определила аспекты в инвентаре и их количество.
-Проверьте правильность определения. Ошибки определения можно исправить, нажав на ячейку.
-
-Перелистывать страницы следует исключительно кнопками, нарисованными поверх игры!""",
-        runResearching, [UI, TI],
-        chooseThaumVersion, [UI],
+        AppState.translatedTexts[TEXTS.aspectsDetected],
+        Scenarios.runResearching, [UI, TI],
+        Scenarios.chooseThaumVersion, [UI],
     )
 
     # --- Inventory aspects and counts dialogue elements
@@ -35,7 +35,7 @@ def detectionAspectsDialogue(UI, TI):
 
     def updateCurrentAspectData():
         logging.info(f"Current aspect data updated on screen. Aspect: {currentAspect[0]}")
-        currentAspectMainText.setText(f'{currentAspect[0].name if currentAspect[0] else "не выбрано"}, {currentAspectCount[0] or "?"} шт.')
+        currentAspectMainText.setText(f'{currentAspect[0].name if currentAspect[0] else AppState.translatedTexts[TEXTS.Buttons.notSelected]}, x{currentAspectCount[0] or "?"}.')
         if currentAspect[0]:
             currentAspectImage.setImage(currentAspect[0].pixMapImage)
         else:
@@ -194,12 +194,11 @@ def detectionAspectsDialogue(UI, TI):
 
     [cellMainText, cellBackButton, cellNextButton, cellIsNoneButton] = createButtonsAndText(
         UI,
-        f"""Чтобы изменить аспект в ячейке, выберите его из списка ниже
-Чтобы изменить его количество, испоьзуйте клавиши цифр [0-9] и [Backspace]""",
+        AppState.translatedTexts[TEXTS.aspectChanging],
         [
-            ("Отмена ", cancelAspectChanges, []),
-            ("Подтвердить ", confirmAspectChanges, []),
-            ("Ячейка пуста или неизвестный аспект ", confirmAspectIsNone, []),
+            (AppState.translatedTexts[TEXTS.Buttons.cancel], cancelAspectChanges, []),
+            (AppState.translatedTexts[TEXTS.Buttons.confirm], confirmAspectChanges, []),
+            (AppState.translatedTexts[TEXTS.Buttons.cellIsEmpty], confirmAspectIsNone, []),
         ]
     )
 
@@ -207,7 +206,7 @@ def detectionAspectsDialogue(UI, TI):
     textXCoord = MARGIN
     currentAspectInfoText = Text(
         textXCoord, textYCoord,
-        'Данные аспекта:',
+        AppState.translatedTexts[TEXTS.Buttons.aspectData],
         color=QColor('white'),
         withBackground=True,
         backgroundOpacity=0.8,

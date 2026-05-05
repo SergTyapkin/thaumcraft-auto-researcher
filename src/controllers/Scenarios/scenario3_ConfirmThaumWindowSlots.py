@@ -4,12 +4,13 @@ from math import cos, pi, sin
 from PyQt5.QtGui import QColor
 
 from UI.primitives import Point, Line, Rect
-from controllers.scenarios.scenario2_ConfigureThaumWindow import configureThaumWindowCoords
-from controllers.scenarios.scenario4_ChooseThaumVersion import chooseThaumVersion
-from controllers.scenarios.shared import createNextBackButtonsAndText
+from configs.translations import TEXTS
+from controllers import Scenarios
+from controllers.Scenarios.shared import createNextBackButtonsAndText
+from utils.AppState import AppState
 from utils.LinkableValue import LinkableCoord, LinkableValue
-from utils.constants import THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y
-from utils.utils import saveThaumControlsConfig
+from configs.constants import THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
+    THAUM_ASPECTS_INVENTORY_SLOTS_Y
 
 
 def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
@@ -22,33 +23,20 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
     UI.createExitButton()
 
     def saveControls():
-        saveThaumControlsConfig(pointWritingMaterials, pointPapers, rectAspectsListing.LT, rectAspectsListing.RB,
-                                pointAspectsScrollLeft, pointAspectsScrollRight,
-                                pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventory.LT,
-                                rectInventory.RB, rectHexagonsCC,
-                                (rectHexagonsCC.y - rectHexagonsTy) / (THAUM_HEXAGONS_SLOTS_COUNT // 2))
-        chooseThaumVersion(UI)
+        AppState.saveThaumWindowControls(
+            pointWritingMaterials, pointPapers, rectAspectsListing.LT, rectAspectsListing.RB,
+            pointAspectsScrollLeft, pointAspectsScrollRight,
+            pointAspectsMixLeft, pointAspectsMixCreate, pointAspectsMixRight, rectInventory.LT,
+            rectInventory.RB, rectHexagonsCC,
+            (rectHexagonsCC.y - rectHexagonsTy) / (THAUM_HEXAGONS_SLOTS_COUNT // 2)
+        )
+        Scenarios.chooseThaumVersion(UI)
 
     createNextBackButtonsAndText(
         UI,
-        """Программа автоматически определила положения кнопок взаимодействия 
-так, как показано. Скорее всего сделала она это не точно, так что внимательно посмотрите на точки,
-и, если нужно, передвиньте их точно на нужные слоты / кнопки. 
-От точности настройки зависит правильность работы программы! Вот список, где какие точки:
-
-Желтые - слот для \"бумаги и пера\", слот для \"изучений\";
-Зеленая область - выбор аспектов из стола 5х5. Важно, чтобы все
-линии с точностью до пары пикселей разделяли аспекты;
-Голубые - переход по страницам аспектов влево / вправо;
-Розовые - удаление аспектов из смешивателя, смешение аспектов;
-Шестиугольная область - место выкладывания аспектов в ячейки 
-(очень важно совпадение всех центров ячеек на пересечениях линий);
-Фиолетовая область - 9х3 внутренних слотов инвентаря.
-
-(!!! После завершения этой конфигурации, если окно с игрой открыто не во весь экран, 
-не передвигайте его по экрану !!)""",
+        AppState.translatedTexts[TEXTS.confirmThaumWindowSlots],
         saveControls, [],
-        configureThaumWindowCoords, [UI],
+        Scenarios.configureThaumWindowCoords, [UI],
     )
 
     # Slots
@@ -151,9 +139,9 @@ def confirmThaumWindowSlots(UI, LTx, LTy, RBx, RBy):
             deg30HexagonsLines[idx].S.x = rectHexagonsCC.x + cos(pi / 6) * rad + (i < 0) * i * slotSizeX
             deg30HexagonsLines[idx].E.x = rectHexagonsCC.x - cos(pi / 6) * rad + (i > 0) * i * slotSizeX
             deg30HexagonsLines[idx].S.y = rectHexagonsCC.y + sin(pi / 6) * rad - (i < 0) * i * slotSizeY / 2 - (
-                        i > 0) * i * slotSizeY
+                    i > 0) * i * slotSizeY
             deg30HexagonsLines[idx].E.y = rectHexagonsCC.y - sin(pi / 6) * rad - (i > 0) * i * slotSizeY / 2 - (
-                        i < 0) * i * slotSizeY
+                    i < 0) * i * slotSizeY
 
             deg60HexagonsLines[idx].S.x = -deg30HexagonsLines[idx].S.x + rectHexagonsCC.x * 2
             deg60HexagonsLines[idx].E.x = -deg30HexagonsLines[idx].E.x + rectHexagonsCC.x * 2
