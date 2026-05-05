@@ -3,6 +3,9 @@ import math
 import threading
 
 from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
 
 from utils.AppState import AppState
 from UI.OverlayUI import KeyboardKeys, OverlayUI
@@ -14,7 +17,8 @@ from controllers.ThaumInteractor import ThaumInteractor
 from controllers import Scenarios
 from controllers.Scenarios.shared import createButtonsAndText
 from logic.LinksGeneration import generateLinkMap
-from configs.constants import MARGIN, LINK_GENERATION_MAX_TIME_MS, MAX_SOLVE_RETRIES, THAUM_HEXAGONS_SLOTS_COUNT
+from configs.constants import MARGIN, LINK_GENERATION_MAX_TIME_MS, MAX_SOLVE_RETRIES, THAUM_HEXAGONS_SLOTS_COUNT, \
+    DONATE_URL_RUSSIA, DONATE_CRYPTO_ID_GLOBAL
 from utils.utils import renderDelay, eventsDelay
 
 
@@ -357,6 +361,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def onClickSwitchToMultyResearches():
         switchToMultyResearchesState()
 
+    def onClickDonate():
+        switchToDonateState()
+
     activeStateDialogueObjects = createButtonsAndText(
         UI,
         AppState.translatedTexts[TEXTS.solvingCreated],
@@ -365,6 +372,7 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             (AppState.translatedTexts[TEXTS.Buttons.regenerateSolving], regenerateLinkMap, []),
             (AppState.translatedTexts[TEXTS.Buttons.placeSolving], startPuttingLinkMap, []),
             (AppState.translatedTexts[TEXTS.Buttons.automaticMode], onClickSwitchToMultyResearches, []),
+            (AppState.translatedTexts[TEXTS.Buttons.goToDonate], onClickDonate, []),
         ]
     )
 
@@ -393,6 +401,24 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
             ("19", onClickNumber, [19]), ("20", onClickNumber, [20]), ("21", onClickNumber, [21]),
             ("22", onClickNumber, [22]), ("23", onClickNumber, [23]), ("24", onClickNumber, [24]),
             ("25", onClickNumber, [25]), ("26", onClickNumber, [26]), ("27", onClickNumber, [27]),
+        ]
+    )
+
+    # --- Donate state elements
+    def onClickDonateRussia():
+        QDesktopServices.openUrl(QUrl(DONATE_URL_RUSSIA))
+
+    def onClickDonateGlobal():
+        clipboard = QApplication.clipboard()
+        clipboard.setText(DONATE_CRYPTO_ID_GLOBAL)
+
+    donateObjects = createButtonsAndText(
+        UI,
+        AppState.translatedTexts[TEXTS.donate],
+        [
+            (AppState.translatedTexts[TEXTS.Buttons.donateGlobal], onClickDonateGlobal, []),
+            (AppState.translatedTexts[TEXTS.Buttons.donateRussia], onClickDonateRussia, []),
+            (AppState.translatedTexts[TEXTS.Buttons.back], onClickBack, []),
         ]
     )
 
@@ -439,9 +465,17 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
     def switchToMultyResearchesState():
         logging.info("Switching to multy researches state")
         UI.clearKeyCallbacks()
-        UI.setKeyCallback([KeyboardKeys.esc], exitCellDialogue)
+        UI.setKeyCallback([KeyboardKeys.esc], switchToActiveState)
         UI.setAllObjectsVisibility(False)
         UI.setObjectsVisibility(multyResearchesObjects, True)
+        exitButtonObject.setVisibility(True)
+
+    def switchToDonateState():
+        logging.info("Switching to donate state")
+        UI.clearKeyCallbacks()
+        UI.setKeyCallback([KeyboardKeys.esc], switchToActiveState)
+        UI.setAllObjectsVisibility(False)
+        UI.setObjectsVisibility(donateObjects, True)
         exitButtonObject.setVisibility(True)
 
     updateDetectingField()

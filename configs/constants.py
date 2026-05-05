@@ -82,6 +82,9 @@ MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024 * 5  # 5 Mb
 MAX_LOG_FILES_COUNT = 20
 LOG_LEVEL = logging.DEBUG
 
+# Donate urls
+DONATE_URL_RUSSIA = 'https://tbank.ru/cf/82w1UbDljyM'
+DONATE_CRYPTO_ID_GLOBAL = 'UQAYwm--Z4va2KK_Qk_e9GDhPxrTtnsWvzN6yQYPr2MiB1em'
 # ------------------------
 DEBUG = True
 # DEBUG = False

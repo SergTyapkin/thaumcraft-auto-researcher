@@ -18,6 +18,7 @@ class TEXTS:
     solvingCreated = "solvingCreated"
     programPaused = "programPaused"
     startAutomaticMode = "startAutomaticMode"
+    donate = "donate"
 
     @dataclass
     class Buttons:
@@ -36,6 +37,9 @@ class TEXTS:
         setCellNotAvailable = "setCellNotAvailable"
         setCellFree = "setCellFree"
         notSelected = "notSelected"
+        goToDonate = "goToDonate"
+        donateGlobal = "donateGlobal"
+        donateRussia = "donateRussia"
 
 
 TRANSLATIONS = {
@@ -113,6 +117,13 @@ TRANSLATIONS = {
 Записки должны быть разложены в инвентаре подряд, начиная с левого верхнего слота в инвентаре.
 В столе исследований записки быть не должно""",
 
+        TEXTS.donate: """Спасибо, что хотите поддержать меня!
+На разработку ушло более полугода, и ваш донат подпитает мою мотивацию поддерживать этот проект
+
+Не для России - выбирайте первую кнопку. Она скопирует вам в буфер обмена id моего крипто-кошелька.
+Если вы клиент Российского банка - выбирайте вторую кнопку. Она откроет ссылку на сбор в Т-Банке.
+""",
+
         TEXTS.Buttons.cancel: "Отмена",
         TEXTS.Buttons.confirm: "Подтвердить",
         TEXTS.Buttons.backArrowed: "<  Назад",
@@ -125,9 +136,12 @@ TRANSLATIONS = {
         TEXTS.Buttons.regenerateSolving: "Перегенерировать решение",
         TEXTS.Buttons.placeSolving: "Выложить решение",
         TEXTS.Buttons.automaticMode: "Безостановочный режим",
+        TEXTS.Buttons.goToDonate: "Поддержать разработчика",
         TEXTS.Buttons.setCellNotAvailable: "Ячейка недоступна (N)",
         TEXTS.Buttons.setCellFree: "Ячейка свободна (F)",
         TEXTS.Buttons.notSelected: "не выбрано",
+        TEXTS.Buttons.donateGlobal: "Скопировать ID крипто-кошелька",
+        TEXTS.Buttons.donateRussia: "Сбор в Т-Банке",
     },
 
     "English": {
