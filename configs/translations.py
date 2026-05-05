@@ -218,6 +218,13 @@ To continue working, press [Ctrl + Shift + Space]""",
 The notes must be placed in the inventory in a row, starting from the top left slot in the inventory.
 There should be no research note in the research table""",
 
+        TEXTS.donate: """Thank you for wanting to support me!
+The development took more than six months, and your donation will fuel my motivation to maintain this project.
+
+Not for Russia - choose the first button. It will copy my crypto wallet ID to your clipboard.
+If you are a client of a Russian bank - choose the second button. It will open a link to a fundraiser in T-Bank.
+""",
+
         TEXTS.Buttons.cancel: "Cancel",
         TEXTS.Buttons.confirm: "Confirm",
         TEXTS.Buttons.backArrowed: "<  Back",
@@ -230,9 +237,12 @@ There should be no research note in the research table""",
         TEXTS.Buttons.regenerateSolving: "Regenerate solution",
         TEXTS.Buttons.placeSolving: "Place solution",
         TEXTS.Buttons.automaticMode: "Automatic mode",
+        TEXTS.Buttons.goToDonate: "Support the developer",
         TEXTS.Buttons.setCellNotAvailable: "Cell not available (N)",
         TEXTS.Buttons.setCellFree: "Cell is free (F)",
         TEXTS.Buttons.notSelected: "not selected",
+        TEXTS.Buttons.donateGlobal: "Copy crypto wallet ID",
+        TEXTS.Buttons.donateRussia: "Fundraiser in T-Bank",
     },
 
     "Italian": {
@@ -309,6 +319,13 @@ Per continuare a lavorare, premi [Ctrl + Shift + Spazio]""",
 Le note devono essere posizionate nell'inventario in fila, iniziando dallo slot in alto a sinistra nell'inventario.
 Non dovrebbe esserci alcuna nota di ricerca nel tavolo di ricerca""",
 
+        TEXTS.donate: """Grazie per volermi supportare!
+Lo sviluppo ha richiesto più di sei mesi e la tua donazione alimenterà la mia motivazione a mantenere questo progetto.
+
+Non per la Russia - scegli il primo pulsante. Copierà l'ID del mio portafoglio crypto negli appunti.
+Se sei un cliente di una banca russa - scegli il secondo pulsante. Aprirà un link a una raccolta fondi in T-Bank.
+""",
+
         TEXTS.Buttons.cancel: "Annulla",
         TEXTS.Buttons.confirm: "Conferma",
         TEXTS.Buttons.backArrowed: "<  Indietro",
@@ -321,9 +338,12 @@ Non dovrebbe esserci alcuna nota di ricerca nel tavolo di ricerca""",
         TEXTS.Buttons.regenerateSolving: "Rigenera soluzione",
         TEXTS.Buttons.placeSolving: "Posiziona soluzione",
         TEXTS.Buttons.automaticMode: "Modalità automatica",
+        TEXTS.Buttons.goToDonate: "Supporta lo sviluppatore",
         TEXTS.Buttons.setCellNotAvailable: "Cella non disponibile (N)",
         TEXTS.Buttons.setCellFree: "Cella libera (F)",
         TEXTS.Buttons.notSelected: "non selezionato",
+        TEXTS.Buttons.donateGlobal: "Copia ID portafoglio crypto",
+        TEXTS.Buttons.donateRussia: "Raccolta fondi in T-Bank",
     },
 
     "Dutch": {
@@ -400,6 +420,13 @@ Om verder te werken, druk op [Ctrl + Shift + Spatie]""",
 De notities moeten op een rij in de inventaris worden geplaatst, beginnend vanaf de linkerbovenste slot in de inventaris.
 Er mag geen onderzoeksnotitie in de onderzoekstafel zijn""",
 
+        TEXTS.donate: """Bedankt dat je mij wilt steunen!
+De ontwikkeling duurde meer dan zes maanden en jouw donatie zal mijn motivatie voeden om dit project te onderhouden.
+
+Niet voor Rusland - kies de eerste knop. Het kopieert mijn crypto wallet ID naar je klembord.
+Als je een klant bent van een Russische bank - kies de tweede knop. Het opent een link naar een inzameling in T-Bank.
+""",
+
         TEXTS.Buttons.cancel: "Annuleren",
         TEXTS.Buttons.confirm: "Bevestigen",
         TEXTS.Buttons.backArrowed: "<  Terug",
@@ -412,9 +439,12 @@ Er mag geen onderzoeksnotitie in de onderzoekstafel zijn""",
         TEXTS.Buttons.regenerateSolving: "Oplossing opnieuw genereren",
         TEXTS.Buttons.placeSolving: "Oplossing plaatsen",
         TEXTS.Buttons.automaticMode: "Automatische modus",
+        TEXTS.Buttons.goToDonate: "Steun de ontwikkelaar",
         TEXTS.Buttons.setCellNotAvailable: "Cel niet beschikbaar (N)",
         TEXTS.Buttons.setCellFree: "Cel is vrij (F)",
         TEXTS.Buttons.notSelected: "niet geselecteerd",
+        TEXTS.Buttons.donateGlobal: "Kopieer crypto wallet ID",
+        TEXTS.Buttons.donateRussia: "Inzameling in T-Bank",
     },
 
     "Spanish": {
@@ -491,6 +521,13 @@ Para continuar trabajando, presiona [Ctrl + Shift + Espacio]""",
 Las notas deben colocarse en el inventario en fila, comenzando desde la ranura superior izquierda en el inventario.
 No debe haber una nota de investigación en la mesa de investigación""",
 
+        TEXTS.donate: """¡Gracias por querer apoyarme!
+El desarrollo llevó más de seis meses y tu donación alimentará mi motivación para mantener este proyecto.
+
+No para Rusia - elige el primer botón. Copiará el ID de mi billetera crypto en tu portapapeles.
+Si eres cliente de un banco ruso - elige el segundo botón. Abrirá un enlace a una colecta en T-Bank.
+""",
+
         TEXTS.Buttons.cancel: "Cancelar",
         TEXTS.Buttons.confirm: "Confirmar",
         TEXTS.Buttons.backArrowed: "<  Atrás",
@@ -503,9 +540,12 @@ No debe haber una nota de investigación en la mesa de investigación""",
         TEXTS.Buttons.regenerateSolving: "Regenerar solución",
         TEXTS.Buttons.placeSolving: "Colocar solución",
         TEXTS.Buttons.automaticMode: "Modo automático",
+        TEXTS.Buttons.goToDonate: "Apoyar al desarrollador",
         TEXTS.Buttons.setCellNotAvailable: "Celda no disponible (N)",
         TEXTS.Buttons.setCellFree: "Celda libre (F)",
         TEXTS.Buttons.notSelected: "no seleccionado",
+        TEXTS.Buttons.donateGlobal: "Copiar ID de billetera crypto",
+        TEXTS.Buttons.donateRussia: "Colecta en T-Bank",
     },
 
     "Arabic": {
@@ -582,6 +622,13 @@ No debe haber una nota de investigación en la mesa de investigación""",
 يجب وضع المذكرات في المخزون على التوالي، بدءاً من الفتحة اليسرى العليا في المخزون.
 يجب ألا تكون هناك مذكرة بحث في طاولة البحث""",
 
+        TEXTS.donate: """شكراً لك على رغبتك في دعمي!
+استغرق التطوير أكثر من ستة أشهر، وسيغذي تبرعك دافعي للحفاظ على هذا المشروع.
+
+ليس لروسيا - اختر الزر الأول. سينسخ معرف محفظتي المشفرة إلى حافظتك.
+إذا كنت عميلاً لبنك روسي - اختر الزر الثاني. سيفتح رابطاً لحملة جمع تبرعات في تي-بنك.
+""",
+
         TEXTS.Buttons.cancel: "إلغاء",
         TEXTS.Buttons.confirm: "تأكيد",
         TEXTS.Buttons.backArrowed: "<  رجوع",
@@ -594,9 +641,12 @@ No debe haber una nota de investigación en la mesa de investigación""",
         TEXTS.Buttons.regenerateSolving: "إعادة توليد الحل",
         TEXTS.Buttons.placeSolving: "وضع الحل",
         TEXTS.Buttons.automaticMode: "الوضع التلقائي",
+        TEXTS.Buttons.goToDonate: "ادعم المطور",
         TEXTS.Buttons.setCellNotAvailable: "الخلية غير متاحة (N)",
         TEXTS.Buttons.setCellFree: "الخلية فارغة (F)",
         TEXTS.Buttons.notSelected: "غير محدد",
+        TEXTS.Buttons.donateGlobal: "نسخ معرف المحفظة المشفرة",
+        TEXTS.Buttons.donateRussia: "حملة جمع تبرعات في تي-بنك",
     },
 
     "Chinese (Traditional)": {
@@ -672,6 +722,13 @@ No debe haber una nota de investigación en la mesa de investigación""",
 筆記必須在物品欄中連續放置，從物品欄的左上角插槽開始。
 研究桌中不應有研究筆記""",
 
+        TEXTS.donate: """感謝您願意支持我！
+開發耗時超過六個月，您的捐款將激勵我持續維護這個專案。
+
+非俄羅斯地區 - 請選擇第一個按鈕。它會將我的加密錢包ID複製到您的剪貼簿。
+如果您是俄羅斯銀行客戶 - 請選擇第二個按鈕。它會打開一個T-Bank的募款連結。
+""",
+
         TEXTS.Buttons.cancel: "取消",
         TEXTS.Buttons.confirm: "確認",
         TEXTS.Buttons.backArrowed: "<  返回",
@@ -684,9 +741,12 @@ No debe haber una nota de investigación en la mesa de investigación""",
         TEXTS.Buttons.regenerateSolving: "重新生成解決方案",
         TEXTS.Buttons.placeSolving: "放置解決方案",
         TEXTS.Buttons.automaticMode: "自動模式",
+        TEXTS.Buttons.goToDonate: "支持開發者",
         TEXTS.Buttons.setCellNotAvailable: "單元格不可用 (N)",
         TEXTS.Buttons.setCellFree: "單元格空閒 (F)",
         TEXTS.Buttons.notSelected: "未選擇",
+        TEXTS.Buttons.donateGlobal: "複製加密錢包ID",
+        TEXTS.Buttons.donateRussia: "T-Bank募款",
     },
 
     "Chinese (Simplified)": {
@@ -762,6 +822,13 @@ No debe haber una nota de investigación en la mesa de investigación""",
 笔记必须在物品栏中连续放置，从物品栏的左上角插槽开始。
 研究桌中不应有研究笔记""",
 
+        TEXTS.donate: """感谢您愿意支持我！
+开发耗时超过六个月，您的捐款将激励我持续维护这个项目。
+
+非俄罗斯地区 - 请选择第一个按钮。它会将我的加密钱包ID复制到您的剪贴板。
+如果您是俄罗斯银行客户 - 请选择第二个按钮。它会打开一个T-Bank的募款链接。
+""",
+
         TEXTS.Buttons.cancel: "取消",
         TEXTS.Buttons.confirm: "确认",
         TEXTS.Buttons.backArrowed: "<  返回",
@@ -774,9 +841,12 @@ No debe haber una nota de investigación en la mesa de investigación""",
         TEXTS.Buttons.regenerateSolving: "重新生成解决方案",
         TEXTS.Buttons.placeSolving: "放置解决方案",
         TEXTS.Buttons.automaticMode: "自动模式",
+        TEXTS.Buttons.goToDonate: "支持开发者",
         TEXTS.Buttons.setCellNotAvailable: "单元格不可用 (N)",
         TEXTS.Buttons.setCellFree: "单元格空闲 (F)",
         TEXTS.Buttons.notSelected: "未选择",
+        TEXTS.Buttons.donateGlobal: "复制加密钱包ID",
+        TEXTS.Buttons.donateRussia: "T-Bank募款",
     },
 
     "French": {
@@ -853,6 +923,13 @@ Pour continuer à travailler, appuyez sur [Ctrl + Shift + Espace]""",
 Les notes doivent être placées dans l'inventaire à la suite, en commençant par l'emplacement en haut à gauche dans l'inventaire.
 Il ne doit pas y avoir de note de recherche dans la table de recherche""",
 
+        TEXTS.donate: """Merci de vouloir me soutenir !
+Le développement a pris plus de six mois, et votre don alimentera ma motivation à maintenir ce projet.
+
+Pas pour la Russie - choisissez le premier bouton. Il copiera l'ID de mon portefeuille crypto dans votre presse-papiers.
+Si vous êtes client d'une banque russe - choisissez le deuxième bouton. Il ouvrira un lien vers une collecte de fonds dans T-Bank.
+""",
+
         TEXTS.Buttons.cancel: "Annuler",
         TEXTS.Buttons.confirm: "Confirmer",
         TEXTS.Buttons.backArrowed: "<  Retour",
@@ -865,9 +942,12 @@ Il ne doit pas y avoir de note de recherche dans la table de recherche""",
         TEXTS.Buttons.regenerateSolving: "Régénérer la solution",
         TEXTS.Buttons.placeSolving: "Placer la solution",
         TEXTS.Buttons.automaticMode: "Mode automatique",
+        TEXTS.Buttons.goToDonate: "Soutenir le développeur",
         TEXTS.Buttons.setCellNotAvailable: "Cellule non disponible (N)",
         TEXTS.Buttons.setCellFree: "Cellule libre (F)",
         TEXTS.Buttons.notSelected: "non sélectionné",
+        TEXTS.Buttons.donateGlobal: "Copier l'ID du portefeuille crypto",
+        TEXTS.Buttons.donateRussia: "Collecte de fonds dans T-Bank",
     },
 
     "Hindi": {
@@ -944,6 +1024,13 @@ Il ne doit pas y avoir de note de recherche dans la table de recherche""",
 नोटों को इन्वेंट्री में एक पंक्ति में रखा जाना चाहिए, इन्वेंट्री में सबसे ऊपरी बाएँ स्लॉट से शुरू करते हुए।
 शोध तालिका में कोई शोध नोट नहीं होना चाहिए""",
 
+        TEXTS.donate: """मुझे समर्थन देने की इच्छा के लिए धन्यवाद!
+विकास में छह महीने से अधिक समय लगा, और आपका दान इस परियोजना को बनाए रखने की मेरी प्रेरणा को बढ़ावा देगा।
+
+रूस के लिए नहीं - पहला बटन चुनें। यह मेरे क्रिप्टो वॉलेट आईडी को आपके क्लिपबोर्ड पर कॉपी कर देगा।
+यदि आप रूसी बैंक के ग्राहक हैं - दूसरा बटन चुनें। यह टी-बैंक में एक धन संग्रह का लिंक खोलेगा।
+""",
+
         TEXTS.Buttons.cancel: "रद्द करें",
         TEXTS.Buttons.confirm: "पुष्टि करें",
         TEXTS.Buttons.backArrowed: "<  वापस",
@@ -956,9 +1043,12 @@ Il ne doit pas y avoir de note de recherche dans la table de recherche""",
         TEXTS.Buttons.regenerateSolving: "समाधान पुनर्जीवित करें",
         TEXTS.Buttons.placeSolving: "समाधान रखें",
         TEXTS.Buttons.automaticMode: "स्वचालित मोड",
+        TEXTS.Buttons.goToDonate: "डेवलपर का समर्थन करें",
         TEXTS.Buttons.setCellNotAvailable: "सेल उपलब्ध नहीं (N)",
         TEXTS.Buttons.setCellFree: "सेल खाली है (F)",
         TEXTS.Buttons.notSelected: "चयनित नहीं",
+        TEXTS.Buttons.donateGlobal: "क्रिप्टो वॉलेट आईडी कॉपी करें",
+        TEXTS.Buttons.donateRussia: "टी-बैंक में धन संग्रह",
     },
 
     "Korean": {
@@ -1035,6 +1125,13 @@ Il ne doit pas y avoir de note de recherche dans la table de recherche""",
 노트는 인벤토리의 왼쪽 상단 슬롯부터 시작하여 인벤토리에 연속으로 배치해야 합니다.
 연구대에 연구 노트가 없어야 합니다""",
 
+        TEXTS.donate: """저를 지원해 주셔서 감사합니다!
+개발에 6개월 이상이 걸렸으며, 여러분의 기부는 이 프로젝트를 유지하는 제 동기를 북돋아 줄 것입니다.
+
+러시아 외 지역 - 첫 번째 버튼을 선택하세요. 제 암호화폐 지갑 ID를 클립보드에 복사합니다.
+러시아 은행 고객이신 경우 - 두 번째 버튼을 선택하세요. T-Bank의 모금 링크가 열립니다.
+""",
+
         TEXTS.Buttons.cancel: "취소",
         TEXTS.Buttons.confirm: "확인",
         TEXTS.Buttons.backArrowed: "<  뒤로",
@@ -1047,8 +1144,11 @@ Il ne doit pas y avoir de note de recherche dans la table de recherche""",
         TEXTS.Buttons.regenerateSolving: "해결책 재생성",
         TEXTS.Buttons.placeSolving: "해결책 배치",
         TEXTS.Buttons.automaticMode: "자동 모드",
+        TEXTS.Buttons.goToDonate: "개발자 지원하기",
         TEXTS.Buttons.setCellNotAvailable: "셀 사용 불가 (N)",
         TEXTS.Buttons.setCellFree: "셀이 비어 있음 (F)",
         TEXTS.Buttons.notSelected: "선택되지 않음",
+        TEXTS.Buttons.donateGlobal: "암호화폐 지갑 ID 복사",
+        TEXTS.Buttons.donateRussia: "T-Bank 모금",
     },
 }
