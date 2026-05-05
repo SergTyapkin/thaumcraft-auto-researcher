@@ -5,7 +5,7 @@ from PyQt5.QtGui import QColor
 from UI.OverlayUI import OverlayUI, KeyboardKeys
 from UI.primitives import Text
 from configs.translations import TEXTS
-from utils.AppState import AppState
+from utils import AppState
 from utils.LinkableValue import LinkableCoord
 from configs.constants import MARGIN
 

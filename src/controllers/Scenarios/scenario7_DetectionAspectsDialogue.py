@@ -10,7 +10,7 @@ from controllers.Aspect import Aspect
 from controllers import Scenarios
 from controllers.Scenarios.shared import createNextBackButtonsAndText, createButtonsAndText
 from configs.constants import MARGIN, THAUM_ASPECTS_INVENTORY_SLOTS_X, THAUM_ASPECTS_INVENTORY_SLOTS_Y
-from utils.AppState import AppState
+from utils import AppState
 from utils.utils import renderDelay
 
 

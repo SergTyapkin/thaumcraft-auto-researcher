@@ -5,7 +5,7 @@ from configs.translations import TEXTS
 from controllers.ThaumInteractor import ThaumInteractor
 from controllers import Scenarios
 from controllers.Scenarios.shared import createNextBackButtonsAndText
-from utils.AppState import AppState
+from utils import AppState
 
 
 def beReadyForStartSolving(UI: OverlayUI, TI: ThaumInteractor):

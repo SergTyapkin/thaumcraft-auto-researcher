@@ -7,7 +7,7 @@ from UI.primitives import Point, Line, Rect
 from configs.translations import TEXTS
 from controllers import Scenarios
 from controllers.Scenarios.shared import createNextBackButtonsAndText
-from utils.AppState import AppState
+from utils import AppState
 from utils.LinkableValue import LinkableCoord, LinkableValue
 from configs.constants import THAUM_HEXAGONS_SLOTS_COUNT, THAUM_ASPECTS_INVENTORY_SLOTS_X, \
     THAUM_ASPECTS_INVENTORY_SLOTS_Y

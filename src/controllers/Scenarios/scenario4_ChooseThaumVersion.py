@@ -8,7 +8,7 @@ from configs.translations import TEXTS
 from controllers import Scenarios
 from controllers.Scenarios.shared import createNextBackButtonsAndText, PointTextAnchor
 from configs.constants import MARGIN
-from utils.AppState import AppState
+from utils import AppState
 
 
 def chooseThaumVersion(UI: OverlayUI):

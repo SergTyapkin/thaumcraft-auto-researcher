@@ -5,7 +5,7 @@ from logging.handlers import RotatingFileHandler
 from controllers import Scenarios
 from UI.OverlayUI import OverlayUI
 from configs.constants import LOG_FILE_PATH, MAX_LOG_FILE_SIZE_BYTES, DEBUG, LOG_LEVEL, MAX_LOG_FILES_COUNT
-from utils.AppState import AppState
+from utils import AppState
 from utils.utils import createDirByFilePath
 
 createDirByFilePath(LOG_FILE_PATH)

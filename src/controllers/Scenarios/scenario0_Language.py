@@ -8,7 +8,7 @@ from configs.translations import TRANSLATIONS, TEXTS
 from controllers import Scenarios
 from controllers.Scenarios.shared import PointTextAnchor, createNextBackButtonsAndText
 from configs.constants import MARGIN
-from utils.AppState import AppState
+from utils import AppState
 
 
 def chooseLanguage(UI: OverlayUI):

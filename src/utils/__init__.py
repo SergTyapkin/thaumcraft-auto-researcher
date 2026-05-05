@@ -1,2 +1,2 @@
-import AppState
-import utils
+from utils.AppState import AppState
+import utils.utils

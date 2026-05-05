@@ -1,7 +1,7 @@
 import logging
 
 from configs.constants import MAX_ASPECTS_SOLVING_PATH_LEN
-from utils.AppState import AppState
+from utils import AppState
 
 DEFAULT_INITIAL_PATH_LEN = 999999
 

@@ -21,7 +21,7 @@ from configs.constants import INVENTORY_SLOTS_X, INVENTORY_SLOTS_Y, THAUM_ASPECT
     NEUROLINK_SCRIPT_IMAGE_PREDICTION_NAME, DELAY_BETWEEN_RENDER, DELAY_BETWEEN_EVENTS
 from configs.constants import getAspectImagePath
 from utils.utils import getImagesDiffPercent, eventsDelay, renderDelay
-from utils.AppState import AppState
+from utils import AppState
 
 
 def createTI(

@@ -6,7 +6,7 @@ from controllers.ThaumInteractor import createTI
 from controllers import Scenarios
 from controllers.Scenarios.shared import createNextBackButtonsAndText, createButtonsAndText
 from configs.constants import MARGIN
-from utils.AppState import AppState
+from utils import AppState
 from utils.utils import renderDelay
 
 

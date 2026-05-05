@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from utils.AppState import AppState
+from utils import AppState
 from UI.OverlayUI import KeyboardKeys, OverlayUI
 from UI.primitives import Image, Circle
 from UI.primitives.Text import Text
