@@ -72,7 +72,7 @@ MAX_ASPECTS_SOLVING_PATH_LEN = 10
 
 # ------------------------
 # Other constants
-IMAGES_TOLERANCE_PERCENT = 0.02
+IMAGES_TOLERANCE_PERCENT = 0.06
 IMAGE_TMP_PATH = to_appdata_path('.tmp/tmp.png')
 LOG_FILE_PATH = to_appdata_path('logs/logs.log')
 LINK_GENERATION_MAX_TIME_MS = 1000 * 10  # 10 sec
