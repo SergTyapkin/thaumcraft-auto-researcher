@@ -470,6 +470,9 @@ class ThaumInteractor:
     def updateAvailableAspectsInInventory(self, onFinishCallback: Callable, callbackArgs=[]):
         logging.info("Detecting available aspects in inventory...")
         self.availableAspects = []
+        duplicateDetections = 0
+        lastScreenshotsDiff = None
+        scanStopReason = "unknown"
 
         debugHighlightingRect = self._addDebugHighlightingRect()
         slotWidth = (self.rectAspectsListingRB.x - self.rectAspectsListingLT.x) / THAUM_ASPECTS_INVENTORY_SLOTS_X
@@ -480,6 +483,12 @@ class ThaumInteractor:
         def detectAspects():
             def exitWithSort():
                 self.UI.removeObject(debugHighlightingRect)
+                logging.info(
+                    "Inventory scan summary: unique aspects=%d, duplicate detections=%d, "
+                    "last page index=%s, stop reason=%s, last screenshot difference=%s",
+                    len(self.availableAspects), duplicateDetections,
+                    self.currentAspectsPageIdx, scanStopReason, lastScreenshotsDiff,
+                )
 
                 # Sort found aspects
                 self.availableAspects.sort(key=lambda a: a.uid)
@@ -489,6 +498,7 @@ class ThaumInteractor:
                 onFinishCallback(*callbackArgs)
 
             def detectionIteration(isFoundEndOfInventory=False, newAdditionalOffset=THAUM_ASPECTS_INVENTORY_SLOTS_X):
+                nonlocal duplicateDetections, lastScreenshotsDiff, scanStopReason
                 logging.info(f"Finding aspects on new page of inventory. Current page: {self.currentAspectsPageIdx}")
                 # Calculate screenshot area
                 screenshotRBX = self.rectAspectsListingRB.x
@@ -528,6 +538,15 @@ class ThaumInteractor:
                                     THAUM_ASPECTS_INVENTORY_SLOTS_X - newAdditionalOffset) + prediction.x // slotWidth,
                         prediction.y // slotHeight,
                     )
+                    if aspect in self.availableAspects:
+                        duplicateDetections += 1
+                        logging.warning(
+                            "Duplicate aspect detection: %s, existing cell=(%s, %s), "
+                            "new cell=(%s, %s); keeping original coordinates",
+                            aspect.name, aspect.cellX, aspect.cellY,
+                            int(coords[0]), int(coords[1]),
+                        )
+                        continue
                     aspect.cellX = int(coords[0])
                     aspect.cellY = int(coords[1])
                     logging.debug(
@@ -538,6 +557,7 @@ class ThaumInteractor:
                 logging.info(f"All found aspects: {self.availableAspects}")
 
                 if isFoundEndOfInventory:
+                    scanStopReason = "inventory end detected"
                     exitWithSort()
                     return
 
@@ -561,6 +581,7 @@ class ThaumInteractor:
                     )
                     # check if we really scrolled right
                     screenshotsDiff = getImagesDiffPercent(previousScreenshotImage, newScreenshotImage)
+                    lastScreenshotsDiff = screenshotsDiff
                     logging.debug(f"Difference of two images before and after scrolling right: {screenshotsDiff}")
                     if screenshotsDiff < IMAGES_TOLERANCE_PERCENT:  # nothing changed - it's the end of inventory
                         logging.info(f"Found end of inventory. Detection ends")
@@ -577,6 +598,7 @@ class ThaumInteractor:
                     self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectionIteration,
                                        [isFoundEndOfInventory, newAdditionalOffset])
                 else:
+                    scanStopReason = "no additional columns to scan"
                     exitWithSort()
 
             self.UI.setTimeout(DELAY_BETWEEN_EVENTS, detectionIteration)
