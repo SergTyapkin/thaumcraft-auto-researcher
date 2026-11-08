@@ -35,13 +35,10 @@ class _AppState:
         self.translatedTexts: dict[str, str] = {}
 
         self.selectedThaumVersion: None | str = None
-        self.aspectRecipes: dict[str, str] = {}
+        self.aspectRecipes: dict[str, list[str]] = {}
         self.aspectsOrder: list[str] = []
-        self.allAspectRecipes: dict[str, dict[str, str]] = {}
-        self.allAddonsRecipes: dict[str, dict[str, str]] = {}
-
-        self.selectedThaumVersion: None | str = None
-        self.aspectRecipes: dict[str, str] = {}
+        self.allAspectRecipes: dict[str, dict[str, list[str]]] = {}
+        self.allAddonsRecipes: dict[str, dict[str, list[str]]] = {}
 
         self.thaumWindowControls: dict[str, str] | None = None
 

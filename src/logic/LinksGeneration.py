@@ -1,48 +1,58 @@
+import heapq
+import itertools
 import logging
 
 from configs.constants import MAX_ASPECTS_SOLVING_PATH_LEN
 from utils import AppState
 
-DEFAULT_INITIAL_PATH_LEN = 999999
+INF_PATH_LEN = 999999
+CYCLE_COST = 10 ** 6
+ROUTE_ENUMERATION_MAX_POP_COUNT = 100_000
+ROUTE_ENUMERATION_MAX_YIELD_COUNT = 5_000
 
 '''
 Описание работы алгоритма:
 
-1. Надо узнать, какой аспект с каким будем соединять, для этого: 
-1.1. Берём любой аспект из базовых (базовые - это те, что стояли. изначально). Он будет стартовым
-1.2. Смотрим, с какими базовыми он ещё не соединён, выбираем любой из них.
-1.3. Из всех аспектов на поле выбираем ближайший к стартовому, и соединенный с выбранным. Расстояние определяется алгоритмом Дейкстры.
+0. Из рецептов доступных аспектов строится граф соединяемости: аспекты соединимы,
+   если один является компонентом другого. Каждому аспекту сопоставляется
+   стоимость — количество базовых аспектов, необходимых для синтеза одной штуки.
 
-2. У нас есть 2 аспекта, которые надо соединить, и кратчайшее расстояние между ними. Ищем цепочку аспектов, реализующую это. Для этого используем BFS:
-2.1. От стартового берем все аспекты, с которыми он может связаться (граф аспектов) (получаем длину цепочки 2), от них, от каждого, берём все аспекты, с которыми они могут связаться (получаем длину цепочки 3), и т.д. 
-2.2. Если любая из полученных цепочек имеет требуемую длину, и заканчивается на необходимый аспект, мы ее нашли!
-2.3. Если были перебраны все цепочки до MAX_ASPECTS_SOLVING_PATH_LEN длины, и среди них нет ни одной подходящей, выходим, запускаем всё это заново, но теперь будем пытаться найти цепочку на 1 длиннее.
-2.4. Если цепочка так и не была найдена - кидаем ошибку, так не должно быть.
+1. Пока есть несвязанные между собой изначальные аспекты:
+1.1. Берём изначальный аспект и изначальный аспект, с которым он ещё не связан.
+1.2. Из всех аспектов на поле выбираем ближайшую пару: стартовый (связанный с первым)
+     и целевой (связанный со вторым). Расстояние — обход поля в ширину.
 
-3. У нас есть два аспекта, и длина цепочки между ними. Надо найти положения, как будем раскладывать аспекты. Для этого:
-3.1. Запускаем алгоритм Дейкстры, который ищет не минимальное расстояние до целевой клетки, а только заданное расстояние. Таким образом находим маршрут до клетки.
-3.2. Если маршрут требуемой длины не найден - кидаем ошибку, так не должно быть
+2. Ищем способ соединить выбранную пару:
+2.1. Маршруты по полю перебираются в порядке (длина, количество новых аспектов);
+     через уже стоящие на поле аспекты маршрут проходит бесплатно (переиспользование).
+2.2. Для каждого маршрута ищется цепочка аспектов той же длины из графа рецептов,
+     уважающая стоящие на маршруте аспекты и минимальная по суммарной стоимости
+     (динамическое программирование — полный перебор среди равных по длине).
+2.3. Первый маршрут, для которого нашлась цепочка, и используется.
 
-4. Есть всё, подготовка к следующему шагу:
-4.1. Записываем полученные аспекты на полученные места.
-4.2. Говорим, что все аспекты соединены со всеми базовыми аспектами, с которыми был соединён стартовый, и с которыми был соединён целевой
+3. Раскладываем цепочку по маршруту (стоящие аспекты переиспользуем бесплатно),
+   объединяем группы связанности изначальных аспектов.
 
-5. Заканчиваем, когда все базовые аспекты соединены друг с другом
+4. Заканчиваем, когда все изначальные аспекты связаны друг с другом.
 '''
+
 
 class AspectGraph:
     graph: dict[str, set[str]]
+    aspects_cost: dict[str, int]
 
-    def __init__(self, aspect_recipes: dict[str, list[str, str]]):
+    def __init__(self, aspect_recipes: dict[str, list[str]]):
         self.graph = {}
+        self.aspects_cost = {}
         self.regenerate_graph_combinations(aspect_recipes)
 
-    def regenerate_graph_combinations(self, aspect_recipes: dict[str, list[str, str]]):
+    def regenerate_graph_combinations(self, aspect_recipes: dict[str, list[str]]):
         self.graph.clear()
         for aspect_name, recipe in aspect_recipes.items():
             for component in recipe:
                 if component in aspect_recipes:
                     self.add_connection(aspect_name, component)
+        self._compute_aspects_cost(aspect_recipes)
 
     def add_connection(self, aspect1, aspect2):
         if aspect1 not in self.graph:
@@ -52,30 +62,54 @@ class AspectGraph:
         self.graph[aspect1].add(aspect2)
         self.graph[aspect2].add(aspect1)
 
-    def find_path(self, from_aspect, to_aspect, steps):
-        class PathElement:
-            path: list[str]
-            length: int
-            def __init__(self, path: list[str], length: int):
-                self.path = path
-                self.length = length
-            def __repr__(self):
-                return f"{'{'}{self.length}{'}'}"
-            def __lt__(self, other):
-                return self.length < other.length
+    def _compute_aspects_cost(self, aspect_recipes: dict[str, list[str]]):
+        visiting = set()
 
-        def searchDFS(current_path_element):
-            if current_path_element.length > steps:
-                return None
-            last_node = current_path_element.path[-1]
-            if (last_node == to_aspect) and (current_path_element.length == steps):
-                return current_path_element.path
-            for neighbor in self.graph.get(last_node, []):
-                result = searchDFS(PathElement(current_path_element.path + [neighbor], current_path_element.length + 1))
-                if result is not None:
-                    return result
+        def cost_of(aspect_name: str) -> int:
+            if aspect_name in self.aspects_cost:
+                return self.aspects_cost[aspect_name]
+            recipe = aspect_recipes.get(aspect_name)
+            if not recipe or len(recipe) < 2:
+                self.aspects_cost[aspect_name] = 1
+                return 1
+            if aspect_name in visiting:
+                logging.error(f"Cycle detected in aspects recipes on aspect '{aspect_name}'")
+                return CYCLE_COST
+            visiting.add(aspect_name)
+            cost = sum(cost_of(component) for component in recipe[:2])
+            visiting.discard(aspect_name)
+            self.aspects_cost[aspect_name] = cost
+            return cost
 
-        return searchDFS(PathElement([from_aspect], 0))
+        for aspect_name in aspect_recipes:
+            cost_of(aspect_name)
+
+    def find_path(self, from_aspect: str, to_aspect: str, steps: int,
+                  fixed_positions: dict[int, str] | None = None) -> list[str] | None:
+        fixed_positions = fixed_positions or {}
+        dp: list[dict[str, tuple[int, str]]] = [{from_aspect: (0, None)}]
+        for i in range(1, steps + 1):
+            layer = {}
+            required_aspect = fixed_positions.get(i)
+            is_last = i == steps
+            for node, (cost, _) in dp[-1].items():
+                for neighbor in sorted(self.graph.get(node, ())):
+                    if required_aspect is not None and neighbor != required_aspect:
+                        continue
+                    added_cost = 0 if (is_last or required_aspect is not None) \
+                        else self.aspects_cost.get(neighbor, 0)
+                    new_cost = cost + added_cost
+                    if neighbor not in layer or new_cost < layer[neighbor][0]:
+                        layer[neighbor] = (new_cost, node)
+            dp.append(layer)
+        if to_aspect not in dp[steps]:
+            return None
+        chain = [to_aspect]
+        current = to_aspect
+        for i in range(steps, 0, -1):
+            current = dp[i][current][1]
+            chain.append(current)
+        return list(reversed(chain))
 
     def __repr__(self):
         return f"AspectsGraph(graph={self.graph})"
@@ -94,139 +128,163 @@ class Aspect:
     def __repr__(self):
         return f"{self.name}{self.coord}"
 
-    def get_min_distance_path_to(self, target_aspect, hexagon_field_radius: int, holesSet: set[tuple[int, int]], initial_aspects: set, min_length: int = 0) -> tuple[int, set[tuple[int, int]]]:
-        # Алгоритм Дейкстры
-        # Для каждой клетки храним минимальное расстояние до неё. Или None, если клетка ещё не посещена
+    def get_cell_neighbours(self, coord: tuple[int, int]) -> tuple[tuple[int, int], ...]:
+        if coord[0] % 2 == 1:
+            return (-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1)
+        return (-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, 1)
 
-        class PathElement:
-            path: list[tuple[int, int]]
-            dist: int = DEFAULT_INITIAL_PATH_LEN
-            coord: tuple[int, int]
-            def __init__(self, x: int, y: int):
-                self.coord = (x, y)
-                self.path = []
-            def __repr__(self):
-                return f"{self.coord}{'{'}{self.dist}{'}'}"
-            def __lt__(self, other):
-                return self.dist < other.dist
-        cells: dict[tuple[int, int], PathElement] = {}
-        unvisited_nodes: set[PathElement] = set()
-        # Создаем все клетки
+    def iter_routes_to(
+            self,
+            target_aspect,
+            hexagon_field_radius: int,
+            holes_set: set[tuple[int, int]],
+            passable_aspects: dict[tuple[int, int], str] | None = None,
+            interruptingFlag: list[bool] | None = None,
+    ):
+        passable_aspects = passable_aspects or {}
+        cells = set()
         for x in range(-hexagon_field_radius, hexagon_field_radius + 1):
             for y in range(-hexagon_field_radius + (abs(x) + 1) // 2, hexagon_field_radius - (abs(x)) // 2 + 1):
-                path_elem = PathElement(x, y)
-                cells[(x, y)] = path_elem
-                unvisited_nodes.add(path_elem)
+                cells.add((x, y))
+        if self.coord not in cells or target_aspect.coord not in cells:
+            return
+        blocked = holes_set | {self.coord}
 
-        # В начальной ставим расстояние 0
-        if cells.get(self.coord) is None:
-            return DEFAULT_INITIAL_PATH_LEN, set()
-        start_cell = cells[self.coord]
-        start_cell.dist = 0
-        start_cell.path = [self.coord]
-
-        # Пока есть узлы, в которых мы не были
-        while len(unvisited_nodes) > 0:
-            current_node = min(unvisited_nodes)
-            # Получаем список соседей для текущей клетки
-            if current_node.coord[0] % 2 == 1:
-                cell_neighbours = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1)]
-            else:
-                cell_neighbours = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, 1), (1, 1)]
-            # Приоритизируем его, чтобы первым делом поиск производился в сторону других аспектов
-            def comparator(coord):
-                totalDiff = 0
-                for initial_aspect in initial_aspects:
-                    totalDiff += abs(initial_aspect.coord[0] - coord[0])
-                    totalDiff += abs(initial_aspect.coord[1] - coord[1])
-                return totalDiff
-            cell_neighbours.sort(key=comparator)
-            # Приведенный ниже блок кода извлекает соседей текущего узла и обновляет их расстояния.
-            for neighbor_direction in cell_neighbours:
-                neighbor_coord = (current_node.coord[0] + neighbor_direction[0], current_node.coord[1] + neighbor_direction[1])
-                if (neighbor_coord in holesSet) and (neighbor_coord != target_aspect.coord):
+        counter = itertools.count()
+        heap = [(0, 0, next(counter), (self.coord,))]
+        pop_count = 0
+        yield_count = 0
+        while heap:
+            if interruptingFlag and interruptingFlag[0]:
+                return
+            dist, placed, _, path = heapq.heappop(heap)
+            pop_count += 1
+            if pop_count > ROUTE_ENUMERATION_MAX_POP_COUNT:
+                logging.error(f"Route enumeration budget exceeded: {self.coord} -> {target_aspect.coord}")
+                return
+            coord = path[-1]
+            if coord == target_aspect.coord:
+                yield_count += 1
+                if yield_count > ROUTE_ENUMERATION_MAX_YIELD_COUNT:
+                    logging.error(f"Route enumeration yield budget exceeded: {self.coord} -> {target_aspect.coord}")
+                    return
+                fixed_positions = {
+                    i: passable_aspects[cell]
+                    for i, cell in enumerate(path)
+                    if 0 < i < len(path) - 1 and cell in passable_aspects
+                }
+                yield dist, path, fixed_positions
+                continue
+            if dist + 1 >= MAX_ASPECTS_SOLVING_PATH_LEN:
+                continue
+            for dx, dy in self.get_cell_neighbours(coord):
+                neighbor_coord = (coord[0] + dx, coord[1] + dy)
+                if neighbor_coord in path:
                     continue
-                neighborNode = cells.get(neighbor_coord, None)
-                if neighborNode is None:
+                if neighbor_coord in blocked and neighbor_coord != target_aspect.coord:
                     continue
-                tentative_value = current_node.dist + 1
-                if neighborNode.coord == target_aspect.coord:
-                    if (tentative_value >= min_length) and (tentative_value < neighborNode.dist):
-                        neighborNode.dist = tentative_value
-                        neighborNode.path = current_node.path + [neighbor_coord]
-                else:
-                    if tentative_value < neighborNode.dist:
-                        neighborNode.dist = tentative_value
-                        neighborNode.path = current_node.path + [neighbor_coord]
-            unvisited_nodes.remove(current_node)
-        return cells[target_aspect.coord].dist, cells[target_aspect.coord].path
+                if neighbor_coord not in cells:
+                    continue
+                neighbor_placed = placed + (0 if neighbor_coord in passable_aspects else 1)
+                heapq.heappush(heap, (dist + 1, neighbor_placed, next(counter), path + (neighbor_coord,)))
 
 
-def generateLinkMap(existing_aspects: dict[tuple[int, int], str], holes_set: set[tuple[int, int]], available_aspects: set[str], interruptingFlag: list[bool]) -> dict[tuple[int, int], str] | None:
+def generateLinkMap(existing_aspects: dict[tuple[int, int], str], holes_set: set[tuple[int, int]],
+                    available_aspects: set[str], interruptingFlag: list[bool]) -> dict[tuple[int, int], str] | None:
     logging.debug("-----------")
     logging.info("START SOLVING")
     logging.debug("#---0. Setting up:")
     logging.info(f"EXISTING ASPECTS: {existing_aspects}")
     logging.info(f"HOLES HEXAGONS: {holes_set}")
     aspect_recipes = AppState.aspectRecipes
-    available_aspect_recipes: dict[str, list[str, str]] = {}
-    for recipe_aspect in aspect_recipes:
-        if recipe_aspect in available_aspects:
-            available_aspect_recipes[recipe_aspect] = aspect_recipes[recipe_aspect]
+    available_aspect_recipes: dict[str, list[str]] = {
+        aspect_name: recipe
+        for aspect_name, recipe in aspect_recipes.items()
+        if aspect_name in available_aspects
+    }
     aspect_graph = AspectGraph(available_aspect_recipes)
 
-    result = {}
+    result = dict(existing_aspects)
     initial_aspects: set[Aspect] = set()
     aspects_on_field: set[Aspect] = set()
-    maxDistFromCenter = 0
+    max_dist_from_center = 0
 
     # Первоначальная обработка входных данных
-    for coord, aspectName in existing_aspects.items():
-        aspectObject = Aspect(aspectName, coord, set())
-        initial_aspects.add(aspectObject)
-        aspects_on_field.add(aspectObject)
-        aspectObject.linked_to_initials.add(aspectObject)
-        result[coord] = aspectName
-        distFromCenter = abs(coord[0]) + abs(coord[1]) - abs(coord[0]) // 2
-        maxDistFromCenter = max(maxDistFromCenter, distFromCenter)
+    for coord, aspect_name in existing_aspects.items():
+        aspect_object = Aspect(aspect_name, coord, set())
+        aspect_object.linked_to_initials.add(aspect_object)
+        initial_aspects.add(aspect_object)
+        aspects_on_field.add(aspect_object)
+        dist_from_center = abs(coord[0]) + abs(coord[1]) - abs(coord[0]) // 2
+        max_dist_from_center = max(max_dist_from_center, dist_from_center)
 
-    hexagon_field_radius = maxDistFromCenter
+    hexagon_field_radius = max_dist_from_center
     logging.debug(f"Hexagon field radius: {hexagon_field_radius}")
+
+    def get_field_aspect_by_coord(coord: tuple[int, int]) -> Aspect | None:
+        for aspect in aspects_on_field:
+            if aspect.coord == coord:
+                return aspect
+        return None
+
+    def merge_linked_groups(aspect_a: Aspect, aspect_b: Aspect) -> None:
+        # Объединяет группы связанности двух аспектов, обновляя все изначальные аспекты групп
+        aspect_a.linked_to_initials.update(aspect_b.linked_to_initials)
+        visited_initials = set()
+
+        def propagate(from_initial):
+            if from_initial in visited_initials or interruptingFlag[0]:
+                return
+            from_initial.linked_to_initials.update(aspect_a.linked_to_initials)
+            visited_initials.add(from_initial)
+            for initial_aspect in from_initial.linked_to_initials:
+                propagate(initial_aspect)
+
+        propagate(aspect_b)
+        logging.debug(f"Aspects {visited_initials} is now linked between themselves")
 
     # Продолжаем, пока все изначальные аспекты не будут связаны
     is_all_aspects_linked = False
     iteration_number = 0
     while not is_all_aspects_linked and not interruptingFlag[0]:
         is_all_aspects_linked = True
-        # Вывбираем один аспект из изначальных
-        for start_initial_aspect in initial_aspects:
+        # Выбираем один аспект из изначальных
+        for start_initial_aspect in sorted(initial_aspects, key=lambda a: (a.coord, a.name)):
             iteration_number += 1
             logging.debug(f"#### Iteration {iteration_number} ####")
-            # Получаем, к каким изначальынм аспектам он не привязан
-            # Говорим, что хотим привязать его к первому из них
+            # Получаем, к каким изначальным аспектам он не привязан
             not_linked_to_aspects = initial_aspects.difference(start_initial_aspect.linked_to_initials)
             logging.debug(f"{start_initial_aspect} not linked to {not_linked_to_aspects}")
             if len(not_linked_to_aspects) == 0:
                 continue
             is_all_aspects_linked = False
+
+            field_aspects_passable = {aspect.coord: aspect.name for aspect in aspects_on_field}
             min_start_aspect = None
             min_end_aspect = None
             min_end_initial_aspect = None
-            min_len_between_aspects = DEFAULT_INITIAL_PATH_LEN
-            while len(not_linked_to_aspects) > 0 and not interruptingFlag[0]:
-                end_initial_aspect = not_linked_to_aspects.pop()
+            min_len_between_aspects = INF_PATH_LEN
+            # Говорим, что хотим привязать его к каждому из них по очереди
+            for end_initial_aspect in sorted(not_linked_to_aspects, key=lambda a: (a.coord, a.name)):
+                if interruptingFlag[0]:
+                    break
                 logging.debug(f"#---1. Found initial aspects to link: {start_initial_aspect} to {end_initial_aspect}")
                 # Ищем ближайшие ПО РАССТОЯНИЮ аспекты, связанные с теми, от которого и к которому хотим привязать
-                for start_aspect_candidate in aspects_on_field:
+                for start_aspect_candidate in sorted(aspects_on_field, key=lambda a: (a.coord, a.name)):
                     if start_initial_aspect not in start_aspect_candidate.linked_to_initials:
                         continue
-                    for end_aspect_candidate in aspects_on_field:
+                    for end_aspect_candidate in sorted(aspects_on_field, key=lambda a: (a.coord, a.name)):
                         if start_aspect_candidate.coord == end_aspect_candidate.coord:
                             continue
                         if end_initial_aspect not in end_aspect_candidate.linked_to_initials:
                             continue
-
-                        path_len, _ = start_aspect_candidate.get_min_distance_path_to(end_aspect_candidate, hexagon_field_radius, holes_set, initial_aspects)
+                        passable = {coord: name for coord, name in field_aspects_passable.items()
+                                    if coord not in (start_aspect_candidate.coord, end_aspect_candidate.coord)}
+                        route = next(start_aspect_candidate.iter_routes_to(
+                            end_aspect_candidate, hexagon_field_radius, holes_set, passable_aspects=passable), None)
+                        if route is None:
+                            continue
+                        path_len = route[0]
                         if path_len < min_len_between_aspects:
                             min_start_aspect = start_aspect_candidate
                             min_end_aspect = end_aspect_candidate
@@ -237,57 +295,54 @@ def generateLinkMap(existing_aspects: dict[tuple[int, int], str], holes_set: set
                 return existing_aspects
 
             logging.debug(f"Min distance {min_len_between_aspects} found from aspect: {min_start_aspect} to aspect: {min_end_aspect}")
-            # К выбранному аспекту пытаемся построить цепочки. Сначала самую короткую, потом всё длиннее
             end_initial_aspect = min_end_initial_aspect
             end_aspect = min_end_aspect
             start_aspect = min_start_aspect
-            target_path_len = min_len_between_aspects
-            logging.debug(f"#---2. Trying to found aspects path from {start_aspect.name} to {end_aspect.name}")
-            while target_path_len < MAX_ASPECTS_SOLVING_PATH_LEN and not interruptingFlag[0]:
-                aspects_path = aspect_graph.find_path(start_aspect.name, end_aspect.name, target_path_len)
-                if not aspects_path:
-                    logging.debug(f"Path with len {target_path_len} not found")
-                    target_path_len += 1
+            passable = {coord: name for coord, name in field_aspects_passable.items()
+                        if coord not in (start_aspect.coord, end_aspect.coord)}
+
+            solved = False
+            routes = start_aspect.iter_routes_to(
+                end_aspect, hexagon_field_radius, holes_set,
+                passable_aspects=passable, interruptingFlag=interruptingFlag)
+            for route_len, coords_path, fixed_positions in routes:
+                logging.debug(f"#---2. Route with len {route_len} found: {coords_path}. Trying to find aspects chain "
+                              f"from {start_aspect.name} to {end_aspect.name}")
+                aspects_chain = aspect_graph.find_path(start_aspect.name, end_aspect.name, route_len, fixed_positions)
+                if aspects_chain is None:
+                    logging.debug(f"Aspects chain with len {route_len} not found for route {coords_path}")
                     continue
-                logging.debug(f"Path with len: {target_path_len} generated: {aspects_path}")
-                # Если цепочка найдена, пытаемся пройти найти маршрут заданной длины
-                logging.debug(f"#---3. Trying to find coordinates path with len {target_path_len} from {start_aspect} to {end_aspect}")
-                all_holes_set = holes_set | set(map(lambda asp: asp.coord, aspects_on_field))
-                min_len_between_aspects, coordsPath = start_aspect.get_min_distance_path_to(end_aspect, hexagon_field_radius, all_holes_set, initial_aspects, target_path_len)
-                if min_len_between_aspects > MAX_ASPECTS_SOLVING_PATH_LEN:
-                    logging.debug(f"Coordinates path with len {target_path_len} not found")
-                    target_path_len += 1
-                    continue
-                logging.debug(f"Coordinates path found: {coordsPath}")
+                logging.debug(f"Aspects chain generated: {aspects_chain}")
 
-                logging.debug("#---4. Fill gotten aspects and prepare to next step")
-                # Объединяем linked_to, и записываем в оба исходых аспекта один и тот же этот список)
-                all_added_aspects = set()
-                for i in range(1, target_path_len):
-                    result[coordsPath[i]] = aspects_path[i]
-                    addedAspect = Aspect(aspects_path[i], coordsPath[i], start_initial_aspect.linked_to_initials)
-                    aspects_on_field.add(addedAspect)
-                    all_added_aspects.add(addedAspect)
-                start_initial_aspect.linked_to_initials.update(end_initial_aspect.linked_to_initials)
+                logging.debug("#---3. Fill gotten aspects and prepare to next step")
+                merged_initials = set(start_initial_aspect.linked_to_initials) | set(end_initial_aspect.linked_to_initials)
+                touched_aspects = []
+                for i in range(1, route_len):
+                    coord = coords_path[i]
+                    aspect_name = aspects_chain[i]
+                    reused_aspect = get_field_aspect_by_coord(coord)
+                    if reused_aspect is not None:
+                        if reused_aspect.name != aspect_name:
+                            logging.error(
+                                f"Route aspect mismatch at {coord}: field has {reused_aspect.name}, chain needs {aspect_name}")
+                            return None
+                        reused_aspect.linked_to_initials.update(merged_initials)
+                        touched_aspects.append(reused_aspect)
+                        continue
+                    result[coord] = aspect_name
+                    added_aspect = Aspect(aspect_name, coord, merged_initials)
+                    aspects_on_field.add(added_aspect)
+                    touched_aspects.append(added_aspect)
 
-                # Recursive update all aspects that linked to this
-                visited_initials = set()
-                def update_all_linked_aspects(from_initial):
-                    if (from_initial in visited_initials) or interruptingFlag[0]:
-                        return
-                    from_initial.linked_to_initials.update(start_initial_aspect.linked_to_initials)
-                    visited_initials.add(from_initial)
-                    for initial_aspect in from_initial.linked_to_initials:
-                        update_all_linked_aspects(initial_aspect)
-                update_all_linked_aspects(end_initial_aspect)
-                logging.debug(f"Aspects {visited_initials} is now linked between themselves")
-
+                merge_linked_groups(start_initial_aspect, end_initial_aspect)
+                for aspect in touched_aspects:
+                    aspect.linked_to_initials.update(start_initial_aspect.linked_to_initials)
+                solved = True
                 logging.debug(f"Aspect path putted on field. Total aspects: {aspects_on_field}")
                 logging.debug("Iteration finished.")
                 break
-            if target_path_len == MAX_ASPECTS_SOLVING_PATH_LEN:
+            if not solved and not interruptingFlag[0]:
                 logging.error(f"Error: Path from {start_aspect} to {end_aspect} cannot be generated")
                 return None
     logging.info(f"Final solving: {result}")
     return result
-
