@@ -73,7 +73,9 @@ def runResearching(UI: OverlayUI, TI: ThaumInteractor):
         (existingAspects[0], noneHexagons[0], freeHexagons[0]) = TI.getExistingAspectsOnField()
         logging.debug(f'Aspects on field detected')
 
-    def updateSolving(interruptingFlag: list[bool] = [False]):
+    def updateSolving(interruptingFlag: list[bool] | None = None):
+        if interruptingFlag is None:
+            interruptingFlag = [False]
         logging.debug(f'Starts updating solve...')
 
         # Start solving
